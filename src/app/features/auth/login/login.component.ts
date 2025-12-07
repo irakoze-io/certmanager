@@ -36,6 +36,7 @@ export class LoginComponent {
 
     // Initialize login form
     this.loginForm = this.fb.group({
+      tenantId: ['', [Validators.required, Validators.min(1)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]]
     });
@@ -84,10 +85,7 @@ export class LoginComponent {
       password: formValue.password
     };
 
-    // Extract tenant ID from email domain or use default
-    // For now, we'll need tenant ID - this might need to be adjusted based on your auth flow
-    // Assuming tenant ID is 1 for now, but you may want to add a tenant selector
-    const tenantId = 1; // TODO: Add tenant selection UI or extract from domain
+    const tenantId = parseInt(formValue.tenantId, 10);
 
     this.authService.login(tenantId, loginRequest).subscribe({
       next: (response) => {
@@ -102,11 +100,35 @@ export class LoginComponent {
       },
       error: (error) => {
         console.error('Login error:', error);
-        this.errorMessage.set(
-          error.error?.message ||
-          error.message ||
-          'Login failed. Please check your credentials and try again.'
-        );
+        
+        // Extract error message from various possible error formats
+        let errorMsg = 'Login failed. Please check your credentials and try again.';
+        
+        if (error.error) {
+          // Check if it's an ApiResponse format
+          if (error.error.message) {
+            errorMsg = error.error.message;
+          } else if (error.error.error) {
+            errorMsg = error.error.error;
+          } else if (typeof error.error === 'string') {
+            errorMsg = error.error;
+          }
+        } else if (error.message) {
+          errorMsg = error.message;
+        }
+        
+        // Handle specific error cases
+        if (error.status === 0) {
+          errorMsg = 'Unable to connect to the server. Please check if the backend is running.';
+        } else if (error.status === 401) {
+          errorMsg = 'Invalid credentials. Please check your email and password.';
+        } else if (error.status === 400) {
+          errorMsg = errorMsg || 'Invalid request. Please check your tenant ID and credentials.';
+        } else if (error.status === 404) {
+          errorMsg = 'Login endpoint not found. Please check the API configuration.';
+        }
+        
+        this.errorMessage.set(errorMsg);
         this.isLoading.set(false);
       }
     });
@@ -136,7 +158,7 @@ export class LoginComponent {
 
     this.customerService.createCustomer(customerRequest).subscribe({
       next: (response) => {
-        this.successMessage.set('Cliente criado com sucesso! Você já pode fazer login.');
+        this.successMessage.set('Customer created successfully! You can now log in.');
         this.isLoading.set(false);
         // Reset form
         this.customerForm.reset({
@@ -178,19 +200,19 @@ export class LoginComponent {
     const field = form.get(fieldName);
     if (field?.errors && field.touched) {
       if (field.errors['required']) {
-        return `${this.getFieldLabel(fieldName)} é obrigatório`;
+        return `${this.getFieldLabel(fieldName)} is required`;
       }
       if (field.errors['email']) {
-        return 'Por favor, insira um endereço de e-mail válido';
+        return 'Please enter a valid email address';
       }
       if (field.errors['pattern']) {
-        return 'Por favor, insira um domínio válido';
+        return 'Please enter a valid domain';
       }
       if (field.errors['minlength']) {
-        return `${this.getFieldLabel(fieldName)} deve ter pelo menos ${field.errors['minlength'].requiredLength} caracteres`;
+        return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['minlength'].requiredLength} characters`;
       }
       if (field.errors['min']) {
-        return `${this.getFieldLabel(fieldName)} deve ser maior que 0`;
+        return `${this.getFieldLabel(fieldName)} must be greater than 0`;
       }
     }
     return null;
@@ -201,12 +223,13 @@ export class LoginComponent {
    */
   private getFieldLabel(fieldName: string): string {
     const labels: Record<string, string> = {
-      email: 'E-mail',
-      password: 'Senha',
-      name: 'Nome',
-      domain: 'Domínio',
-      maxUsers: 'Máximo de Usuários',
-      maxCertificatesPerMonth: 'Máximo de Certificados por Mês'
+      tenantId: 'Tenant ID',
+      email: 'Email',
+      password: 'Password',
+      name: 'Name',
+      domain: 'Domain',
+      maxUsers: 'Max Users',
+      maxCertificatesPerMonth: 'Max Certificates per Month'
     };
     return labels[fieldName] || fieldName;
   }
