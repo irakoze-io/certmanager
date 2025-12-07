@@ -100,7 +100,8 @@ export class AuthService {
   }
 
   /**
-   * Logout - clear all auth state
+   * Logout - clear all auth state and cached data
+   * This ensures no tenant context or user data persists when logging in as another user
    */
   logout(): void {
     this.clearAuthState();
@@ -173,20 +174,43 @@ export class AuthService {
   }
 
   /**
-   * Clear authentication state
+   * Clear authentication state and all cached data
    */
   private clearAuthState(): void {
+    // Clear signals
     this.tokenSignal.set(null);
     this.userSignal.set(null);
     this.tenantIdSignal.set(null);
     this.tenantSchemaSignal.set(null);
 
-    // Clear localStorage (only in browser)
+    // Clear all cached data (only in browser)
     if (this.isBrowser) {
+      // Clear specific auth-related localStorage items
       localStorage.removeItem(this.tokenKey);
       localStorage.removeItem(this.userKey);
       localStorage.removeItem(this.tenantIdKey);
       localStorage.removeItem(this.tenantSchemaKey);
+
+      // Clear all localStorage items that start with app prefix (certmgmt_)
+      // This ensures we don't leave any tenant-specific or user-specific data
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('certmgmt_')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // Clear all sessionStorage items that start with app prefix
+      const sessionKeysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && key.startsWith('certmgmt_')) {
+          sessionKeysToRemove.push(key);
+        }
+      }
+      sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
     }
   }
 
