@@ -1,16 +1,19 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { CustomerService } from '../../core/services/customer.service';
+import { TemplateService } from '../../core/services/template.service';
 import { User } from '../../core/models/auth.model';
 import { CustomerResponse } from '../../core/models/customer.model';
+import { TemplateResponse } from '../../core/models/template.model';
 import { DashboardCardComponent, DashboardCardConfig } from '../../shared/components/dashboard-card/dashboard-card.component';
+import { DataGridComponent, DataGridConfig } from '../../shared/components/data-grid/data-grid.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, DashboardCardComponent],
+  imports: [CommonModule, DashboardCardComponent, DataGridComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
@@ -19,6 +22,30 @@ export class DashboardComponent implements OnInit {
   tenantId = signal<number | null>(null);
   tenantSchema = signal<string | null>(null);
   customer = signal<CustomerResponse | null>(null);
+  
+  // Templates data for grid
+  templates = signal<TemplateResponse[]>([]);
+  filteredTemplates = signal<TemplateResponse[]>([]);
+  isLoadingTemplates = signal<boolean>(false);
+  errorMessage = signal<string | null>(null);
+
+  gridConfig: DataGridConfig = {
+    title: 'Templates',
+    addButtonLabel: 'Add New Template',
+    showCheckbox: true,
+    showDateSelector: true,
+    showSearch: true,
+    showFilter: true,
+    itemsPerPageOptions: [10, 25, 50, 100],
+    defaultItemsPerPage: 10,
+    columns: [
+      { key: 'name', label: 'Template name', sortable: true },
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'description', label: 'Description', sortable: false },
+      { key: 'currentVersion', label: 'Version', sortable: true },
+      { key: 'createdAt', label: 'Created', sortable: true }
+    ]
+  };
 
   // Dashboard card configurations
   templatesConfig: DashboardCardConfig = {
@@ -54,8 +81,14 @@ export class DashboardComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private customerService: CustomerService,
+    private templateService: TemplateService,
     private router: Router
-  ) {}
+  ) {
+    // Update filtered templates when templates change
+    effect(() => {
+      this.filteredTemplates.set(this.templates());
+    });
+  }
 
   ngOnInit(): void {
     // Check if user is authenticated
@@ -109,6 +142,84 @@ export class DashboardComponent implements OnInit {
     } else {
       console.error('User has no customerId:', user);
     }
+
+    // Load templates for the grid
+    this.loadTemplates();
+  }
+
+  loadTemplates(): void {
+    this.isLoadingTemplates.set(true);
+    this.errorMessage.set(null);
+    this.templateService.getAllTemplates().subscribe({
+      next: (templates) => {
+        this.templates.set(templates);
+        this.filteredTemplates.set(templates);
+        this.isLoadingTemplates.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading templates:', error);
+        this.errorMessage.set(error?.message || 'Failed to load templates. Please try again.');
+        this.isLoadingTemplates.set(false);
+        this.templates.set([]);
+        this.filteredTemplates.set([]);
+      }
+    });
+  }
+
+  onSearch(query: string): void {
+    if (!query.trim()) {
+      this.filteredTemplates.set(this.templates());
+      return;
+    }
+
+    const lowerQuery = query.toLowerCase();
+    const filtered = this.templates().filter(template =>
+      template.name.toLowerCase().includes(lowerQuery) ||
+      (template.code && template.code.toLowerCase().includes(lowerQuery)) ||
+      (template.description && template.description.toLowerCase().includes(lowerQuery))
+    );
+    this.filteredTemplates.set(filtered);
+  }
+
+  onFilter(): void {
+    // TODO: Implement filter dialog/modal
+    console.log('Filter clicked');
+  }
+
+  onAdd(): void {
+    // TODO: Navigate to create template page
+    console.log('Add template clicked');
+  }
+
+  onPageChange(page: number): void {
+    // Handled by DataGridComponent
+  }
+
+  onItemsPerPageChange(itemsPerPage: number): void {
+    // Handled by DataGridComponent
+  }
+
+  onRowClick(template: TemplateResponse): void {
+    // TODO: Navigate to template detail/edit page
+    console.log('Row clicked:', template);
+  }
+
+  onActionClick(event: { action: string; item: TemplateResponse }): void {
+    // TODO: Show action menu (edit, delete, etc.)
+    console.log('Action clicked:', event);
+  }
+
+  formatTemplateData(templates: TemplateResponse[]): any[] {
+    return templates.map(template => ({
+      id: template.id,
+      name: template.name,
+      code: template.code || '-',
+      description: template.description || '-',
+      currentVersion: template.currentVersion ? `v${template.currentVersion}` : 'v1',
+      createdAt: template.createdAt ? new Date(template.createdAt).toLocaleDateString() : '-',
+      // Keep original for actions
+      _original: template
+    }));
   }
 
   /**
