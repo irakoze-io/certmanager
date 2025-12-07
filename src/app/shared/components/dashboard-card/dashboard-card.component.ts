@@ -25,26 +25,37 @@ export class DashboardCardComponent {
   @Input({ required: true }) config!: DashboardCardConfig;
   @Input() count?: number;
 
-  get iconColorClass(): string {
+  get iconColor(): string {
     const colorMap: { [key: string]: string } = {
-      indigo: 'text-indigo-600',
-      purple: 'text-purple-600',
-      green: 'text-green-600',
-      blue: 'text-blue-600',
-      red: 'text-red-600'
+      templates: '#26648E',      // Dark Teal
+      versions: '#4F8FC0',       // Medium Blue
+      certificates: '#53D2DC',   // Bright Turquoise
+      indigo: '#26648E',
+      purple: '#4F8FC0',
+      green: '#53D2DC',
+      blue: '#4F8FC0',
+      red: '#FF6B6B'
     };
-    return colorMap[this.config.color] || 'text-gray-600';
+    return colorMap[this.config.entityType] || colorMap[this.config.color] || '#6B7280';
   }
 
-  get linkColorClass(): string {
+  get linkColor(): string {
+    return this.iconColor;
+  }
+
+  get linkHoverColor(): string {
+    // Darken the color slightly on hover
     const colorMap: { [key: string]: string } = {
-      indigo: 'text-indigo-600 hover:text-indigo-700',
-      purple: 'text-purple-600 hover:text-purple-700',
-      green: 'text-green-600 hover:text-green-700',
-      blue: 'text-blue-600 hover:text-blue-700',
-      red: 'text-red-600 hover:text-red-700'
+      templates: '#1e4d6b',      // Darker version of #26648E
+      versions: '#3d6f96',       // Darker version of #4F8FC0
+      certificates: '#3fb8c2',  // Darker version of #53D2DC
+      indigo: '#1e4d6b',
+      purple: '#3d6f96',
+      green: '#3fb8c2',
+      blue: '#3d6f96',
+      red: '#e55555'
     };
-    return colorMap[this.config.color] || 'text-gray-600 hover:text-gray-700';
+    return colorMap[this.config.entityType] || colorMap[this.config.color] || '#4B5563';
   }
 
   get linkText(): string {

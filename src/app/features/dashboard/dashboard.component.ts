@@ -25,7 +25,7 @@ export class DashboardComponent implements OnInit {
     title: 'Templates',
     description: 'Manage certificate templates and versions',
     icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-    color: 'indigo',
+    color: 'templates',
     entityType: 'templates',
     routerLink: '/templates',
     linkText: 'View templates'
@@ -35,7 +35,7 @@ export class DashboardComponent implements OnInit {
     title: 'Versions',
     description: 'Manage template versions and revisions',
     icon: 'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2',
-    color: 'purple',
+    color: 'versions',
     entityType: 'versions',
     routerLink: '/templates', // Versions are managed within templates
     linkText: 'View versions'
@@ -45,7 +45,7 @@ export class DashboardComponent implements OnInit {
     title: 'Certificates',
     description: 'Generate and manage certificates',
     icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-    color: 'green',
+    color: 'certificates',
     entityType: 'certificates',
     routerLink: '/certificates',
     linkText: 'View certificates'
@@ -150,7 +150,7 @@ export class DashboardComponent implements OnInit {
     } else if (hour >= 17 && hour < 22) {
       greeting = 'Good evening';
     } else {
-      greeting = 'Good night';
+      greeting = 'Good evening';
     }
 
     return lastName ? `${greeting}, ${lastName}` : greeting;
