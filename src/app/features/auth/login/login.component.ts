@@ -401,14 +401,16 @@ export class LoginComponent {
       next: (response) => {
         if (response.success && response.data) {
           this.successMessage.set('User created successfully! You can now log in.');
-          this.isLoading.set(false);
-          this.loadingStatus.set(null);
+          // Update loading status to show redirecting message
+          this.loadingStatus.set('User created! Redirecting...');
           // Reset user form
           this.userForm.reset({
             role: 'VIEWER'
           });
           // Hide user form and switch to login tab after 2 seconds
           setTimeout(() => {
+            this.isLoading.set(false);
+            this.loadingStatus.set(null);
             this.showUserForm.set(false);
             this.setActiveTab('login');
             // Pre-fill email and password in login form
