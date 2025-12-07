@@ -1,15 +1,16 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { CustomerService } from '../../core/services/customer.service';
 import { User } from '../../core/models/auth.model';
 import { CustomerResponse } from '../../core/models/customer.model';
+import { DashboardCardComponent, DashboardCardConfig } from '../../shared/components/dashboard-card/dashboard-card.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, DashboardCardComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
@@ -18,6 +19,31 @@ export class DashboardComponent implements OnInit {
   tenantId = signal<number | null>(null);
   tenantSchema = signal<string | null>(null);
   customer = signal<CustomerResponse | null>(null);
+
+  // Dashboard card configurations
+  templatesConfig: DashboardCardConfig = {
+    title: 'Templates',
+    description: 'Manage certificate templates and versions',
+    icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+    color: 'indigo',
+    entityType: 'templates'
+  };
+
+  versionsConfig: DashboardCardConfig = {
+    title: 'Versions',
+    description: 'Manage template versions and revisions',
+    icon: 'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2',
+    color: 'purple',
+    entityType: 'versions'
+  };
+
+  certificatesConfig: DashboardCardConfig = {
+    title: 'Certificates',
+    description: 'Generate and manage certificates',
+    icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+    color: 'green',
+    entityType: 'certificates'
+  };
 
   constructor(
     private authService: AuthService,
@@ -36,14 +62,14 @@ export class DashboardComponent implements OnInit {
     const user = this.authService.currentUser();
     const tenantId = this.authService.currentTenantId();
     const tenantSchema = this.authService.currentTenantSchema();
-    
+
     // Validate we have all required data
     if (!user || !tenantId) {
       console.error('Missing auth data:', { user, tenantId, tenantSchema });
       this.router.navigate(['/login']);
       return;
     }
-    
+
     this.currentUser.set(user);
     this.tenantId.set(tenantId);
     this.tenantSchema.set(tenantSchema);
@@ -57,7 +83,7 @@ export class DashboardComponent implements OnInit {
       tenantSchema: tenantSchema,
       email: user.email
     });
-    
+
     if (user.customerId) {
       this.customerService.getCustomerById(user.customerId).subscribe({
         next: (customer) => {
@@ -85,10 +111,10 @@ export class DashboardComponent implements OnInit {
   getUserFullName(): string {
     const user = this.currentUser();
     if (!user) return '';
-    
+
     const firstName = user.firstName || '';
     const lastName = user.lastName || '';
-    
+
     if (firstName && lastName) {
       return `${firstName} ${lastName}`;
     } else if (firstName) {
@@ -107,10 +133,10 @@ export class DashboardComponent implements OnInit {
   getGreeting(): string {
     const user = this.currentUser();
     const lastName = user?.lastName || '';
-    
+
     const hour = new Date().getHours();
     let greeting = 'Hello';
-    
+
     if (hour >= 5 && hour < 12) {
       greeting = 'Good morning';
     } else if (hour >= 12 && hour < 17) {
@@ -120,7 +146,7 @@ export class DashboardComponent implements OnInit {
     } else {
       greeting = 'Good night';
     }
-    
+
     return lastName ? `${greeting}, ${lastName}` : greeting;
   }
 
@@ -129,63 +155,49 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  navigateToTemplates(event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-    console.log('Navigating to templates');
-    console.log('Auth check:', {
-      isAuthenticated: this.authService.isAuthenticated(),
-      token: this.authService.getToken(),
-      user: this.authService.currentUser()
-    });
-    this.router.navigate(['/templates']).then(
-      (success) => {
-        console.log('Navigation to templates:', success ? 'success' : 'failed');
-        if (!success) {
-          console.error('Navigation failed - check console for guard logs');
-        }
-      },
-      (error) => console.error('Navigation error:', error)
-    );
+  // Template card actions
+  onTemplatesAdd(): void {
+    console.log('Add template');
+    // TODO: Implement add template functionality
   }
 
-  navigateToCertificates(event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-    console.log('Navigating to certificates');
-    console.log('Auth check:', {
-      isAuthenticated: this.authService.isAuthenticated(),
-      token: this.authService.getToken(),
-      user: this.authService.currentUser()
-    });
-    this.router.navigate(['/certificates']).then(
-      (success) => {
-        console.log('Navigation to certificates:', success ? 'success' : 'failed');
-        if (!success) {
-          console.error('Navigation failed - check console for guard logs');
-        }
-      },
-      (error) => console.error('Navigation error:', error)
-    );
+  onTemplatesRevoke(): void {
+    console.log('Revoke template');
+    // TODO: Implement revoke template functionality
   }
 
-  navigateToVerification(event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-    console.log('Navigating to verification');
-    console.log('Auth check:', {
-      isAuthenticated: this.authService.isAuthenticated(),
-      token: this.authService.getToken(),
-      user: this.authService.currentUser()
-    });
-    this.router.navigate(['/verification']).then(
-      (success) => {
-        console.log('Navigation to verification:', success ? 'success' : 'failed');
-        if (!success) {
-          console.error('Navigation failed - check console for guard logs');
-        }
-      },
-      (error) => console.error('Navigation error:', error)
-    );
+  onTemplatesList(): void {
+    this.router.navigate(['/templates']);
+  }
+
+  // Version card actions
+  onVersionsAdd(): void {
+    console.log('Add version');
+    // TODO: Implement add version functionality
+  }
+
+  onVersionsRevoke(): void {
+    console.log('Revoke version');
+    // TODO: Implement revoke version functionality
+  }
+
+  onVersionsList(): void {
+    console.log('List versions');
+    // TODO: Navigate to versions list when route is created
+  }
+
+  // Certificate card actions
+  onCertificatesAdd(): void {
+    console.log('Add certificate');
+    // TODO: Implement add certificate functionality
+  }
+
+  onCertificatesRevoke(): void {
+    console.log('Revoke certificate');
+    // TODO: Implement revoke certificate functionality
+  }
+
+  onCertificatesList(): void {
+    this.router.navigate(['/certificates']);
   }
 }

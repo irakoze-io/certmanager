@@ -133,11 +133,11 @@
                   @for (column of config().columns; track column.key) {
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       @if (column.key === 'status') {
-                        <span [class]="getStatusClass(item[column.key])">
-                          {{ item[column.key] }}
+                        <span [class]="getStatusClass(getNestedValue(item, column.key))">
+                          {{ getNestedValue(item, column.key) }}
                         </span>
                       } @else {
-                        <span>{{ item[column.key] || '-' }}</span>
+                        <span>{{ getNestedValue(item, column.key) || '-' }}</span>
                       }
                     </td>
                   }

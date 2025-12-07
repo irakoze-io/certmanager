@@ -63,9 +63,13 @@ export class DataGridComponent<T = any> {
   });
 
   constructor() {
-    // Set default items per page from config
-    const defaultItemsPerPage = this.config()?.defaultItemsPerPage || 10;
-    this.itemsPerPage.set(defaultItemsPerPage);
+    // Set default items per page from config using effect
+    effect(() => {
+      const config = this.config();
+      if (config?.defaultItemsPerPage && this.itemsPerPage() === 10) {
+        this.itemsPerPage.set(config.defaultItemsPerPage);
+      }
+    });
     
     // Reset to page 1 when data changes (but only if we're not on page 1)
     effect(() => {
@@ -74,6 +78,12 @@ export class DataGridComponent<T = any> {
         this.currentPage.set(1);
       }
     });
+  }
+
+  // Helper method to safely get nested property values
+  getNestedValue(item: T, key: string): any {
+    const itemObj = item as Record<string, any>;
+    return itemObj[key] ?? null;
   }
 
   onSearchInput(value: string): void {

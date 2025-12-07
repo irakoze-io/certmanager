@@ -79,7 +79,7 @@ export class TemplatesListComponent implements OnInit {
     const lowerQuery = query.toLowerCase();
     const filtered = this.templates().filter(template =>
       template.name.toLowerCase().includes(lowerQuery) ||
-      template.code.toLowerCase().includes(lowerQuery) ||
+      (template.code && template.code.toLowerCase().includes(lowerQuery)) ||
       (template.description && template.description.toLowerCase().includes(lowerQuery))
     );
     this.filteredTemplates.set(filtered);
@@ -120,7 +120,7 @@ export class TemplatesListComponent implements OnInit {
       name: template.name,
       code: template.code || '-',
       description: template.description || '-',
-      currentVersion: `v${(template as any).currentVersion || 1}`,
+      currentVersion: template.currentVersion ? `v${template.currentVersion}` : 'v1',
       createdAt: template.createdAt ? new Date(template.createdAt).toLocaleDateString() : '-',
       // Keep original for actions
       _original: template
