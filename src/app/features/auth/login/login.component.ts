@@ -4,7 +4,7 @@ import {ActivatedRoute, Router, RouterLink} from '@angular/router';
 import {CommonModule} from '@angular/common';
 import {AuthService} from '../../../core/services/auth.service';
 import {CustomerService} from '../../../core/services/customer.service';
-import {LoginRequest} from '../../../core/models/auth.model';
+import {LoginRequest, UserRole} from '../../../core/models/auth.model';
 import {CreateCustomerRequest, CustomerStatus} from '../../../core/models/customer.model';
 
 @Component({
@@ -18,11 +18,15 @@ export class LoginComponent {
   activeTab = signal<'login' | 'customer'>('login');
   loginForm: FormGroup;
   customerForm: FormGroup;
+  userForm: FormGroup;
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
   successMessage = signal<string | null>(null);
   returnUrl = signal<string | null>(null);
   showPassword = signal(false);
+  showUserForm = signal(false);
+  createdCustomerId = signal<number | null>(null);
+  showUserPassword = signal(false);
 
   constructor(
     private fb: FormBuilder,
@@ -48,6 +52,15 @@ export class LoginComponent {
       maxUsers: [10, [Validators.required, Validators.min(1)]],
       maxCertificatesPerMonth: [100, [Validators.required, Validators.min(1)]]
     });
+
+    // Initialize user form
+    this.userForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(8)]],
+      firstName: ['', [Validators.required, Validators.minLength(1)]],
+      lastName: ['', [Validators.required, Validators.minLength(1)]],
+      role: ['VIEWER', [Validators.required]]
+    });
   }
 
   /**
@@ -64,6 +77,13 @@ export class LoginComponent {
    */
   togglePasswordVisibility(): void {
     this.showPassword.set(!this.showPassword());
+  }
+
+  /**
+   * Toggle user password visibility
+   */
+  toggleUserPasswordVisibility(): void {
+    this.showUserPassword.set(!this.showUserPassword());
   }
 
   /**
@@ -158,17 +178,16 @@ export class LoginComponent {
 
     this.customerService.createCustomer(customerRequest).subscribe({
       next: (response) => {
-        this.successMessage.set('Customer created successfully! You can now log in.');
+        this.createdCustomerId.set(response.id);
+        this.successMessage.set('Customer created successfully! Now create your first user account.');
         this.isLoading.set(false);
-        // Reset form
+        // Show user creation form
+        this.showUserForm.set(true);
+        // Reset customer form
         this.customerForm.reset({
           maxUsers: 10,
           maxCertificatesPerMonth: 100
         });
-        // Switch to login tab after 2 seconds
-        setTimeout(() => {
-          this.setActiveTab('login');
-        }, 2000);
       },
       error: (error) => {
         console.error('Customer creation error:', error);
@@ -196,7 +215,12 @@ export class LoginComponent {
    * Get error message for a form field
    */
   getFieldError(fieldName: string): string | null {
-    const form = this.activeTab() === 'login' ? this.loginForm : this.customerForm;
+    let form: FormGroup;
+    if (this.showUserForm()) {
+      form = this.userForm;
+    } else {
+      form = this.activeTab() === 'login' ? this.loginForm : this.customerForm;
+    }
     const field = form.get(fieldName);
     if (field?.errors && field.touched) {
       if (field.errors['required']) {
@@ -226,6 +250,9 @@ export class LoginComponent {
       tenantId: 'Tenant ID',
       email: 'Email',
       password: 'Password',
+      firstName: 'First Name',
+      lastName: 'Last Name',
+      role: 'Role',
       name: 'Name',
       domain: 'Domain',
       maxUsers: 'Max Users',
@@ -235,10 +262,93 @@ export class LoginComponent {
   }
 
   /**
+   * Handle user creation form submission
+   */
+  onUserSubmit(): void {
+    if (this.userForm.invalid) {
+      this.markFormGroupTouched(this.userForm);
+      return;
+    }
+
+    const customerId = this.createdCustomerId();
+    if (!customerId) {
+      this.errorMessage.set('Customer ID is missing. Please create a customer first.');
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    const formValue = this.userForm.value;
+    const userRequest: LoginRequest = {
+      email: formValue.email,
+      password: formValue.password,
+      firstName: formValue.firstName,
+      lastName: formValue.lastName,
+      role: formValue.role as UserRole
+    };
+
+    this.authService.createUser(customerId, userRequest).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.successMessage.set('User created successfully! You can now log in.');
+          this.isLoading.set(false);
+          // Reset user form
+          this.userForm.reset({
+            role: 'VIEWER'
+          });
+          // Hide user form and switch to login tab after 2 seconds
+          setTimeout(() => {
+            this.showUserForm.set(false);
+            this.setActiveTab('login');
+            // Pre-fill email in login form
+            this.loginForm.patchValue({
+              tenantId: customerId,
+              email: formValue.email
+            });
+          }, 2000);
+        } else {
+          this.errorMessage.set(response.message || 'User creation failed');
+          this.isLoading.set(false);
+        }
+      },
+      error: (error) => {
+        console.error('User creation error:', error);
+        this.errorMessage.set(
+          error.error?.message ||
+          error.message ||
+          'Failed to create user. Please try again.'
+        );
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  /**
+   * Skip user creation and go to login
+   */
+  skipUserCreation(): void {
+    const customerId = this.createdCustomerId();
+    this.showUserForm.set(false);
+    this.setActiveTab('login');
+    if (customerId) {
+      this.loginForm.patchValue({
+        tenantId: customerId
+      });
+    }
+  }
+
+  /**
    * Check if a field has errors and is touched
    */
   hasFieldError(fieldName: string): boolean {
-    const form = this.activeTab() === 'login' ? this.loginForm : this.customerForm;
+    let form: FormGroup;
+    if (this.showUserForm()) {
+      form = this.userForm;
+    } else {
+      form = this.activeTab() === 'login' ? this.loginForm : this.customerForm;
+    }
     const field = form.get(fieldName);
     return !!(field?.invalid && field.touched);
   }

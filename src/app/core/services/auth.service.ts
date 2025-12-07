@@ -73,6 +73,26 @@ export class AuthService {
   }
 
   /**
+   * Create a new user
+   */
+  createUser(tenantId: number, request: LoginRequest): Observable<ApiResponse<User>> {
+    return this.http.post<ApiResponse<User>>(
+      `${this.authUrl}/users`,
+      request,
+      {
+        headers: {
+          'X-Tenant-Id': tenantId.toString()
+        }
+      }
+    ).pipe(
+      catchError(error => {
+        console.error('User creation error:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
    * Get current user info
    */
   getCurrentUser(): Observable<unknown> {
