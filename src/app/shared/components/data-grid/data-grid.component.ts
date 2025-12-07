@@ -1,0 +1,183 @@
+import { Component, input, output, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+
+export interface DataGridColumn {
+  key: string;
+  label: string;
+  sortable?: boolean;
+}
+
+export interface DataGridConfig {
+  title: string;
+  addButtonLabel: string;
+  columns: DataGridColumn[];
+  showCheckbox?: boolean;
+  showDateSelector?: boolean;
+  showSearch?: boolean;
+  showFilter?: boolean;
+  itemsPerPageOptions?: number[];
+  defaultItemsPerPage?: number;
+}
+
+@Component({
+  selector: 'app-data-grid',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './data-grid.component.html',
+  styleUrl: './data-grid.component.css'
+})
+export class DataGridComponent<T = any> {
+  config = input.required<DataGridConfig>();
+  data = input.required<T[]>();
+  isLoading = input<boolean>(false);
+  
+  onAdd = output<void>();
+  onSearch = output<string>();
+  onFilter = output<void>();
+  onPageChange = output<number>();
+  onItemsPerPageChange = output<number>();
+  onRowClick = output<T>();
+  onActionClick = output<{ action: string; item: T }>();
+
+  // Date management
+  currentDate = signal<Date>(new Date());
+  currentYear = computed(() => this.currentDate().getFullYear());
+  
+  // Search
+  searchQuery = signal<string>('');
+  
+  // Pagination
+  currentPage = signal<number>(1);
+  itemsPerPage = signal<number>(10);
+  
+  // Computed values
+  totalPages = computed(() => Math.ceil(this.data().length / this.itemsPerPage()));
+  paginatedData = computed(() => {
+    const start = (this.currentPage() - 1) * this.itemsPerPage();
+    const end = start + this.itemsPerPage();
+    return this.data().slice(start, end);
+  });
+
+  constructor() {
+    // Set default items per page from config
+    const defaultItemsPerPage = this.config()?.defaultItemsPerPage || 10;
+    this.itemsPerPage.set(defaultItemsPerPage);
+  }
+
+  onSearchInput(value: string): void {
+    this.searchQuery.set(value);
+    this.onSearch.emit(value);
+  }
+
+  onFilterClick(): void {
+    this.onFilter.emit();
+  }
+
+  onAddClick(): void {
+    this.onAdd.emit();
+  }
+
+  onPreviousDate(): void {
+    const newDate = new Date(this.currentDate());
+    newDate.setDate(newDate.getDate() - 1);
+    this.currentDate.set(newDate);
+  }
+
+  onNextDate(): void {
+    const newDate = new Date(this.currentDate());
+    newDate.setDate(newDate.getDate() + 1);
+    this.currentDate.set(newDate);
+  }
+
+  onPreviousPage(): void {
+    if (this.currentPage() > 1) {
+      this.currentPage.set(this.currentPage() - 1);
+      this.onPageChange.emit(this.currentPage());
+    }
+  }
+
+  onNextPage(): void {
+    if (this.currentPage() < this.totalPages()) {
+      this.currentPage.set(this.currentPage() + 1);
+      this.onPageChange.emit(this.currentPage());
+    }
+  }
+
+  onPageSelect(page: number): void {
+    this.currentPage.set(page);
+    this.onPageChange.emit(page);
+  }
+
+  onItemsPerPageSelect(value: number): void {
+    this.itemsPerPage.set(value);
+    this.currentPage.set(1); // Reset to first page
+    this.onItemsPerPageChange.emit(value);
+  }
+
+  onRowClickHandler(item: T): void {
+    this.onRowClick.emit(item);
+  }
+
+  onActionClickHandler(action: string, item: T, event: Event): void {
+    event.stopPropagation();
+    this.onActionClick.emit({ action, item });
+  }
+
+  getFormattedDate(): string {
+    const date = this.currentDate();
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]}`;
+  }
+
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    
+    if (total <= 7) {
+      // Show all pages if 7 or fewer
+      for (let i = 1; i <= total; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Show first page
+      pages.push(1);
+      
+      if (current > 3) {
+        pages.push(-1); // Ellipsis
+      }
+      
+      // Show pages around current
+      const start = Math.max(2, current - 1);
+      const end = Math.min(total - 1, current + 1);
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (current < total - 2) {
+        pages.push(-1); // Ellipsis
+      }
+      
+      // Show last page
+      pages.push(total);
+    }
+    
+    return pages;
+  }
+
+  getStatusClass(status: string): string {
+    const statusLower = (status || '').toLowerCase();
+    if (statusLower === 'issued' || statusLower === 'on time' || statusLower === 'published') {
+      return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800';
+    } else if (statusLower === 'late' || statusLower === 'failed' || statusLower === 'revoked') {
+      return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800';
+    } else if (statusLower === 'pending' || statusLower === 'processing' || statusLower === 'draft') {
+      return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800';
+    }
+    return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800';
+  }
+}
+

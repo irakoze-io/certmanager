@@ -1,0 +1,124 @@
+import { Component, OnInit, signal, effect } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router, RouterModule } from '@angular/router';
+import { TemplateService } from '../../core/services/template.service';
+import { TemplateResponse } from '../../core/models/template.model';
+import { DataGridComponent, DataGridConfig, DataGridColumn } from '../../shared/components/data-grid/data-grid.component';
+
+@Component({
+  selector: 'app-templates-list',
+  standalone: true,
+  imports: [CommonModule, RouterModule, DataGridComponent],
+  templateUrl: './templates-list.component.html',
+  styleUrl: './templates-list.component.css'
+})
+export class TemplatesListComponent implements OnInit {
+  templates = signal<TemplateResponse[]>([]);
+  isLoading = signal<boolean>(false);
+  filteredTemplates = signal<TemplateResponse[]>([]);
+
+  gridConfig: DataGridConfig = {
+    title: 'Templates',
+    addButtonLabel: 'Add New Template',
+    showCheckbox: true,
+    showDateSelector: true,
+    showSearch: true,
+    showFilter: true,
+    itemsPerPageOptions: [10, 25, 50, 100],
+    defaultItemsPerPage: 10,
+    columns: [
+      { key: 'name', label: 'Template name', sortable: true },
+      { key: 'code', label: 'Code', sortable: true },
+      { key: 'description', label: 'Description', sortable: false },
+      { key: 'currentVersion', label: 'Version', sortable: true },
+      { key: 'createdAt', label: 'Created', sortable: true }
+    ]
+  };
+
+  constructor(
+    private templateService: TemplateService,
+    private router: Router
+  ) {
+    // Update filtered templates when templates change
+    effect(() => {
+      this.filteredTemplates.set(this.templates());
+    });
+  }
+
+  ngOnInit(): void {
+    this.loadTemplates();
+  }
+
+  loadTemplates(): void {
+    this.isLoading.set(true);
+    this.templateService.getAllTemplates().subscribe({
+      next: (templates) => {
+        this.templates.set(templates);
+        this.filteredTemplates.set(templates);
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading templates:', error);
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  onSearch(query: string): void {
+    if (!query.trim()) {
+      this.filteredTemplates.set(this.templates());
+      return;
+    }
+
+    const lowerQuery = query.toLowerCase();
+    const filtered = this.templates().filter(template =>
+      template.name.toLowerCase().includes(lowerQuery) ||
+      template.code.toLowerCase().includes(lowerQuery) ||
+      (template.description && template.description.toLowerCase().includes(lowerQuery))
+    );
+    this.filteredTemplates.set(filtered);
+  }
+
+  onFilter(): void {
+    // TODO: Implement filter dialog/modal
+    console.log('Filter clicked');
+  }
+
+  onAdd(): void {
+    // TODO: Navigate to create template page
+    console.log('Add template clicked');
+  }
+
+  onPageChange(page: number): void {
+    // Handled by DataGridComponent
+  }
+
+  onItemsPerPageChange(itemsPerPage: number): void {
+    // Handled by DataGridComponent
+  }
+
+  onRowClick(template: TemplateResponse): void {
+    // TODO: Navigate to template detail/edit page
+    console.log('Row clicked:', template);
+  }
+
+  onActionClick(event: { action: string; item: TemplateResponse }): void {
+    // TODO: Show action menu (edit, delete, etc.)
+    console.log('Action clicked:', event);
+  }
+
+  // Format data for display
+  formatTemplateData(templates: TemplateResponse[]): any[] {
+    return templates.map(template => ({
+      id: template.id,
+      name: template.name,
+      code: template.code || '-',
+      description: template.description || '-',
+      currentVersion: `v${(template as any).currentVersion || 1}`,
+      createdAt: template.createdAt ? new Date(template.createdAt).toLocaleDateString() : '-',
+      // Keep original for actions
+      _original: template
+    }));
+  }
+}
+

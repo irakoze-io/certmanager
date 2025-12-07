@@ -12,6 +12,21 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'templates',
+    loadComponent: () => import('./features/templates/templates-list.component').then(m => m.TemplatesListComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'certificates',
+    loadComponent: () => import('./features/certificates/certificates-list.component').then(m => m.CertificatesListComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'verification',
+    loadComponent: () => import('./features/verification/verification-list.component').then(m => m.VerificationListComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: '',
     redirectTo: '/login',
     pathMatch: 'full'

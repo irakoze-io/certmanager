@@ -1,0 +1,218 @@
+<div class="bg-white min-h-screen">
+  <!-- Header Section -->
+  <div class="border-b border-gray-200 px-6 py-4">
+    <div class="flex items-center justify-between mb-4">
+      <!-- Title and Date -->
+      <div class="flex items-center gap-6">
+        <h1 class="text-2xl font-semibold text-gray-900">{{ config().title }}</h1>
+        @if (config().showDateSelector) {
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="onPreviousDate()"
+              class="p-1 hover:bg-gray-100 rounded transition-colors"
+            >
+              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+            </button>
+            <span class="text-sm font-medium text-gray-700">{{ getFormattedDate() }}</span>
+            <button
+              type="button"
+              (click)="onNextDate()"
+              class="p-1 hover:bg-gray-100 rounded transition-colors"
+            >
+              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </button>
+            <select
+              class="ml-2 text-sm font-medium text-gray-700 bg-transparent border-none focus:outline-none cursor-pointer"
+            >
+              <option>{{ currentYear() }}</option>
+            </select>
+          </div>
+        }
+      </div>
+
+      <!-- Search, Filter, and Add Button -->
+      <div class="flex items-center gap-3">
+        @if (config().showSearch) {
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </div>
+            <input
+              type="text"
+              [value]="searchQuery()"
+              (input)="onSearchInput($any($event.target).value)"
+              placeholder="Search"
+              class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        }
+        @if (config().showFilter) {
+          <button
+            type="button"
+            (click)="onFilterClick()"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+            </svg>
+            Filter
+          </button>
+        }
+        <button
+          type="button"
+          (click)="onAddClick()"
+          class="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"></path>
+          </svg>
+          {{ config().addButtonLabel }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="flex items-center justify-center py-20">
+      <div class="text-center">
+        <svg class="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-sm text-gray-600">Loading...</p>
+      </div>
+    </div>
+  } @else {
+    <!-- Table Section -->
+    <div class="px-6 py-4">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              @if (config().showCheckbox) {
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                </th>
+              }
+              @for (column of config().columns; track column.key) {
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {{ column.label }}
+                </th>
+              }
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Action
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            @if (paginatedData().length === 0) {
+              <tr>
+                <td [colSpan]="config().columns.length + (config().showCheckbox ? 2 : 1)" class="px-6 py-12 text-center text-sm text-gray-500">
+                  No data available
+                </td>
+              </tr>
+            } @else {
+              @for (item of paginatedData(); track $index) {
+                <tr
+                  (click)="onRowClickHandler(item)"
+                  class="hover:bg-gray-50 cursor-pointer transition-colors"
+                >
+                  @if (config().showCheckbox) {
+                    <td class="px-6 py-4 whitespace-nowrap" (click)="$event.stopPropagation()">
+                      <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    </td>
+                  }
+                  @for (column of config().columns; track column.key) {
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      @if (column.key === 'status') {
+                        <span [class]="getStatusClass(item[column.key])">
+                          {{ item[column.key] }}
+                        </span>
+                      } @else {
+                        <span>{{ item[column.key] || '-' }}</span>
+                      }
+                    </td>
+                  }
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button
+                      type="button"
+                      (click)="onActionClickHandler('menu', item, $event)"
+                      class="text-gray-400 hover:text-gray-600 focus:outline-none"
+                    >
+                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pagination Section -->
+    <div class="border-t border-gray-200 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-gray-700">Show</span>
+        <select
+          [value]="itemsPerPage()"
+          (change)="onItemsPerPageSelect(+$any($event.target).value)"
+          class="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          @for (option of config().itemsPerPageOptions || [10, 25, 50, 100]; track option) {
+            <option [value]="option">{{ option }}</option>
+          }
+        </select>
+        <span class="text-sm text-gray-700">{{ config().title }} per page</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          (click)="onPreviousPage()"
+          [disabled]="currentPage() === 1"
+          class="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        @for (page of getPageNumbers(); track page) {
+          @if (page === -1) {
+            <span class="px-2 text-gray-400">...</span>
+          } @else {
+            <button
+              type="button"
+              (click)="onPageSelect(page)"
+              [class]="page === currentPage()
+                ? 'px-3 py-1 text-sm font-medium text-white bg-gray-900 rounded'
+                : 'px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded'"
+            >
+              {{ page }}
+            </button>
+          }
+        }
+        <button
+          type="button"
+          (click)="onNextPage()"
+          [disabled]="currentPage() === totalPages()"
+          class="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  }
+</div>
+

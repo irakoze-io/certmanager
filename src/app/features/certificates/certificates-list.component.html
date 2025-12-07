@@ -1,0 +1,35 @@
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-4">
+        <div>
+          <div class="text-2xl font-bold text-gray-900">
+            certmanager<span class="text-blue-600">_</span>
+          </div>
+        </div>
+        <a
+          routerLink="/dashboard"
+          class="text-sm text-gray-600 hover:text-gray-900"
+        >
+          ← Back to Dashboard
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Data Grid -->
+  <app-data-grid
+    [config]="gridConfig"
+    [data]="formatCertificateData(filteredCertificates())"
+    [isLoading]="isLoading()"
+    (onSearch)="onSearch($event)"
+    (onFilter)="onFilter()"
+    (onAdd)="onAdd()"
+    (onPageChange)="onPageChange($event)"
+    (onItemsPerPageChange)="onItemsPerPageChange($event)"
+    (onRowClick)="onRowClick($event)"
+    (onActionClick)="onActionClick($event)"
+  />
+</div>
+
