@@ -53,15 +53,16 @@
           </svg>
         </div>
         <p class="text-sm text-gray-600 mb-3">Manage certificate templates and versions</p>
-        <a
-          routerLink="/templates"
-          class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-700"
+        <button
+          type="button"
+          (click)="navigateToTemplates($event)"
+          class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-700 cursor-pointer bg-transparent border-none p-0"
         >
           View templates
           <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
-        </a>
+        </button>
       </div>
 
       <!-- Certificates Card -->
@@ -73,15 +74,16 @@
           </svg>
         </div>
         <p class="text-sm text-gray-600 mb-3">Generate and manage certificates</p>
-        <a
-          routerLink="/certificates"
-          class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-700"
+        <button
+          type="button"
+          (click)="navigateToCertificates($event)"
+          class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-700 cursor-pointer bg-transparent border-none p-0"
         >
           View certificates
           <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
-        </a>
+        </button>
       </div>
 
       <!-- Verification Card -->
@@ -93,15 +95,16 @@
           </svg>
         </div>
         <p class="text-sm text-gray-600 mb-3">Verify certificate authenticity</p>
-        <a
-          routerLink="/verification"
-          class="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
+        <button
+          type="button"
+          (click)="navigateToVerification($event)"
+          class="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 cursor-pointer bg-transparent border-none p-0"
         >
           Verify certificate
           <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
-        </a>
+        </button>
       </div>
     </div>
   </main>

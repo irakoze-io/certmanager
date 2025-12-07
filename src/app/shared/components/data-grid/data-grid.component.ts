@@ -1,4 +1,4 @@
-import { Component, input, output, signal, computed } from '@angular/core';
+import { Component, input, output, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -52,7 +52,10 @@ export class DataGridComponent<T = any> {
   itemsPerPage = signal<number>(10);
   
   // Computed values
-  totalPages = computed(() => Math.ceil(this.data().length / this.itemsPerPage()));
+  totalPages = computed(() => {
+    const total = Math.ceil(this.data().length / this.itemsPerPage());
+    return total === 0 ? 1 : total; // At least 1 page even if empty
+  });
   paginatedData = computed(() => {
     const start = (this.currentPage() - 1) * this.itemsPerPage();
     const end = start + this.itemsPerPage();
@@ -63,10 +66,19 @@ export class DataGridComponent<T = any> {
     // Set default items per page from config
     const defaultItemsPerPage = this.config()?.defaultItemsPerPage || 10;
     this.itemsPerPage.set(defaultItemsPerPage);
+    
+    // Reset to page 1 when data changes (but only if we're not on page 1)
+    effect(() => {
+      const dataLength = this.data().length;
+      if (dataLength > 0 && this.currentPage() > Math.ceil(dataLength / this.itemsPerPage())) {
+        this.currentPage.set(1);
+      }
+    });
   }
 
   onSearchInput(value: string): void {
     this.searchQuery.set(value);
+    this.currentPage.set(1); // Reset to first page on search
     this.onSearch.emit(value);
   }
 

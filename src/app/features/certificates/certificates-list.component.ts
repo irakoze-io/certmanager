@@ -16,6 +16,7 @@ export class CertificatesListComponent implements OnInit {
   certificates = signal<CertificateResponse[]>([]);
   isLoading = signal<boolean>(false);
   filteredCertificates = signal<CertificateResponse[]>([]);
+  errorMessage = signal<string | null>(null);
 
   gridConfig: DataGridConfig = {
     title: 'Certificates',
@@ -50,6 +51,7 @@ export class CertificatesListComponent implements OnInit {
 
   loadCertificates(): void {
     this.isLoading.set(true);
+    this.errorMessage.set(null);
     this.certificateService.getAllCertificates().subscribe({
       next: (certificates) => {
         this.certificates.set(certificates);
@@ -58,7 +60,11 @@ export class CertificatesListComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading certificates:', error);
+        this.errorMessage.set(error?.message || 'Failed to load certificates. Please try again.');
         this.isLoading.set(false);
+        // Set empty array on error to show empty state
+        this.certificates.set([]);
+        this.filteredCertificates.set([]);
       }
     });
   }

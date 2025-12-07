@@ -16,6 +16,7 @@ export class VerificationListComponent implements OnInit {
   verifications = signal<CertificateResponse[]>([]);
   isLoading = signal<boolean>(false);
   filteredVerifications = signal<CertificateResponse[]>([]);
+  errorMessage = signal<string | null>(null);
 
   gridConfig: DataGridConfig = {
     title: 'Verification',
@@ -50,6 +51,7 @@ export class VerificationListComponent implements OnInit {
 
   loadVerifications(): void {
     this.isLoading.set(true);
+    this.errorMessage.set(null);
     // For verification, we might want to show all certificates or only verified ones
     this.certificateService.getAllCertificates().subscribe({
       next: (certificates) => {
@@ -61,7 +63,11 @@ export class VerificationListComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading verifications:', error);
+        this.errorMessage.set(error?.message || 'Failed to load verifications. Please try again.');
         this.isLoading.set(false);
+        // Set empty array on error to show empty state
+        this.verifications.set([]);
+        this.filteredVerifications.set([]);
       }
     });
   }

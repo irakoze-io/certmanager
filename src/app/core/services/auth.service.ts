@@ -51,6 +51,9 @@ export class AuthService {
    * Login with email and password
    */
   login(tenantId: number, request: LoginRequest): Observable<ApiResponse<LoginResponse>> {
+    // Clear any existing auth state before logging in to prevent stale data
+    this.clearAuthState();
+    
     return this.http.post<ApiResponse<LoginResponse>>(
       `${this.authUrl}/login`,
       request,
@@ -62,11 +65,14 @@ export class AuthService {
     ).pipe(
       tap(response => {
         if (response.success && response.data) {
+          // Set new auth state - this will overwrite any stale data
           this.setAuthState(response.data, tenantId);
         }
       }),
       catchError(error => {
         console.error('Login error:', error);
+        // Ensure state is cleared on error
+        this.clearAuthState();
         return throwError(() => error);
       })
     );
@@ -119,6 +125,28 @@ export class AuthService {
    */
   getTenantId(): number | null {
     return this.tenantIdSignal();
+  }
+
+  /**
+   * Check if user is authenticated (for use in guards)
+   * This method reads the computed signal value
+   */
+  checkAuthentication(): boolean {
+    return this.isAuthenticated();
+  }
+
+  /**
+   * Force re-initialization from localStorage
+   * Useful when signals might not be initialized but localStorage has data
+   * This will only load if signals are empty (won't overwrite fresh data)
+   */
+  reinitializeFromStorage(): void {
+    if (this.isBrowser) {
+      // Only initialize if we don't already have auth state
+      if (!this.tokenSignal() || !this.userSignal()) {
+        this.initializeFromStorage();
+      }
+    }
   }
 
   /**
@@ -216,14 +244,22 @@ export class AuthService {
 
   /**
    * Initialize state from localStorage
+   * Only loads if signals are not already set (to prevent overwriting fresh data)
    */
   private initializeFromStorage(): void {
+    // Don't overwrite if signals are already set (fresh login data)
+    if (this.tokenSignal() && this.userSignal()) {
+      return;
+    }
+    
     const token = this.getStoredToken();
     const user = this.getStoredUser();
     const tenantId = this.getStoredTenantId();
     const tenantSchema = this.getStoredTenantSchema();
 
     if (token && user) {
+      // Validate that token and user belong to the same tenant
+      // Parse JWT to get tenant info if possible
       this.tokenSignal.set(token);
       this.userSignal.set(user);
       this.tenantIdSignal.set(tenantId);

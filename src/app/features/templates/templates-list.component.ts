@@ -16,6 +16,7 @@ export class TemplatesListComponent implements OnInit {
   templates = signal<TemplateResponse[]>([]);
   isLoading = signal<boolean>(false);
   filteredTemplates = signal<TemplateResponse[]>([]);
+  errorMessage = signal<string | null>(null);
 
   gridConfig: DataGridConfig = {
     title: 'Templates',
@@ -51,6 +52,7 @@ export class TemplatesListComponent implements OnInit {
 
   loadTemplates(): void {
     this.isLoading.set(true);
+    this.errorMessage.set(null);
     this.templateService.getAllTemplates().subscribe({
       next: (templates) => {
         this.templates.set(templates);
@@ -59,7 +61,11 @@ export class TemplatesListComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading templates:', error);
+        this.errorMessage.set(error?.message || 'Failed to load templates. Please try again.');
         this.isLoading.set(false);
+        // Set empty array on error to show empty state
+        this.templates.set([]);
+        this.filteredTemplates.set([]);
       }
     });
   }
