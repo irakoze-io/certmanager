@@ -32,6 +32,7 @@ export class LoginComponent {
   customerForm: FormGroup;
   userForm: FormGroup;
   isLoading = signal(false);
+  loadingStatus = signal<string | null>(null);
   errorMessage = signal<string | null>(null);
   successMessage = signal<string | null>(null);
   warningMessage = signal<string | null>(null);
@@ -82,6 +83,7 @@ export class LoginComponent {
     this.errorMessage.set(null);
     this.successMessage.set(null);
     this.warningMessage.set(null);
+    this.loadingStatus.set(null);
     this.showUserForm.set(false);
   }
 
@@ -190,6 +192,7 @@ export class LoginComponent {
     }
 
     this.isLoading.set(true);
+    this.loadingStatus.set('Creating customer...');
     this.errorMessage.set(null);
     this.successMessage.set(null);
     this.warningMessage.set(null);
@@ -208,6 +211,7 @@ export class LoginComponent {
         this.createdCustomerId.set(response.id);
         this.successMessage.set('Customer created successfully! Now create your first user account.');
         this.isLoading.set(false);
+        this.loadingStatus.set(null);
         // Show user creation form
         this.showUserForm.set(true);
         // Reset customer form
@@ -226,6 +230,7 @@ export class LoginComponent {
             // Show first field error as specific message
             this.errorMessage.set(fieldErrors[0]);
             this.isLoading.set(false);
+            this.loadingStatus.set(null);
             return;
           }
         }
@@ -239,6 +244,7 @@ export class LoginComponent {
         
         this.errorMessage.set(errorMsg);
         this.isLoading.set(false);
+        this.loadingStatus.set(null);
       }
     });
   }
@@ -377,6 +383,7 @@ export class LoginComponent {
     }
 
     this.isLoading.set(true);
+    this.loadingStatus.set('Creating user...');
     this.errorMessage.set(null);
     this.successMessage.set(null);
     this.warningMessage.set(null);
@@ -395,6 +402,7 @@ export class LoginComponent {
         if (response.success && response.data) {
           this.successMessage.set('User created successfully! You can now log in.');
           this.isLoading.set(false);
+          this.loadingStatus.set(null);
           // Reset user form
           this.userForm.reset({
             role: 'VIEWER'
@@ -413,6 +421,7 @@ export class LoginComponent {
         } else {
           this.errorMessage.set(response.message || 'User creation failed');
           this.isLoading.set(false);
+          this.loadingStatus.set(null);
         }
       },
       error: (error) => {
@@ -425,6 +434,7 @@ export class LoginComponent {
             // Show first field error as specific message
             this.errorMessage.set(fieldErrors[0]);
             this.isLoading.set(false);
+            this.loadingStatus.set(null);
             return;
           }
         }
@@ -438,6 +448,7 @@ export class LoginComponent {
         
         this.errorMessage.set(errorMsg);
         this.isLoading.set(false);
+        this.loadingStatus.set(null);
       }
     });
   }
