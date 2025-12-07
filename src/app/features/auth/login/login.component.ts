@@ -6,11 +6,23 @@ import {AuthService} from '../../../core/services/auth.service';
 import {CustomerService} from '../../../core/services/customer.service';
 import {LoginRequest, UserRole} from '../../../core/models/auth.model';
 import {CreateCustomerRequest, CustomerStatus} from '../../../core/models/customer.model';
+import {NotificationComponent} from './components/notification/notification.component';
+import {LoginFormComponent} from './components/login-form/login-form.component';
+import {CustomerFormComponent} from './components/customer-form/customer-form.component';
+import {UserFormComponent} from './components/user-form/user-form.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    NotificationComponent,
+    LoginFormComponent,
+    CustomerFormComponent,
+    UserFormComponent
+  ],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
@@ -22,11 +34,10 @@ export class LoginComponent {
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
   successMessage = signal<string | null>(null);
+  warningMessage = signal<string | null>(null);
   returnUrl = signal<string | null>(null);
-  showPassword = signal(false);
   showUserForm = signal(false);
   createdCustomerId = signal<number | null>(null);
-  showUserPassword = signal(false);
 
   constructor(
     private fb: FormBuilder,
@@ -70,21 +81,10 @@ export class LoginComponent {
     this.activeTab.set(tab);
     this.errorMessage.set(null);
     this.successMessage.set(null);
+    this.warningMessage.set(null);
+    this.showUserForm.set(false);
   }
 
-  /**
-   * Toggle password visibility
-   */
-  togglePasswordVisibility(): void {
-    this.showPassword.set(!this.showPassword());
-  }
-
-  /**
-   * Toggle user password visibility
-   */
-  toggleUserPasswordVisibility(): void {
-    this.showUserPassword.set(!this.showUserPassword());
-  }
 
   /**
    * Handle login form submission
@@ -92,12 +92,18 @@ export class LoginComponent {
   onLoginSubmit(): void {
     if (this.loginForm.invalid) {
       this.markFormGroupTouched(this.loginForm);
+      // Show first validation error
+      const firstError = this.getFirstFormError(this.loginForm);
+      if (firstError) {
+        this.errorMessage.set(firstError);
+      }
       return;
     }
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.successMessage.set(null);
+    this.warningMessage.set(null);
 
     const formValue = this.loginForm.value;
     const loginRequest: LoginRequest = {
@@ -121,12 +127,26 @@ export class LoginComponent {
       error: (error) => {
         console.error('Login error:', error);
 
+        // Handle validation errors first - extract field-specific errors
+        if (error.status === 400) {
+          const fieldErrors = this.extractFieldErrors(error);
+          if (fieldErrors.length > 0) {
+            // Show first field error as specific message
+            this.errorMessage.set(fieldErrors[0]);
+            this.isLoading.set(false);
+            return;
+          }
+        }
+
         // Extract error message from various possible error formats
         let errorMsg = 'Login failed. Please check your credentials and try again.';
 
         if (error.error) {
           // Check if it's an ApiResponse format
-          if (error.error.message) {
+          const errorResponse = error.error.error || error.error;
+          if (errorResponse?.message) {
+            errorMsg = errorResponse.message;
+          } else if (error.error.message) {
             errorMsg = error.error.message;
           } else if (error.error.error) {
             errorMsg = error.error.error;
@@ -137,12 +157,13 @@ export class LoginComponent {
           errorMsg = error.message;
         }
 
-        // Handle specific error cases
+        // Handle specific error cases with specific messages
         if (error.status === 0) {
           errorMsg = 'Unable to connect to the server. Please check if the backend is running.';
         } else if (error.status === 401) {
-          errorMsg = 'Invalid credentials. Please check your email and password.';
+          errorMsg = 'Invalid email or password. Please check your credentials and try again.';
         } else if (error.status === 400) {
+          // Already handled above, but fallback
           errorMsg = errorMsg || 'Invalid request. Please check your tenant ID and credentials.';
         } else if (error.status === 404) {
           errorMsg = 'Login endpoint not found. Please check the API configuration.';
@@ -160,12 +181,18 @@ export class LoginComponent {
   onCustomerSubmit(): void {
     if (this.customerForm.invalid) {
       this.markFormGroupTouched(this.customerForm);
+      // Show first validation error
+      const firstError = this.getFirstFormError(this.customerForm);
+      if (firstError) {
+        this.errorMessage.set(firstError);
+      }
       return;
     }
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.successMessage.set(null);
+    this.warningMessage.set(null);
 
     const formValue = this.customerForm.value;
     const customerRequest: CreateCustomerRequest = {
@@ -191,11 +218,26 @@ export class LoginComponent {
       },
       error: (error) => {
         console.error('Customer creation error:', error);
-        this.errorMessage.set(
+        
+        // Handle validation errors - extract field-specific errors
+        if (error.status === 400) {
+          const fieldErrors = this.extractFieldErrors(error);
+          if (fieldErrors.length > 0) {
+            // Show first field error as specific message
+            this.errorMessage.set(fieldErrors[0]);
+            this.isLoading.set(false);
+            return;
+          }
+        }
+
+        // Extract specific error message
+        const errorResponse = error.error?.error || error.error;
+        const errorMsg = errorResponse?.message ||
           error.error?.message ||
           error.message ||
-          'Failed to create customer. Please try again.'
-        );
+          'Failed to create customer. Please check your input and try again.';
+        
+        this.errorMessage.set(errorMsg);
         this.isLoading.set(false);
       }
     });
@@ -211,16 +253,46 @@ export class LoginComponent {
     });
   }
 
+
   /**
-   * Get error message for a form field
+   * Get human-readable field label
    */
-  getFieldError(fieldName: string): string | null {
-    let form: FormGroup;
-    if (this.showUserForm()) {
-      form = this.userForm;
-    } else {
-      form = this.activeTab() === 'login' ? this.loginForm : this.customerForm;
+  private getFieldLabel(fieldName: string): string {
+    const labels: Record<string, string> = {
+      tenantId: 'Tenant ID',
+      email: 'Email',
+      password: 'Password',
+      firstName: 'First Name',
+      lastName: 'Last Name',
+      role: 'Role',
+      name: 'Name',
+      domain: 'Domain',
+      maxUsers: 'Max Users',
+      maxCertificatesPerMonth: 'Max Certificates per Month'
+    };
+    return labels[fieldName] || fieldName;
+  }
+
+  /**
+   * Get first validation error from form
+   */
+  private getFirstFormError(form: FormGroup): string | null {
+    for (const key of Object.keys(form.controls)) {
+      const control = form.get(key);
+      if (control?.errors && control.touched) {
+        const error = this.getFieldErrorForForm(key, form);
+        if (error) {
+          return error;
+        }
+      }
     }
+    return null;
+  }
+
+  /**
+   * Get error message for a form field in a specific form
+   */
+  private getFieldErrorForForm(fieldName: string, form: FormGroup): string | null {
     const field = form.get(fieldName);
     if (field?.errors && field.touched) {
       if (field.errors['required']) {
@@ -243,22 +315,45 @@ export class LoginComponent {
   }
 
   /**
-   * Get human-readable field label
+   * Extract field-specific validation errors from API error response
    */
-  private getFieldLabel(fieldName: string): string {
-    const labels: Record<string, string> = {
-      tenantId: 'Tenant ID',
-      email: 'Email',
-      password: 'Password',
-      firstName: 'First Name',
-      lastName: 'Last Name',
-      role: 'Role',
-      name: 'Name',
-      domain: 'Domain',
-      maxUsers: 'Max Users',
-      maxCertificatesPerMonth: 'Max Certificates per Month'
-    };
-    return labels[fieldName] || fieldName;
+  private extractFieldErrors(error: any): string[] {
+    const errors: string[] = [];
+    const errorResponse = error.error?.error || error.error;
+    
+    if (!errorResponse) {
+      return errors;
+    }
+
+    // Extract field errors from data.fieldErrors
+    const fieldErrors = errorResponse.data?.fieldErrors;
+    if (fieldErrors && typeof fieldErrors === 'object') {
+      Object.keys(fieldErrors).forEach(fieldName => {
+        const errorMessage = fieldErrors[fieldName];
+        const fieldLabel = this.getFieldLabel(fieldName);
+        errors.push(`${fieldLabel}: ${errorMessage}`);
+      });
+      return errors;
+    }
+
+    // Fallback: use details array if fieldErrors not available
+    const errorDetails = errorResponse.details;
+    if (Array.isArray(errorDetails) && errorDetails.length > 0) {
+      errorDetails.forEach((detail: string) => {
+        // Try to extract field name from detail (format: "fieldName: error message")
+        const parts = detail.split(':');
+        if (parts.length >= 2) {
+          const fieldName = parts[0].trim();
+          const errorMessage = parts.slice(1).join(':').trim();
+          const fieldLabel = this.getFieldLabel(fieldName);
+          errors.push(`${fieldLabel}: ${errorMessage}`);
+        } else {
+          errors.push(detail);
+        }
+      });
+    }
+
+    return errors;
   }
 
   /**
@@ -267,6 +362,11 @@ export class LoginComponent {
   onUserSubmit(): void {
     if (this.userForm.invalid) {
       this.markFormGroupTouched(this.userForm);
+      // Show first validation error
+      const firstError = this.getFirstFormError(this.userForm);
+      if (firstError) {
+        this.errorMessage.set(firstError);
+      }
       return;
     }
 
@@ -279,6 +379,7 @@ export class LoginComponent {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.successMessage.set(null);
+    this.warningMessage.set(null);
 
     const formValue = this.userForm.value;
     const userRequest: LoginRequest = {
@@ -302,10 +403,11 @@ export class LoginComponent {
           setTimeout(() => {
             this.showUserForm.set(false);
             this.setActiveTab('login');
-            // Pre-fill email in login form
+            // Pre-fill email and password in login form
             this.loginForm.patchValue({
               tenantId: customerId,
-              email: formValue.email
+              email: formValue.email,
+              password: formValue.password
             });
           }, 2000);
         } else {
@@ -315,11 +417,26 @@ export class LoginComponent {
       },
       error: (error) => {
         console.error('User creation error:', error);
-        this.errorMessage.set(
+        
+        // Handle validation errors - extract field-specific errors
+        if (error.status === 400) {
+          const fieldErrors = this.extractFieldErrors(error);
+          if (fieldErrors.length > 0) {
+            // Show first field error as specific message
+            this.errorMessage.set(fieldErrors[0]);
+            this.isLoading.set(false);
+            return;
+          }
+        }
+
+        // Extract specific error message
+        const errorResponse = error.error?.error || error.error;
+        const errorMsg = errorResponse?.message ||
           error.error?.message ||
           error.message ||
-          'Failed to create user. Please try again.'
-        );
+          'Failed to create user. Please check your input and try again.';
+        
+        this.errorMessage.set(errorMsg);
         this.isLoading.set(false);
       }
     });
@@ -339,17 +456,4 @@ export class LoginComponent {
     }
   }
 
-  /**
-   * Check if a field has errors and is touched
-   */
-  hasFieldError(fieldName: string): boolean {
-    let form: FormGroup;
-    if (this.showUserForm()) {
-      form = this.userForm;
-    } else {
-      form = this.activeTab() === 'login' ? this.loginForm : this.customerForm;
-    }
-    const field = form.get(fieldName);
-    return !!(field?.invalid && field.touched);
-  }
 }
