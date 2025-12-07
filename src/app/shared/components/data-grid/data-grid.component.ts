@@ -150,7 +150,8 @@ export class DataGridComponent<T = any> {
     const date = this.currentDate();
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    return `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]}`;
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${days[date.getDay()]} ${day} ${months[date.getMonth()]}`;
   }
 
   getPageNumbers(): number[] {

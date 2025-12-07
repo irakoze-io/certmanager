@@ -1,41 +1,46 @@
 <div class="bg-white rounded-lg shadow-sm border border-gray-200">
   <!-- Header Section -->
   <div class="border-b border-gray-200 px-6 py-4">
-    <div class="flex items-center justify-between mb-4">
-      <!-- Title and Date -->
-      <div class="flex items-center gap-6">
-        <h1 class="text-2xl font-semibold text-gray-900">{{ config().title }}</h1>
-        @if (config().showDateSelector) {
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              (click)="onPreviousDate()"
-              class="p-1 hover:bg-gray-100 rounded transition-colors"
-            >
-              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-              </svg>
-            </button>
-            <span class="text-sm font-medium text-gray-700">{{ getFormattedDate() }}</span>
-            <button
-              type="button"
-              (click)="onNextDate()"
-              class="p-1 hover:bg-gray-100 rounded transition-colors"
-            >
-              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-              </svg>
-            </button>
-            <select
-              class="ml-2 text-sm font-medium text-gray-700 bg-transparent border-none focus:outline-none cursor-pointer"
-            >
-              <option>{{ currentYear() }}</option>
-            </select>
-          </div>
-        }
-      </div>
+    <!-- Title Row -->
+    <div class="mb-4">
+      <h1 class="text-2xl font-semibold text-gray-900">{{ config().title }}</h1>
+    </div>
 
-      <!-- Search, Filter, and Add Button -->
+    <!-- Date and Actions Row -->
+    <div class="flex items-center justify-between">
+      <!-- Date Selector (Left) -->
+      @if (config().showDateSelector) {
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            (click)="onPreviousDate()"
+            class="p-1 hover:bg-gray-100 rounded transition-colors"
+          >
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+          </button>
+          <span class="text-sm font-medium text-gray-700">{{ getFormattedDate() }}</span>
+          <button
+            type="button"
+            (click)="onNextDate()"
+            class="p-1 hover:bg-gray-100 rounded transition-colors"
+          >
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+          <select
+            class="ml-2 text-sm font-medium text-gray-700 bg-transparent border-none focus:outline-none cursor-pointer"
+          >
+            <option>{{ currentYear() }}</option>
+          </select>
+        </div>
+      } @else {
+        <div></div>
+      }
+
+      <!-- Search, Filter, and Add Button (Right - Island) -->
       <div class="flex items-center gap-3">
         @if (config().showSearch) {
           <div class="relative">
