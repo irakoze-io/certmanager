@@ -100,10 +100,10 @@ export class LoginComponent {
       },
       error: (error) => {
         console.error('Login error:', error);
-        
+
         // Extract error message from various possible error formats
         let errorMsg = 'Login failed. Please check your credentials and try again.';
-        
+
         if (error.error) {
           // Check if it's an ApiResponse format
           if (error.error.message) {
@@ -116,7 +116,7 @@ export class LoginComponent {
         } else if (error.message) {
           errorMsg = error.message;
         }
-        
+
         // Handle specific error cases
         if (error.status === 0) {
           errorMsg = 'Unable to connect to the server. Please check if the backend is running.';
@@ -127,7 +127,7 @@ export class LoginComponent {
         } else if (error.status === 404) {
           errorMsg = 'Login endpoint not found. Please check the API configuration.';
         }
-        
+
         this.errorMessage.set(errorMsg);
         this.isLoading.set(false);
       }
