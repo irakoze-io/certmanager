@@ -1,4 +1,5 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -14,12 +15,13 @@ export class AuthService {
   private readonly userKey = 'certmgmt_user';
   private readonly tenantIdKey = 'certmgmt_tenant_id';
   private readonly tenantSchemaKey = 'certmgmt_tenant_schema';
+  private readonly isBrowser: boolean;
 
   // Signals for reactive state management
-  private readonly tokenSignal = signal<string | null>(this.getStoredToken());
-  private readonly userSignal = signal<User | null>(this.getStoredUser());
-  private readonly tenantIdSignal = signal<number | null>(this.getStoredTenantId());
-  private readonly tenantSchemaSignal = signal<string | null>(this.getStoredTenantSchema());
+  private readonly tokenSignal = signal<string | null>(null);
+  private readonly userSignal = signal<User | null>(null);
+  private readonly tenantIdSignal = signal<number | null>(null);
+  private readonly tenantSchemaSignal = signal<string | null>(null);
 
   // Computed signals
   readonly isAuthenticated = computed(() => !!this.tokenSignal() && !!this.userSignal());
@@ -34,9 +36,15 @@ export class AuthService {
     isAuthenticated: this.isAuthenticated()
   }));
 
-  constructor(private http: HttpClient) {
-    // Initialize from storage on service creation
-    this.initializeFromStorage();
+  constructor(
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) platformId: Object
+  ) {
+    this.isBrowser = isPlatformBrowser(platformId);
+    // Initialize from storage on service creation (only in browser)
+    if (this.isBrowser) {
+      this.initializeFromStorage();
+    }
   }
 
   /**
@@ -135,11 +143,13 @@ export class AuthService {
     this.tenantIdSignal.set(tenantId);
     this.tenantSchemaSignal.set(loginResponse.tenantSchema);
 
-    // Persist to localStorage
-    localStorage.setItem(this.tokenKey, loginResponse.token);
-    localStorage.setItem(this.userKey, JSON.stringify(user));
-    localStorage.setItem(this.tenantIdKey, tenantId.toString());
-    localStorage.setItem(this.tenantSchemaKey, loginResponse.tenantSchema);
+    // Persist to localStorage (only in browser)
+    if (this.isBrowser) {
+      localStorage.setItem(this.tokenKey, loginResponse.token);
+      localStorage.setItem(this.userKey, JSON.stringify(user));
+      localStorage.setItem(this.tenantIdKey, tenantId.toString());
+      localStorage.setItem(this.tenantSchemaKey, loginResponse.tenantSchema);
+    }
   }
 
   /**
@@ -151,10 +161,13 @@ export class AuthService {
     this.tenantIdSignal.set(null);
     this.tenantSchemaSignal.set(null);
 
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem(this.userKey);
-    localStorage.removeItem(this.tenantIdKey);
-    localStorage.removeItem(this.tenantSchemaKey);
+    // Clear localStorage (only in browser)
+    if (this.isBrowser) {
+      localStorage.removeItem(this.tokenKey);
+      localStorage.removeItem(this.userKey);
+      localStorage.removeItem(this.tenantIdKey);
+      localStorage.removeItem(this.tenantSchemaKey);
+    }
   }
 
   /**
@@ -178,6 +191,7 @@ export class AuthService {
    * Get stored token from localStorage
    */
   private getStoredToken(): string | null {
+    if (!this.isBrowser) return null;
     return localStorage.getItem(this.tokenKey);
   }
 
@@ -185,6 +199,7 @@ export class AuthService {
    * Get stored user from localStorage
    */
   private getStoredUser(): User | null {
+    if (!this.isBrowser) return null;
     const userStr = localStorage.getItem(this.userKey);
     if (!userStr) return null;
     try {
@@ -198,6 +213,7 @@ export class AuthService {
    * Get stored tenant ID from localStorage
    */
   private getStoredTenantId(): number | null {
+    if (!this.isBrowser) return null;
     const tenantIdStr = localStorage.getItem(this.tenantIdKey);
     return tenantIdStr ? parseInt(tenantIdStr, 10) : null;
   }
@@ -206,6 +222,7 @@ export class AuthService {
    * Get stored tenant schema from localStorage
    */
   private getStoredTenantSchema(): string | null {
+    if (!this.isBrowser) return null;
     return localStorage.getItem(this.tenantSchemaKey);
   }
 }
