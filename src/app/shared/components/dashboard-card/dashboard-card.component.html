@@ -22,16 +22,17 @@
 
   <!-- View Link -->
   <div class="mt-auto mb-4">
-    <a
-      [routerLink]="routerLink"
-      class="inline-flex items-center text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-md hover:opacity-80"
+    <button
+      type="button"
+      (click)="onLinkClick()"
+      class="inline-flex items-center text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-md hover:opacity-80 cursor-pointer bg-transparent border-none p-0"
       [style.color]="linkColor"
     >
       {{ linkText }}
       <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
       </svg>
-    </a>
+    </button>
   </div>
 </div>
 

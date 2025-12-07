@@ -1,6 +1,5 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 
 export type EntityType = 'templates' | 'versions' | 'certificates';
 
@@ -17,13 +16,14 @@ export interface DashboardCardConfig {
 @Component({
   selector: 'app-dashboard-card',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   templateUrl: './dashboard-card.component.html',
   styleUrl: './dashboard-card.component.css'
 })
 export class DashboardCardComponent {
   @Input({ required: true }) config!: DashboardCardConfig;
   @Input() count?: number;
+  @Output() linkClick = new EventEmitter<EntityType>();
 
   get iconColor(): string {
     const colorMap: { [key: string]: string } = {
@@ -64,6 +64,10 @@ export class DashboardCardComponent {
 
   get routerLink(): string {
     return this.config.routerLink || `/${this.config.entityType}`;
+  }
+
+  onLinkClick(): void {
+    this.linkClick.emit(this.config.entityType);
   }
 }
 

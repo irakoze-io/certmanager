@@ -4,10 +4,13 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { CustomerService } from '../../core/services/customer.service';
 import { TemplateService } from '../../core/services/template.service';
+import { CertificateService } from '../../core/services/certificate.service';
 import { User } from '../../core/models/auth.model';
 import { CustomerResponse } from '../../core/models/customer.model';
 import { TemplateResponse } from '../../core/models/template.model';
-import { DashboardCardComponent, DashboardCardConfig } from '../../shared/components/dashboard-card/dashboard-card.component';
+import { TemplateVersionResponse } from '../../core/models/template.model';
+import { CertificateResponse } from '../../core/models/certificate.model';
+import { DashboardCardComponent, DashboardCardConfig, EntityType } from '../../shared/components/dashboard-card/dashboard-card.component';
 import { DataGridComponent, DataGridConfig } from '../../shared/components/data-grid/data-grid.component';
 
 @Component({
@@ -23,29 +26,13 @@ export class DashboardComponent implements OnInit {
   tenantSchema = signal<string | null>(null);
   customer = signal<CustomerResponse | null>(null);
   
-  // Templates data for grid
-  templates = signal<TemplateResponse[]>([]);
-  filteredTemplates = signal<TemplateResponse[]>([]);
-  isLoadingTemplates = signal<boolean>(false);
+  // Grid state
+  activeGridType = signal<EntityType | null>(null);
+  gridData = signal<any[]>([]);
+  filteredGridData = signal<any[]>([]);
+  isLoadingGrid = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
-
-  gridConfig: DataGridConfig = {
-    title: 'Templates',
-    addButtonLabel: 'Add New Template',
-    showCheckbox: true,
-    showDateSelector: true,
-    showSearch: true,
-    showFilter: true,
-    itemsPerPageOptions: [10, 25, 50, 100],
-    defaultItemsPerPage: 10,
-    columns: [
-      { key: 'name', label: 'Template name', sortable: true },
-      { key: 'code', label: 'Code', sortable: true },
-      { key: 'description', label: 'Description', sortable: false },
-      { key: 'currentVersion', label: 'Version', sortable: true },
-      { key: 'createdAt', label: 'Created', sortable: true }
-    ]
-  };
+  gridConfig = signal<DataGridConfig | null>(null);
 
   // Dashboard card configurations
   templatesConfig: DashboardCardConfig = {
@@ -82,11 +69,12 @@ export class DashboardComponent implements OnInit {
     private authService: AuthService,
     private customerService: CustomerService,
     private templateService: TemplateService,
+    private certificateService: CertificateService,
     private router: Router
   ) {
-    // Update filtered templates when templates change
+    // Update filtered data when grid data changes
     effect(() => {
-      this.filteredTemplates.set(this.templates());
+      this.filteredGridData.set(this.gridData());
     });
   }
 
@@ -142,43 +130,201 @@ export class DashboardComponent implements OnInit {
     } else {
       console.error('User has no customerId:', user);
     }
+  }
 
-    // Load templates for the grid
-    this.loadTemplates();
+  onCardLinkClick(entityType: EntityType): void {
+    this.activeGridType.set(entityType);
+    this.loadGridData(entityType);
+  }
+
+  loadGridData(entityType: EntityType): void {
+    this.isLoadingGrid.set(true);
+    this.errorMessage.set(null);
+
+    switch (entityType) {
+      case 'templates':
+        this.loadTemplates();
+        break;
+      case 'versions':
+        this.loadVersions();
+        break;
+      case 'certificates':
+        this.loadCertificates();
+        break;
+    }
   }
 
   loadTemplates(): void {
-    this.isLoadingTemplates.set(true);
-    this.errorMessage.set(null);
+    this.gridConfig.set({
+      title: 'Templates',
+      addButtonLabel: 'Add New Template',
+      showCheckbox: true,
+      showDateSelector: true,
+      showSearch: true,
+      showFilter: true,
+      itemsPerPageOptions: [10, 25, 50, 100],
+      defaultItemsPerPage: 10,
+      columns: [
+        { key: 'name', label: 'Template name', sortable: true },
+        { key: 'code', label: 'Code', sortable: true },
+        { key: 'description', label: 'Description', sortable: false },
+        { key: 'currentVersion', label: 'Version', sortable: true },
+        { key: 'createdAt', label: 'Created', sortable: true }
+      ]
+    });
+
     this.templateService.getAllTemplates().subscribe({
       next: (templates) => {
-        this.templates.set(templates);
-        this.filteredTemplates.set(templates);
-        this.isLoadingTemplates.set(false);
+        this.gridData.set(this.formatTemplateData(templates));
+        this.isLoadingGrid.set(false);
       },
       error: (error) => {
         console.error('Error loading templates:', error);
         this.errorMessage.set(error?.message || 'Failed to load templates. Please try again.');
-        this.isLoadingTemplates.set(false);
-        this.templates.set([]);
-        this.filteredTemplates.set([]);
+        this.isLoadingGrid.set(false);
+        this.gridData.set([]);
+      }
+    });
+  }
+
+  loadVersions(): void {
+    this.gridConfig.set({
+      title: 'Versions',
+      addButtonLabel: 'Add New Version',
+      showCheckbox: true,
+      showDateSelector: true,
+      showSearch: true,
+      showFilter: true,
+      itemsPerPageOptions: [10, 25, 50, 100],
+      defaultItemsPerPage: 10,
+      columns: [
+        { key: 'templateName', label: 'Template', sortable: true },
+        { key: 'version', label: 'Version', sortable: true },
+        { key: 'status', label: 'Status', sortable: true },
+        { key: 'createdAt', label: 'Created', sortable: true }
+      ]
+    });
+
+    // Load all templates first, then get versions for each
+    this.templateService.getAllTemplates().subscribe({
+      next: (templates) => {
+        const allVersions: any[] = [];
+        let loadedCount = 0;
+
+        if (templates.length === 0) {
+          this.gridData.set([]);
+          this.isLoadingGrid.set(false);
+          return;
+        }
+
+        templates.forEach(template => {
+          this.templateService.getTemplateVersions(template.id).subscribe({
+            next: (versions) => {
+              versions.forEach(version => {
+                allVersions.push({
+                  id: version.id,
+                  templateName: template.name,
+                  templateId: template.id,
+                  version: version.version.startsWith('v') ? version.version : `v${version.version}`,
+                  status: version.status,
+                  createdAt: version.createdAt ? new Date(version.createdAt).toLocaleDateString() : '-',
+                  _original: version
+                });
+              });
+              loadedCount++;
+              if (loadedCount === templates.length) {
+                this.gridData.set(allVersions);
+                this.isLoadingGrid.set(false);
+              }
+            },
+            error: (error) => {
+              console.error(`Error loading versions for template ${template.id}:`, error);
+              loadedCount++;
+              if (loadedCount === templates.length) {
+                this.gridData.set(allVersions);
+                this.isLoadingGrid.set(false);
+              }
+            }
+          });
+        });
+      },
+      error: (error) => {
+        console.error('Error loading templates for versions:', error);
+        this.errorMessage.set(error?.message || 'Failed to load versions. Please try again.');
+        this.isLoadingGrid.set(false);
+        this.gridData.set([]);
+      }
+    });
+  }
+
+  loadCertificates(): void {
+    this.gridConfig.set({
+      title: 'Certificates',
+      addButtonLabel: 'Add New Certificate',
+      showCheckbox: true,
+      showDateSelector: true,
+      showSearch: true,
+      showFilter: true,
+      itemsPerPageOptions: [10, 25, 50, 100],
+      defaultItemsPerPage: 10,
+      columns: [
+        { key: 'certificateNumber', label: 'Certificate Number', sortable: true },
+        { key: 'recipientName', label: 'Recipient Name', sortable: true },
+        { key: 'recipientEmail', label: 'Recipient Email', sortable: true },
+        { key: 'status', label: 'Status', sortable: true },
+        { key: 'issuedAt', label: 'Issued', sortable: true }
+      ]
+    });
+
+    this.certificateService.getAllCertificates().subscribe({
+      next: (certificates) => {
+        this.gridData.set(this.formatCertificateData(certificates));
+        this.isLoadingGrid.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading certificates:', error);
+        this.errorMessage.set(error?.message || 'Failed to load certificates. Please try again.');
+        this.isLoadingGrid.set(false);
+        this.gridData.set([]);
       }
     });
   }
 
   onSearch(query: string): void {
     if (!query.trim()) {
-      this.filteredTemplates.set(this.templates());
+      this.filteredGridData.set(this.gridData());
       return;
     }
 
     const lowerQuery = query.toLowerCase();
-    const filtered = this.templates().filter(template =>
-      template.name.toLowerCase().includes(lowerQuery) ||
-      (template.code && template.code.toLowerCase().includes(lowerQuery)) ||
-      (template.description && template.description.toLowerCase().includes(lowerQuery))
-    );
-    this.filteredTemplates.set(filtered);
+    const entityType = this.activeGridType();
+    let filtered: any[] = [];
+
+    switch (entityType) {
+      case 'templates':
+        filtered = this.gridData().filter(item =>
+          item.name?.toLowerCase().includes(lowerQuery) ||
+          item.code?.toLowerCase().includes(lowerQuery) ||
+          item.description?.toLowerCase().includes(lowerQuery)
+        );
+        break;
+      case 'versions':
+        filtered = this.gridData().filter(item =>
+          item.templateName?.toLowerCase().includes(lowerQuery) ||
+          item.version?.toLowerCase().includes(lowerQuery) ||
+          item.status?.toLowerCase().includes(lowerQuery)
+        );
+        break;
+      case 'certificates':
+        filtered = this.gridData().filter(item =>
+          item.certificateNumber?.toLowerCase().includes(lowerQuery) ||
+          item.recipientName?.toLowerCase().includes(lowerQuery) ||
+          item.recipientEmail?.toLowerCase().includes(lowerQuery)
+        );
+        break;
+    }
+
+    this.filteredGridData.set(filtered);
   }
 
   onFilter(): void {
@@ -187,8 +333,9 @@ export class DashboardComponent implements OnInit {
   }
 
   onAdd(): void {
-    // TODO: Navigate to create template page
-    console.log('Add template clicked');
+    const entityType = this.activeGridType();
+    // TODO: Navigate to create page based on entity type
+    console.log(`Add ${entityType} clicked`);
   }
 
   onPageChange(page: number): void {
@@ -199,12 +346,12 @@ export class DashboardComponent implements OnInit {
     // Handled by DataGridComponent
   }
 
-  onRowClick(template: TemplateResponse): void {
-    // TODO: Navigate to template detail/edit page
-    console.log('Row clicked:', template);
+  onRowClick(item: any): void {
+    // TODO: Navigate to detail/edit page based on entity type
+    console.log('Row clicked:', item);
   }
 
-  onActionClick(event: { action: string; item: TemplateResponse }): void {
+  onActionClick(event: { action: string; item: any }): void {
     // TODO: Show action menu (edit, delete, etc.)
     console.log('Action clicked:', event);
   }
@@ -217,8 +364,19 @@ export class DashboardComponent implements OnInit {
       description: template.description || '-',
       currentVersion: template.currentVersion ? `v${template.currentVersion}` : 'v1',
       createdAt: template.createdAt ? new Date(template.createdAt).toLocaleDateString() : '-',
-      // Keep original for actions
       _original: template
+    }));
+  }
+
+  formatCertificateData(certificates: CertificateResponse[]): any[] {
+    return certificates.map(cert => ({
+      id: cert.id,
+      certificateNumber: cert.certificateNumber,
+      recipientName: cert.recipientName,
+      recipientEmail: cert.recipientEmail,
+      status: cert.status,
+      issuedAt: cert.issuedAt ? new Date(cert.issuedAt).toLocaleDateString() : '-',
+      _original: cert
     }));
   }
 
