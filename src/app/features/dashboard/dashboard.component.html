@@ -45,28 +45,13 @@
     <!-- Quick Actions -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <!-- Templates Card -->
-      <app-dashboard-card
-        [config]="templatesConfig"
-        (add)="onTemplatesAdd()"
-        (revoke)="onTemplatesRevoke()"
-        (list)="onTemplatesList()"
-      ></app-dashboard-card>
+      <app-dashboard-card [config]="templatesConfig"></app-dashboard-card>
 
       <!-- Versions Card -->
-      <app-dashboard-card
-        [config]="versionsConfig"
-        (add)="onVersionsAdd()"
-        (revoke)="onVersionsRevoke()"
-        (list)="onVersionsList()"
-      ></app-dashboard-card>
+      <app-dashboard-card [config]="versionsConfig"></app-dashboard-card>
 
       <!-- Certificates Card -->
-      <app-dashboard-card
-        [config]="certificatesConfig"
-        (add)="onCertificatesAdd()"
-        (revoke)="onCertificatesRevoke()"
-        (list)="onCertificatesList()"
-      ></app-dashboard-card>
+      <app-dashboard-card [config]="certificatesConfig"></app-dashboard-card>
     </div>
   </main>
 </div>

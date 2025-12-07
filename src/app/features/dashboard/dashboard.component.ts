@@ -26,7 +26,9 @@ export class DashboardComponent implements OnInit {
     description: 'Manage certificate templates and versions',
     icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
     color: 'indigo',
-    entityType: 'templates'
+    entityType: 'templates',
+    routerLink: '/templates',
+    linkText: 'View templates'
   };
 
   versionsConfig: DashboardCardConfig = {
@@ -34,7 +36,9 @@ export class DashboardComponent implements OnInit {
     description: 'Manage template versions and revisions',
     icon: 'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2',
     color: 'purple',
-    entityType: 'versions'
+    entityType: 'versions',
+    routerLink: '/templates', // Versions are managed within templates
+    linkText: 'View versions'
   };
 
   certificatesConfig: DashboardCardConfig = {
@@ -42,7 +46,9 @@ export class DashboardComponent implements OnInit {
     description: 'Generate and manage certificates',
     icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
     color: 'green',
-    entityType: 'certificates'
+    entityType: 'certificates',
+    routerLink: '/certificates',
+    linkText: 'View certificates'
   };
 
   constructor(
@@ -153,51 +159,5 @@ export class DashboardComponent implements OnInit {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
-  }
-
-  // Template card actions
-  onTemplatesAdd(): void {
-    console.log('Add template');
-    // TODO: Implement add template functionality
-  }
-
-  onTemplatesRevoke(): void {
-    console.log('Revoke template');
-    // TODO: Implement revoke template functionality
-  }
-
-  onTemplatesList(): void {
-    this.router.navigate(['/templates']);
-  }
-
-  // Version card actions
-  onVersionsAdd(): void {
-    console.log('Add version');
-    // TODO: Implement add version functionality
-  }
-
-  onVersionsRevoke(): void {
-    console.log('Revoke version');
-    // TODO: Implement revoke version functionality
-  }
-
-  onVersionsList(): void {
-    console.log('List versions');
-    // TODO: Navigate to versions list when route is created
-  }
-
-  // Certificate card actions
-  onCertificatesAdd(): void {
-    console.log('Add certificate');
-    // TODO: Implement add certificate functionality
-  }
-
-  onCertificatesRevoke(): void {
-    console.log('Revoke certificate');
-    // TODO: Implement revoke certificate functionality
-  }
-
-  onCertificatesList(): void {
-    this.router.navigate(['/certificates']);
   }
 }

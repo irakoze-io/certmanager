@@ -1,5 +1,6 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 
 export type EntityType = 'templates' | 'versions' | 'certificates';
 
@@ -9,22 +10,20 @@ export interface DashboardCardConfig {
   icon: string; // SVG path
   color: string; // Tailwind color class (e.g., 'indigo', 'green', 'blue')
   entityType: EntityType;
+  routerLink?: string; // Route path for navigation
+  linkText?: string; // Text for the link (defaults to "View {title}")
 }
 
 @Component({
   selector: 'app-dashboard-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './dashboard-card.component.html',
   styleUrl: './dashboard-card.component.css'
 })
 export class DashboardCardComponent {
   @Input({ required: true }) config!: DashboardCardConfig;
   @Input() count?: number;
-  
-  @Output() add = new EventEmitter<void>();
-  @Output() revoke = new EventEmitter<void>();
-  @Output() list = new EventEmitter<void>();
 
   get iconColorClass(): string {
     const colorMap: { [key: string]: string } = {
@@ -37,33 +36,23 @@ export class DashboardCardComponent {
     return colorMap[this.config.color] || 'text-gray-600';
   }
 
-  get addButtonClass(): string {
+  get linkColorClass(): string {
     const colorMap: { [key: string]: string } = {
-      indigo: 'text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700',
-      purple: 'text-purple-600 hover:bg-purple-50 hover:text-purple-700',
-      green: 'text-green-600 hover:bg-green-50 hover:text-green-700',
-      blue: 'text-blue-600 hover:bg-blue-50 hover:text-blue-700',
-      red: 'text-red-600 hover:bg-red-50 hover:text-red-700'
+      indigo: 'text-indigo-600 hover:text-indigo-700',
+      purple: 'text-purple-600 hover:text-purple-700',
+      green: 'text-green-600 hover:text-green-700',
+      blue: 'text-blue-600 hover:text-blue-700',
+      red: 'text-red-600 hover:text-red-700'
     };
-    return colorMap[this.config.color] || 'text-gray-600 hover:bg-gray-50 hover:text-gray-700';
+    return colorMap[this.config.color] || 'text-gray-600 hover:text-gray-700';
   }
 
-  onAdd(event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.add.emit();
+  get linkText(): string {
+    return this.config.linkText || `View ${this.config.title.toLowerCase()}`;
   }
 
-  onRevoke(event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.revoke.emit();
-  }
-
-  onList(event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.list.emit();
+  get routerLink(): string {
+    return this.config.routerLink || `/${this.config.entityType}`;
   }
 }
 
