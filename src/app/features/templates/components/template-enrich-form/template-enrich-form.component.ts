@@ -26,6 +26,7 @@ export class TemplateEnrichFormComponent implements OnInit {
   addedFieldsIndices = new Set<number>(); // Track which fields have been added to htmlContent
   existingVersion = signal<TemplateVersionResponse | null>(null);
   existingFields = signal<Array<{ name: string; type: FieldType; label: string }>>([]);
+  newFields = signal<Array<{ name: string; type: FieldType; label: string; index: number }>>([]);
 
   // User-friendly field types
   fieldTypes = [
@@ -199,7 +200,39 @@ p {
       type: [FieldType.TEXT, Validators.required]
     });
 
+    const index = this.fieldsArray.length;
     this.fieldsArray.push(fieldGroup);
+    
+    // Subscribe to field changes to update new fields list
+    fieldGroup.valueChanges.subscribe(() => {
+      this.updateNewFieldsList();
+    });
+    
+    // Initial update
+    this.updateNewFieldsList();
+  }
+
+  updateNewFieldsList(): void {
+    const newFieldsList: Array<{ name: string; type: FieldType; label: string; index: number }> = [];
+    
+    this.fieldsArray.controls.forEach((field, index) => {
+      const fieldValue = field.value;
+      if (fieldValue.name && fieldValue.name.trim() !== '') {
+        const label = fieldValue.name
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/^./, (str: string) => str.toUpperCase())
+          .trim();
+        
+        newFieldsList.push({
+          name: fieldValue.name,
+          type: fieldValue.type,
+          label: label,
+          index: index
+        });
+      }
+    });
+    
+    this.newFields.set(newFieldsList);
   }
 
   addFieldToHtmlContent(index: number): void {
@@ -243,7 +276,31 @@ p {
     });
     
     this.fieldsArray.removeAt(index);
+    this.updateNewFieldsList();
     this.updateHtmlContent();
+  }
+
+  removeNewField(index: number): void {
+    this.removeField(index);
+  }
+
+  getFieldTypeIcon(type: FieldType): string {
+    switch (type) {
+      case FieldType.TEXT:
+        return 'M4 6h16M4 12h16M4 18h16';
+      case FieldType.EMAIL:
+        return 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z';
+      case FieldType.NUMBER:
+        return 'M7 20l4-16m6 0l-4 16M6 9h14M4 15h14';
+      case FieldType.DATE:
+        return 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z';
+      case FieldType.BINARY:
+        return 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z';
+      case FieldType.TEXTAREA:
+        return 'M4 6h16M4 10h16M4 14h16M4 18h16';
+      default:
+        return 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z';
+    }
   }
 
   getFieldTypeLabel(type: FieldType): string {
@@ -304,7 +361,8 @@ p {
           htmlContent: formValue.htmlContent,
           fieldSchema: Object.keys(fieldSchema).length > 0 ? fieldSchema : undefined,
           cssStyles: formValue.cssStyles || undefined,
-          settings: formValue.settings
+          settings: formValue.settings,
+          createdBy: currentUser?.id || undefined
         }
       ).subscribe({
         next: () => {
