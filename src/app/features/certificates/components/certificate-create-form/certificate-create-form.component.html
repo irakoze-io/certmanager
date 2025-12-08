@@ -187,10 +187,13 @@
     <div class="form-actions">
       <button
         type="button"
-        (click)="onCancelClick.emit()"
-        [disabled]="isLoading()"
+        (click)="onCancel()"
+        [disabled]="isLoading() || isPolling()"
         class="btn-cancel"
       >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
         Cancel
       </button>
       <button
@@ -205,6 +208,9 @@
           </svg>
           Generating...
         } @else {
+          <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"></path>
+          </svg>
           Generate Certificate
         }
       </button>

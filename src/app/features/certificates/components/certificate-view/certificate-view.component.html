@@ -83,7 +83,7 @@
         </div>
 
         <!-- Recipient Data -->
-        @if (Object.keys(fieldSchema()).length > 0 || Object.keys(certificate()!.recipientData || {}).length > 0) {
+        @if (Object.keys(fieldSchema() || {}).length > 0 || Object.keys(certificate()!.recipientData || {}).length > 0) {
           <div class="form-section">
             <label class="form-label">Recipient Information</label>
             <div formGroupName="recipientData" class="recipient-data-fields">
@@ -169,11 +169,11 @@
         }
 
         <!-- Metadata -->
-        @if (certificate()!.metadata && Object.keys(certificate()!.metadata).length > 0) {
+        @if (certificate()!.metadata && Object.keys(certificate()!.metadata || {}).length > 0) {
           <div class="form-section">
             <label class="form-label">Metadata</label>
             <div class="metadata-display">
-              @for (metaEntry of Object.entries(certificate()!.metadata!); track metaEntry[0]) {
+              @for (metaEntry of Object.entries(certificate()!.metadata || {}); track metaEntry[0]) {
                 <div class="metadata-item">
                   <span class="metadata-key">{{ metaEntry[0] }}:</span>
                   <span class="metadata-value">{{ metaEntry[1] }}</span>

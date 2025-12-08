@@ -286,10 +286,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   handleCertificateReady(certificate: CertificateResponse): void {
     // Certificate is ready, can be downloaded
     console.log('Certificate ready:', certificate);
-    // Emit success after a short delay to allow user to see the status
-    setTimeout(() => {
-      this.onSuccess.emit();
-    }, 2000);
+    // Don't auto-close - let user download or manually close
   }
 
   downloadCertificate(): void {

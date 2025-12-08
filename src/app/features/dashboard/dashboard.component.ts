@@ -388,13 +388,46 @@ export class DashboardComponent implements OnInit {
       ]
     });
 
-    this.certificateService.getAllCertificates().subscribe({
+    this.isLoadingGrid.set(true);
+    this.errorMessage.set(null);
+    
+    const customerId = this.currentUser()?.customerId;
+    if (!customerId) {
+      console.error('[Certificates] No customerId available for current user');
+      this.errorMessage.set('Unable to load certificates: Customer ID not found.');
+      this.isLoadingGrid.set(false);
+      this.gridData.set([]);
+      return;
+    }
+    
+    this.certificateService.getAllCertificates({ customerId }).subscribe({
       next: (certificates) => {
-        this.gridData.set(this.formatCertificateData(certificates));
+        console.log('[Certificates] Raw response:', certificates);
+        console.log('[Certificates] Count:', certificates?.length || 0);
+        console.log('[Certificates] Is array:', Array.isArray(certificates));
+        
+        if (!certificates || certificates.length === 0) {
+          console.warn('[Certificates] No certificates returned from API');
+          this.gridData.set([]);
+          this.isLoadingGrid.set(false);
+          return;
+        }
+        
+        const formatted = this.formatCertificateData(certificates);
+        console.log('[Certificates] Formatted:', formatted);
+        console.log('[Certificates] Formatted count:', formatted?.length || 0);
+        if (formatted.length > 0) {
+          console.log('[Certificates] First item:', formatted[0]);
+        }
+        
+        this.gridData.set(formatted);
+        // filteredGridData will be set automatically by the effect
+        console.log('[Certificates] gridData after set:', this.gridData().length, 'items');
+        console.log('[Certificates] filteredGridData after effect:', this.filteredGridData().length, 'items');
         this.isLoadingGrid.set(false);
       },
       error: (error) => {
-        console.error('Error loading certificates:', error);
+        console.error('[Certificates] Error loading:', error);
         this.errorMessage.set(error?.message || 'Failed to load certificates. Please try again.');
         this.isLoadingGrid.set(false);
         this.gridData.set([]);
@@ -1028,15 +1061,28 @@ export class DashboardComponent implements OnInit {
   }
 
   formatCertificateData(certificates: CertificateResponse[]): any[] {
-    return certificates.map(cert => ({
-      id: cert.id,
-      certificateNumber: cert.certificateNumber,
-      recipientName: cert.recipientData?.['name'] || '-',
-      recipientEmail: cert.recipientData?.['email'] || '-',
-      status: cert.status,
-      issuedAt: cert.issuedAt || '-',
-      _original: cert
-    }));
+    if (!certificates || !Array.isArray(certificates)) {
+      console.warn('[formatCertificateData] Invalid input:', certificates);
+      return [];
+    }
+    
+    return certificates.map(cert => {
+      if (!cert) {
+        console.warn('[formatCertificateData] Null certificate in array');
+        return null;
+      }
+      
+      const formatted = {
+        id: cert.id || '-',
+        certificateNumber: cert.certificateNumber || '-',
+        recipientName: cert.recipientData?.['name'] || '-',
+        recipientEmail: cert.recipientData?.['email'] || '-',
+        status: cert.status || '-',
+        issuedAt: cert.issuedAt || '-',
+        _original: cert
+      };
+      return formatted;
+    }).filter(item => item !== null);
   }
 
   /**

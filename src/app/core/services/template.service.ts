@@ -87,7 +87,7 @@ export class TemplateService extends ApiService {
     return `<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8"/>
   <title>Certificate</title>
 </head>
 <body style="font-family: Arial, sans-serif; margin: 40px; text-align: center;">
