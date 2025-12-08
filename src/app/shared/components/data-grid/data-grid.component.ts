@@ -1,6 +1,7 @@
 import { Component, input, output, signal, computed, effect, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 export interface DataGridColumn {
   key: string;
@@ -39,7 +40,7 @@ export class DataGridComponent<T = any> {
   config = input.required<DataGridConfig>();
   data = input.required<T[]>();
   isLoading = input<boolean>(false);
-  
+
   onAdd = output<void>();
   onSearch = output<string>();
   onFilter = output<void>();
@@ -51,18 +52,18 @@ export class DataGridComponent<T = any> {
   // Date management
   currentDate = signal<Date>(new Date());
   currentYear = computed(() => this.currentDate().getFullYear());
-  
+
   // Search
   searchQuery = signal<string>('');
-  
+
   // Pagination
   currentPage = signal<number>(1);
   itemsPerPage = signal<number>(10);
-  
+
   // Action menu state
   openMenuIndex = signal<number | null>(null);
   menuPosition = signal<'above' | 'below'>('below');
-  
+
   // Computed values
   totalPages = computed(() => {
     const total = Math.ceil(this.data().length / this.itemsPerPage());
@@ -74,7 +75,7 @@ export class DataGridComponent<T = any> {
     return this.data().slice(start, end);
   });
 
-  constructor() {
+  constructor(private sanitizer: DomSanitizer) {
     // Set default items per page from config using effect
     effect(() => {
       const config = this.config();
@@ -82,7 +83,7 @@ export class DataGridComponent<T = any> {
         this.itemsPerPage.set(config.defaultItemsPerPage);
       }
     });
-    
+
     // Reset to page 1 when data changes (but only if we're not on page 1)
     effect(() => {
       const dataLength = this.data().length;
@@ -90,6 +91,10 @@ export class DataGridComponent<T = any> {
         this.currentPage.set(1);
       }
     });
+  }
+
+  getSafeIcon(icon: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(icon);
   }
 
   // Helper method to safely get nested property values
@@ -185,7 +190,7 @@ export class DataGridComponent<T = any> {
 
     // Find the menu element in the DOM - try multiple times if needed
     let menuElement = document.querySelector(`[data-menu-index="${index}"]`) as HTMLElement;
-    
+
     // If menu not found, retry after a short delay
     if (!menuElement) {
       setTimeout(() => {
@@ -206,28 +211,28 @@ export class DataGridComponent<T = any> {
   private performPositionCalculation(buttonElement: HTMLElement, menuElement: HTMLElement): void {
     const buttonRect = buttonElement.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
-    
+
     // Calculate available space relative to viewport
     const spaceBelow = viewportHeight - buttonRect.bottom;
     const spaceAbove = buttonRect.top;
-    
+
     // Get actual menu height
     let menuHeight = menuElement.offsetHeight || menuElement.scrollHeight;
-    
+
     // Get computed margins
     const computedStyle = window.getComputedStyle(menuElement);
     const marginTop = parseFloat(computedStyle.marginTop) || 8;
     const marginBottom = parseFloat(computedStyle.marginBottom) || 0;
-    
+
     // Total height needed including margins
     const totalHeightNeeded = menuHeight + marginTop + marginBottom;
-    
+
     // Only position above if menu would be significantly cut off below (less than 50% visible)
     // and there's enough space above to show it fully
     const minVisibleBelow = totalHeightNeeded * 0.5; // At least 50% of menu should be visible
     const wouldBeCutOffBelow = spaceBelow < minVisibleBelow;
     const hasEnoughSpaceAbove = spaceAbove >= totalHeightNeeded;
-    
+
     // Only position above if menu would be cut off AND there's space above
     // Otherwise, always position below to allow normal page scrolling
     if (wouldBeCutOffBelow && hasEnoughSpaceAbove) {
@@ -243,6 +248,46 @@ export class DataGridComponent<T = any> {
 
   capitalizeLabel(label: string): string {
     return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
+  }
+
+  getColumnHeaderClass(columnKey: string): string {
+    const baseClass = 'py-3 text-left text-sm font-bold text-gray-700 tracking-wider';
+
+    if (['name', 'recipientName', 'templateName'].includes(columnKey)) {
+      return `${baseClass} px-6 w-72 lg:w-96`;
+    } else if (columnKey === 'description') {
+      return `${baseClass} px-6 w-auto min-w-[200px]`;
+    } else if (columnKey === 'code' || columnKey === 'certificateNumber') {
+      return `${baseClass} px-6 w-40 whitespace-nowrap`;
+    } else if (columnKey === 'currentVersion' || columnKey === 'version') {
+      return `${baseClass} px-6 w-28 whitespace-nowrap`;
+    } else if (columnKey === 'status') {
+      return `${baseClass} px-6 w-32 whitespace-nowrap`;
+    } else if (['createdAt', 'issuedAt'].includes(columnKey)) {
+      return `${baseClass} px-6 w-36 whitespace-nowrap`;
+    } else {
+      return `${baseClass} px-6 whitespace-nowrap`;
+    }
+  }
+
+  getColumnCellClass(columnKey: string): string {
+    const baseClass = 'py-3 text-sm text-gray-900';
+
+    if (['name', 'recipientName', 'templateName'].includes(columnKey)) {
+      return `${baseClass} px-6 w-72 lg:w-96`;
+    } else if (columnKey === 'description') {
+      return `${baseClass} px-6 w-auto min-w-[200px]`;
+    } else if (columnKey === 'code' || columnKey === 'certificateNumber') {
+      return `${baseClass} px-6 w-40 whitespace-nowrap`;
+    } else if (columnKey === 'currentVersion' || columnKey === 'version') {
+      return `${baseClass} px-6 w-28 whitespace-nowrap`;
+    } else if (columnKey === 'status') {
+      return `${baseClass} px-6 w-32 whitespace-nowrap`;
+    } else if (['createdAt', 'issuedAt'].includes(columnKey)) {
+      return `${baseClass} px-6 w-36 whitespace-nowrap`;
+    } else {
+      return `${baseClass} px-6 whitespace-nowrap`;
+    }
   }
 
   @HostListener('document:click', ['$event'])
@@ -265,7 +310,7 @@ export class DataGridComponent<T = any> {
     const total = this.totalPages();
     const current = this.currentPage();
     const pages: number[] = [];
-    
+
     if (total <= 7) {
       // Show all pages if 7 or fewer
       for (let i = 1; i <= total; i++) {
@@ -274,40 +319,72 @@ export class DataGridComponent<T = any> {
     } else {
       // Show first page
       pages.push(1);
-      
+
       if (current > 3) {
         pages.push(-1); // Ellipsis
       }
-      
+
       // Show pages around current
       const start = Math.max(2, current - 1);
       const end = Math.min(total - 1, current + 1);
-      
+
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-      
+
       if (current < total - 2) {
         pages.push(-1); // Ellipsis
       }
-      
+
       // Show last page
       pages.push(total);
     }
-    
+
     return pages;
+  }
+
+  getInitials(name: string): string {
+    if (!name) return '';
+    const parts = name.split(' ').filter(part => part.length > 0);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
   getStatusClass(status: string): string {
     const statusLower = (status || '').toLowerCase();
-    if (statusLower === 'issued' || statusLower === 'on time' || statusLower === 'published') {
-      return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800';
-    } else if (statusLower === 'late' || statusLower === 'failed' || statusLower === 'revoked') {
-      return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800';
-    } else if (statusLower === 'pending' || statusLower === 'processing' || statusLower === 'draft') {
-      return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800';
+
+    // Green (On time, Issued, Published)
+    if (['issued', 'on time', 'published', 'active', 'completed'].includes(statusLower)) {
+      return 'bg-green-50 text-green-700 border-green-100';
     }
-    return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800';
+    // Red (Late, Failed, Revoked)
+    else if (['late', 'failed', 'revoked', 'expired', 'inactive'].includes(statusLower)) {
+      return 'bg-red-50 text-red-700 border-red-100';
+    }
+    // Yellow/Orange (Pending, Processing, Draft)
+    else if (['pending', 'processing', 'draft', 'in progress'].includes(statusLower)) {
+      return 'bg-yellow-50 text-yellow-700 border-yellow-100';
+    }
+
+    // Default Gray
+    return 'bg-gray-50 text-gray-700 border-gray-200';
+  }
+
+  getStatusDotClass(status: string): string {
+    const statusLower = (status || '').toLowerCase();
+
+    if (['issued', 'on time', 'published', 'active', 'completed'].includes(statusLower)) {
+      return 'bg-green-500';
+    }
+    else if (['late', 'failed', 'revoked', 'expired', 'inactive'].includes(statusLower)) {
+      return 'bg-red-500';
+    }
+    else if (['pending', 'processing', 'draft', 'in progress'].includes(statusLower)) {
+      return 'bg-yellow-500';
+    }
+
+    return 'bg-gray-400';
   }
 }
 

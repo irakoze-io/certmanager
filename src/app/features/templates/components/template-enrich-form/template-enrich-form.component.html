@@ -1,0 +1,205 @@
+<div class="enrich-form-container">
+  @if (errorMessage()) {
+    <div class="error-notification">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span class="text-sm text-red-700">{{ errorMessage() }}</span>
+      </div>
+    </div>
+  }
+
+  <form [formGroup]="enrichForm" (ngSubmit)="onSubmitForm()">
+    <!-- Template Info (Readonly) -->
+    <div class="form-section">
+      <label class="form-label">Template</label>
+      <input
+        type="text"
+        [value]="getTemplateDisplay()"
+        readonly
+        class="form-input readonly-input"
+      />
+    </div>
+
+    <!-- Fields Schema Builder -->
+    <div class="form-section">
+      <div class="flex items-center justify-between mb-4">
+        <label class="form-label">Fields</label>
+        <button
+          type="button"
+          (click)="addField()"
+          class="add-field-button"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          Add Field
+        </button>
+      </div>
+
+      <div formArrayName="fields" class="fields-container">
+        @if (fieldsArray.length === 0) {
+          <div class="empty-state">
+            <p class="text-sm text-gray-500">No fields added yet. Click "Add Field" to get started.</p>
+          </div>
+        }
+
+        @for (field of fieldsArray.controls; track $index) {
+          <div [formGroupName]="$index" class="field-item">
+            <div class="grid grid-cols-12 gap-4 items-start">
+              <!-- Field Name -->
+              <div class="col-span-12 sm:col-span-3">
+                <label class="field-label">Field Name</label>
+                <input
+                  type="text"
+                  formControlName="name"
+                  placeholder="e.g., name"
+                  class="form-input"
+                  [class.error]="field.get('name')?.invalid && field.get('name')?.touched"
+                />
+                @if (field.get('name')?.invalid && field.get('name')?.touched) {
+                  <p class="error-text">Required. Use letters, numbers, or underscore.</p>
+                }
+              </div>
+
+              <!-- Field Type -->
+              <div class="col-span-12 sm:col-span-3">
+                <label class="field-label">Type</label>
+                <select formControlName="type" class="form-input">
+                  @for (ft of fieldTypes; track ft.value) {
+                    <option [value]="ft.value">{{ ft.label }}</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Field Label -->
+              <div class="col-span-12 sm:col-span-4">
+                <label class="field-label">Label</label>
+                <input
+                  type="text"
+                  formControlName="label"
+                  placeholder="e.g., Recipient Name"
+                  class="form-input"
+                  [class.error]="field.get('label')?.invalid && field.get('label')?.touched"
+                />
+                @if (field.get('label')?.invalid && field.get('label')?.touched) {
+                  <p class="error-text">Required</p>
+                }
+              </div>
+
+              <!-- Required Checkbox -->
+              <div class="col-span-12 sm:col-span-1 flex items-center pt-6">
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    formControlName="required"
+                    class="checkbox-input"
+                  />
+                  <span class="text-xs text-gray-600">Required</span>
+                </label>
+              </div>
+
+              <!-- Remove Button -->
+              <div class="col-span-12 sm:col-span-1 flex items-center justify-end pt-6">
+                <button
+                  type="button"
+                  (click)="removeField($index)"
+                  class="remove-button"
+                  title="Remove field"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- HTML Content Editor -->
+    <div class="form-section">
+      <label class="form-label">HTML Content</label>
+      <p class="form-hint">Use {{ '{' }}{{ '{' }}fieldName{{ '}' }}{{ '}' }} to insert field values</p>
+      <textarea
+        formControlName="htmlContent"
+        rows="12"
+        class="form-textarea code-editor"
+        placeholder="Enter HTML content for the certificate template..."
+      ></textarea>
+      @if (enrichForm.get('htmlContent')?.invalid && enrichForm.get('htmlContent')?.touched) {
+        <p class="error-text">HTML content is required</p>
+      }
+    </div>
+
+    <!-- CSS Styles Editor -->
+    <div class="form-section">
+      <label class="form-label">CSS Styles</label>
+      <textarea
+        formControlName="cssStyles"
+        rows="8"
+        class="form-textarea code-editor"
+        placeholder="Enter CSS styles for the certificate template..."
+      ></textarea>
+    </div>
+
+    <!-- Settings -->
+    <div class="form-section">
+      <label class="form-label">Settings</label>
+      <div formGroupName="settings" class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="field-label">Page Size</label>
+          <select formControlName="pageSize" class="form-input">
+            @for (size of pageSizes; track size) {
+              <option [value]="size">{{ size }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Orientation</label>
+          <select formControlName="orientation" class="form-input">
+            @for (orient of orientations; track orient.value) {
+              <option [value]="orient.value">{{ orient.label }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button
+        type="button"
+        (click)="onCancelClick()"
+        class="cancel-button"
+        [disabled]="isLoading()"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        Cancel
+      </button>
+      <button
+        type="submit"
+        class="submit-button"
+        [disabled]="isLoading() || enrichForm.invalid"
+      >
+        @if (isLoading()) {
+          <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Creating...
+        } @else {
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          Create Version
+        }
+      </button>
+    </div>
+  </form>
+</div>
+

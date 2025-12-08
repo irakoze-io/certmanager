@@ -1,20 +1,25 @@
-import { Component, OnInit, input, output, signal, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { TemplateService } from '../../../../core/services/template.service';
-import { CreateTemplateRequest } from '../../../../core/models/template.model';
+import {Component, OnInit, input, output, signal, effect} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {FormBuilder, FormGroup, Validators, ReactiveFormsModule} from '@angular/forms';
+import {TemplateService} from '../../../../core/services/template.service';
+import {CreateTemplateRequest} from '../../../../core/models/template.model';
 
 // Predefined codes and categories
 export const TEMPLATE_CODES = [
-  'CERT-BASIC',
-  'CERT-ADVANCED',
-  'CERT-PROFESSIONAL',
-  'CERT-COMPLETION',
-  'CERT-ACHIEVEMENT',
-  'CERT-PARTICIPATION',
-  'CERT-EXCELLENCE',
-  'CERT-MASTERY'
-];
+    'CERT - BASIC',
+    'CERT - ADVANCED',
+    'CERT - PROFESSIONAL',
+    'CERT - MASTERY',
+    'CERT - ACHIEVEMENT',
+    'CERT - EXCELLENCE',
+    'CERT - PARTICIPATION',
+    'CERT - VERIFICATION',
+    'CERT - COMPLIANCE',
+    'CERT - COMPLETION',
+    'CERT - GENERIC',
+    'CERT - CUSTOM',
+  ]
+;
 
 export const TEMPLATE_CATEGORIES = [
   'Education',
@@ -66,11 +71,11 @@ export class TemplateCreateFormComponent implements OnInit {
     this.form.reset();
     // Set default code if available
     if (this.codes.length > 0) {
-      this.form.patchValue({ code: this.codes[0] });
+      this.form.patchValue({code: this.codes[0]});
     }
     // Set default category if available
     if (this.categories.length > 0) {
-      this.form.patchValue({ category: this.categories[0] });
+      this.form.patchValue({category: this.categories[0]});
     }
     this.errorMessage.set(null);
   }

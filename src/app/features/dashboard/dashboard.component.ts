@@ -35,7 +35,7 @@ export class DashboardComponent implements OnInit {
   tenantId = signal<number | null>(null);
   tenantSchema = signal<string | null>(null);
   customer = signal<CustomerResponse | null>(null);
-  
+
   // Grid state
   activeGridType = signal<EntityType | null>(null);
   gridData = signal<any[]>([]);
@@ -182,9 +182,7 @@ export class DashboardComponent implements OnInit {
       defaultItemsPerPage: 10,
       columns: [
         { key: 'name', label: 'Template name', sortable: true },
-        { key: 'code', label: 'Code', sortable: true },
         { key: 'description', label: 'Description', sortable: false },
-        { key: 'currentVersion', label: 'Version', sortable: true },
         { key: 'createdAt', label: 'Created', sortable: true }
       ],
       actions: [
@@ -258,8 +256,8 @@ export class DashboardComponent implements OnInit {
                   id: version.id,
                   templateName: template.name,
                   templateId: template.id,
-                  version: typeof version.version === 'string' && version.version.startsWith('v') 
-                    ? version.version 
+                  version: typeof version.version === 'string' && version.version.startsWith('v')
+                    ? version.version
                     : `v${version.version}`,
                   status: version.status,
                   createdAt: version.createdAt ? new Date(version.createdAt).toLocaleDateString() : '-',
@@ -369,7 +367,7 @@ export class DashboardComponent implements OnInit {
 
   onAdd(): void {
     const entityType = this.activeGridType();
-    
+
     switch (entityType) {
       case 'templates':
         this.modalTitle.set('Create New Template');
@@ -424,12 +422,12 @@ export class DashboardComponent implements OnInit {
 
   onActionClick(event: { action: string; item: any }): void {
     const { action, item } = event;
-    
+
     switch (action) {
       case 'enrich':
         // Ensure we have the original template data
         const templateData = item._original || item;
-        
+
         if (!templateData || !templateData.id) {
           console.error('Invalid template data:', item);
           this.errorMessage.set('Invalid template data. Please try again.');
@@ -438,7 +436,7 @@ export class DashboardComponent implements OnInit {
 
         // Clear any previous error
         this.errorMessage.set(null);
-        
+
         // Fetch full template details to ensure we have latest data
         this.templateService.getTemplateById(templateData.id).subscribe({
           next: (template) => {
@@ -446,7 +444,7 @@ export class DashboardComponent implements OnInit {
               this.errorMessage.set('Template not found. Please try again.');
               return;
             }
-            
+
             this.selectedTemplate.set(template);
             this.modalTitle.set('Enrich Template');
             this.showEnrichModal.set(true);
