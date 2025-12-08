@@ -6,40 +6,50 @@
     aria-modal="true"
     [attr.aria-labelledby]="title() ? 'modal-title' : null"
   >
-    <!-- Backdrop -->
-    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+    <!-- Backdrop - Minimal blur, background fully visible -->
+    <div class="fixed inset-0 backdrop-blur-sm transition-opacity"></div>
 
     <!-- Modal Container -->
     <div class="flex min-h-full items-center justify-center p-4">
       <div
-        class="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+        class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
         (click)="$event.stopPropagation()"
       >
         <!-- Header -->
-        @if (title() || showCloseButton()) {
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            @if (title()) {
-              <h2 id="modal-title" class="text-xl font-semibold text-gray-900">
-                {{ title() }}
-              </h2>
-            }
+        <div class="px-6 pt-6 pb-4">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              @if (title()) {
+                <div class="flex items-center gap-2 mb-2">
+                  <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"></path>
+                  </svg>
+                  <h2 id="modal-title" class="text-xl font-semibold text-gray-900">
+                    {{ title() }}
+                  </h2>
+                </div>
+              }
+              @if (subtitle()) {
+                <p class="text-sm text-gray-600 ml-7">{{ subtitle() }}</p>
+              }
+            </div>
             @if (showCloseButton()) {
               <button
                 type="button"
                 (click)="close()"
-                class="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1 transition-colors"
+                class="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1 transition-colors ml-4"
                 aria-label="Close modal"
               >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
               </button>
             }
           </div>
-        }
+        </div>
 
         <!-- Content -->
-        <div class="flex-1 overflow-y-auto px-6 py-4">
+        <div class="flex-1 overflow-y-auto px-6 pb-6">
           <ng-content></ng-content>
         </div>
       </div>

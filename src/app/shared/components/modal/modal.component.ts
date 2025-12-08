@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common';
 export class ModalComponent {
   isOpen = input<boolean>(false);
   title = input<string>('');
+  subtitle = input<string>('');
   showCloseButton = input<boolean>(true);
   
   onClose = output<void>();
