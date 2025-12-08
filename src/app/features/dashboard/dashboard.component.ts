@@ -190,9 +190,9 @@ export class DashboardComponent implements OnInit {
           icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>'
         },
         {
-          label: 'Archive',
-          action: 'archive',
-          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>'
+          label: 'Enrich',
+          action: 'enrich',
+          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>'
         },
         {
           label: 'Publish',
@@ -390,6 +390,8 @@ export class DashboardComponent implements OnInit {
 
   onModalClose(): void {
     this.showCreateModal.set(false);
+    // Reset the form when modal closes by triggering a reset through the component
+    // The form component will handle reset on success, but we also want to reset on cancel
   }
 
   onPageChange(page: number): void {

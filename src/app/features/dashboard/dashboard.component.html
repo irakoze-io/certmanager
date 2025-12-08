@@ -111,11 +111,13 @@
       subtitle="Create a new certificate template for your organization"
       (onClose)="onModalClose()"
     >
-      <app-template-create-form
-        [customerId]="currentUser()!.customerId!"
-        (onSuccess)="onTemplateCreated()"
-        (onCancel)="onModalClose()"
-      />
+      @if (showCreateModal()) {
+        <app-template-create-form
+          [customerId]="currentUser()!.customerId!"
+          (onSuccess)="onTemplateCreated()"
+          (onCancel)="onModalClose()"
+        />
+      }
     </app-modal>
   }
 </div>

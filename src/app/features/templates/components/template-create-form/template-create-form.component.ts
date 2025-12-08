@@ -58,6 +58,12 @@ export class TemplateCreateFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.resetForm();
+  }
+
+  private resetForm(): void {
+    // Reset form to initial state
+    this.form.reset();
     // Set default code if available
     if (this.codes.length > 0) {
       this.form.patchValue({ code: this.codes[0] });
@@ -66,6 +72,7 @@ export class TemplateCreateFormComponent implements OnInit {
     if (this.categories.length > 0) {
       this.form.patchValue({ category: this.categories[0] });
     }
+    this.errorMessage.set(null);
   }
 
   onSubmit(): void {
@@ -92,6 +99,8 @@ export class TemplateCreateFormComponent implements OnInit {
     this.templateService.createTemplate(request).subscribe({
       next: () => {
         this.isLoading.set(false);
+        // Reset form after successful submission
+        this.resetForm();
         this.onSuccess.emit();
       },
       error: (error) => {
@@ -103,6 +112,8 @@ export class TemplateCreateFormComponent implements OnInit {
   }
 
   onCancelClick(): void {
+    // Reset form when canceling
+    this.resetForm();
     this.onCancel.emit();
   }
 

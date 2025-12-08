@@ -61,6 +61,7 @@ export class DataGridComponent<T = any> {
   
   // Action menu state
   openMenuIndex = signal<number | null>(null);
+  menuPosition = signal<'above' | 'below'>('below');
   
   // Computed values
   totalPages = computed(() => {
@@ -164,6 +165,63 @@ export class DataGridComponent<T = any> {
       this.openMenuIndex.set(null);
     } else {
       this.openMenuIndex.set(index);
+      // Calculate menu position after DOM update using requestAnimationFrame for accurate measurement
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          this.calculateMenuPosition(event.target as HTMLElement, index);
+        }, 0);
+      });
+    }
+  }
+
+  private calculateMenuPosition(buttonElement: HTMLElement | null, index: number): void {
+    if (!buttonElement) {
+      this.menuPosition.set('below');
+      return;
+    }
+
+    // Find the menu element in the DOM
+    const menuElement = document.querySelector(`[data-menu-index="${index}"]`) as HTMLElement;
+    
+    const buttonRect = buttonElement.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    
+    // Calculate available space
+    const spaceBelow = viewportHeight - buttonRect.bottom;
+    const spaceAbove = buttonRect.top;
+    
+    // Get actual menu height if available, otherwise estimate
+    let menuHeight = 200; // Default estimate
+    if (menuElement) {
+      const computedStyle = window.getComputedStyle(menuElement);
+      menuHeight = menuElement.offsetHeight || menuHeight;
+      // Add margin to height calculation
+      const marginTop = parseInt(computedStyle.marginTop) || 8;
+      const marginBottom = parseInt(computedStyle.marginBottom) || 0;
+      menuHeight = menuHeight + marginTop + marginBottom;
+    } else {
+      // Estimate based on number of actions
+      const actionsCount = this.config().actions?.length || 3;
+      menuHeight = (actionsCount * 40) + 16; // 40px per item + padding
+    }
+    
+    // Add buffer for better UX (20px)
+    const buffer = 20;
+    const requiredSpace = menuHeight + buffer;
+    
+    // Check if menu would overflow viewport
+    const wouldOverflowBelow = spaceBelow < requiredSpace;
+    const hasEnoughSpaceAbove = spaceAbove >= requiredSpace;
+    
+    // Position above if it would overflow below and there's enough space above
+    // Also position above if there's significantly more space above than below
+    if (wouldOverflowBelow && hasEnoughSpaceAbove) {
+      this.menuPosition.set('above');
+    } else if (spaceAbove > spaceBelow && spaceAbove >= requiredSpace) {
+      // If more space above and it fits, prefer above
+      this.menuPosition.set('above');
+    } else {
+      this.menuPosition.set('below');
     }
   }
 
