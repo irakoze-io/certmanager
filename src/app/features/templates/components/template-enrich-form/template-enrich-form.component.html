@@ -47,14 +47,14 @@
 
         @for (field of fieldsArray.controls; track $index) {
           <div [formGroupName]="$index" class="field-item">
-            <div class="grid grid-cols-12 gap-4 items-start">
+            <div class="grid grid-cols-12 gap-4 items-end">
               <!-- Field Name -->
-              <div class="col-span-12 sm:col-span-3">
+              <div class="col-span-12 sm:col-span-5">
                 <label class="field-label">Field Name</label>
                 <input
                   type="text"
                   formControlName="name"
-                  placeholder="e.g., name"
+                  placeholder="e.g., recipientName"
                   class="form-input"
                   [class.error]="field.get('name')?.invalid && field.get('name')?.touched"
                 />
@@ -64,7 +64,7 @@
               </div>
 
               <!-- Field Type -->
-              <div class="col-span-12 sm:col-span-3">
+              <div class="col-span-12 sm:col-span-5">
                 <label class="field-label">Type</label>
                 <select formControlName="type" class="form-input">
                   @for (ft of fieldTypes; track ft.value) {
@@ -73,39 +73,23 @@
                 </select>
               </div>
 
-              <!-- Field Label -->
-              <div class="col-span-12 sm:col-span-4">
-                <label class="field-label">Label</label>
-                <input
-                  type="text"
-                  formControlName="label"
-                  placeholder="e.g., Recipient Name"
-                  class="form-input"
-                  [class.error]="field.get('label')?.invalid && field.get('label')?.touched"
-                />
-                @if (field.get('label')?.invalid && field.get('label')?.touched) {
-                  <p class="error-text">Required</p>
-                }
-              </div>
-
-              <!-- Required Checkbox -->
-              <div class="col-span-12 sm:col-span-1 flex items-center pt-6">
-                <label class="checkbox-label">
-                  <input
-                    type="checkbox"
-                    formControlName="required"
-                    class="checkbox-input"
-                  />
-                  <span class="text-xs text-gray-600">Required</span>
-                </label>
-              </div>
-
-              <!-- Remove Button -->
-              <div class="col-span-12 sm:col-span-1 flex items-center justify-end pt-6">
+              <!-- Action Buttons -->
+              <div class="col-span-12 sm:col-span-2 flex items-end justify-end gap-0">
+                <button
+                  type="button"
+                  (click)="addFieldToHtmlContent($index)"
+                  class="field-action-button field-add-button"
+                  title="Add field to HTML content"
+                  [disabled]="!field.get('name')?.valid || isFieldAdded($index)"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </button>
                 <button
                   type="button"
                   (click)="removeField($index)"
-                  class="remove-button"
+                  class="field-action-button field-cancel-button"
                   title="Remove field"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,7 +104,8 @@
     </div>
 
     <!-- HTML Content Editor -->
-    <div class="form-section">
+    <!-- We are removing this -->
+    <div class="form-section" style="display: none;">
       <label class="form-label">HTML Content</label>
       <p class="form-hint">Use {{ '{' }}{{ '{' }}fieldName{{ '}' }}{{ '}' }} to insert field values</p>
       <textarea
@@ -133,30 +118,13 @@
         <p class="error-text">HTML content is required</p>
       }
     </div>
+    <!-- We are removing this -->
 
-    <!-- CSS Styles Editor -->
-    <div class="form-section">
-      <label class="form-label">CSS Styles</label>
-      <textarea
-        formControlName="cssStyles"
-        rows="8"
-        class="form-textarea code-editor"
-        placeholder="Enter CSS styles for the certificate template..."
-      ></textarea>
-    </div>
 
     <!-- Settings -->
     <div class="form-section">
       <label class="form-label">Settings</label>
-      <div formGroupName="settings" class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="field-label">Page Size</label>
-          <select formControlName="pageSize" class="form-input">
-            @for (size of pageSizes; track size) {
-              <option [value]="size">{{ size }}</option>
-            }
-          </select>
-        </div>
+      <div formGroupName="settings" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="field-label">Orientation</label>
           <select formControlName="orientation" class="form-input">

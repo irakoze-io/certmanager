@@ -23,6 +23,7 @@ export class TemplateEnrichFormComponent implements OnInit {
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
   nextVersion = signal<number>(1);
+  addedFieldsIndices = new Set<number>(); // Track which fields have been added to htmlContent
 
   // User-friendly field types
   fieldTypes = [
@@ -74,6 +75,7 @@ export class TemplateEnrichFormComponent implements OnInit {
     
     // Reset form to ensure clean state
     this.enrichForm.reset();
+    this.addedFieldsIndices.clear(); // Clear added fields tracking
     
     // Set template ID in form
     this.enrichForm.patchValue({
@@ -136,7 +138,7 @@ p {
 
     this.enrichForm.patchValue({
       htmlContent: defaultHtml,
-      cssStyles: defaultCss,
+      cssStyles: defaultCss, // Keep CSS in form but hidden from user
       settings: {
         pageSize: 'A4',
         orientation: 'portrait'
@@ -150,7 +152,7 @@ p {
       htmlContent: ['', Validators.required],
       cssStyles: [''],
       settings: this.fb.group({
-        pageSize: ['A4'],
+        pageSize: ['A4'], // Always A4, not shown to user
         orientation: ['portrait']
       }),
       fields: this.fb.array([])
@@ -164,16 +166,54 @@ p {
   addField(): void {
     const fieldGroup = this.fb.group({
       name: ['', [Validators.required, Validators.pattern(/^[a-zA-Z][a-zA-Z0-9_]*$/)]],
-      type: [FieldType.TEXT, Validators.required],
-      required: [false],
-      label: ['', Validators.required]
+      type: [FieldType.TEXT, Validators.required]
     });
 
     this.fieldsArray.push(fieldGroup);
   }
 
+  addFieldToHtmlContent(index: number): void {
+    const field = this.fieldsArray.at(index);
+    if (!field || !field.get('name')?.valid) {
+      return;
+    }
+
+    const fieldValue = field.value;
+    if (!fieldValue.name || fieldValue.name.trim() === '') {
+      return;
+    }
+
+    // Mark this field as added
+    this.addedFieldsIndices.add(index);
+    
+    // Update HTML content with all added fields
+    this.updateHtmlContent();
+  }
+
+  isFieldAdded(index: number): boolean {
+    return this.addedFieldsIndices.has(index);
+  }
+
   removeField(index: number): void {
+    // Remove from added fields set
+    this.addedFieldsIndices.delete(index);
+    
+    // Adjust indices for fields added after this one
+    const indicesToUpdate: number[] = [];
+    this.addedFieldsIndices.forEach(idx => {
+      if (idx > index) {
+        indicesToUpdate.push(idx);
+      }
+    });
+    
+    // Update indices
+    indicesToUpdate.forEach(oldIdx => {
+      this.addedFieldsIndices.delete(oldIdx);
+      this.addedFieldsIndices.add(oldIdx - 1);
+    });
+    
     this.fieldsArray.removeAt(index);
+    this.updateHtmlContent();
   }
 
   getFieldTypeLabel(type: FieldType): string {
@@ -197,11 +237,17 @@ p {
     // Build field schema
     const fieldSchema: Record<string, FieldSchemaField> = {};
     formValue.fields.forEach((field: any) => {
+      // Use field name as label (capitalize first letter and add spaces)
+      const label = field.name
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, (str: string) => str.toUpperCase())
+        .trim();
+      
       fieldSchema[field.name] = {
         name: field.name,
         type: field.type,
-        required: field.required,
-        label: field.label
+        required: false, // Not using required anymore
+        label: label
       };
     });
 
@@ -266,6 +312,52 @@ p {
     const templateData = this.template();
     const version = this.nextVersion();
     return `${templateData.code} ◦ Version Number v${version}`;
+  }
+
+  updateHtmlContent(): void {
+    // Build HTML content with only fields that have been added
+    let htmlBody = '  <div class="certificate-container">\n';
+    htmlBody += '    <h1>Certificate of Completion</h1>\n';
+    
+    // Add only fields that have been explicitly added by the user
+    const addedFields: any[] = [];
+    this.addedFieldsIndices.forEach(index => {
+      if (index < this.fieldsArray.length) {
+        const field = this.fieldsArray.at(index);
+        if (field && field.get('name')?.valid) {
+          const fieldValue = field.value;
+          if (fieldValue.name && fieldValue.name.trim() !== '') {
+            addedFields.push(fieldValue);
+          }
+        }
+      }
+    });
+    
+    if (addedFields.length > 0) {
+      addedFields.forEach((field: any) => {
+        const label = field.name
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/^./, (str: string) => str.toUpperCase())
+          .trim();
+        htmlBody += `    <p><strong>${label}:</strong> {{${field.name}}}</p>\n`;
+      });
+    } else {
+      htmlBody += '    <p>This certifies that the recipient has successfully completed the course.</p>\n';
+    }
+    
+    htmlBody += '  </div>';
+
+    const htmlContent = `<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Certificate</title>
+</head>
+<body>
+${htmlBody}
+</body>
+</html>`;
+
+    this.enrichForm.patchValue({ htmlContent }, { emitEvent: false });
   }
 }
 

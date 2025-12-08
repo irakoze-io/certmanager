@@ -102,7 +102,8 @@
                 <div class="truncate">{{ capitalizeLabel(column.label) }}</div>
               </th>
               }
-              <th scope="col" class="pl-6 pr-3 py-3 text-right text-sm font-bold text-gray-700 tracking-wider w-20">
+              <th scope="col"
+                class="px-6 py-3 text-right text-sm font-bold text-gray-700 tracking-wider whitespace-nowrap">
                 Action
               </th>
             </tr>
@@ -179,7 +180,7 @@
                 }
               </td>
               }
-              <td class="pl-6 pr-3 py-3 whitespace-nowrap text-right text-sm font-medium relative"
+              <td class="px-6 py-3 whitespace-nowrap text-right text-sm font-medium relative"
                 (click)="$event.stopPropagation()">
                 <button type="button" (click)="toggleMenu($index, $event)"
                   class="text-gray-400 hover:text-gray-600 focus:outline-none p-1 rounded-full hover:bg-gray-100 transition-colors">
