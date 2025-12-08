@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, interval, throwError } from 'rxjs';
+import { switchMap, takeWhile, take, map, catchError, finalize } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { ApiResponse } from '../models/api-response.model';
 import {
   GenerateCertificateRequest,
   CertificateResponse,
-  CertificateDownloadUrl,
+  CertificateDownloadUrlResponse,
   CertificateStatus
 } from '../models/certificate.model';
 
@@ -42,7 +43,7 @@ export class CertificateService extends ApiService {
   /**
    * Get certificate by ID
    */
-  getCertificateById(id: number): Observable<CertificateResponse> {
+  getCertificateById(id: string): Observable<CertificateResponse> {
     return new Observable(observer => {
       this.get<CertificateResponse>(`${this.endpoint}/${id}`).subscribe({
         next: response => {
@@ -56,6 +57,13 @@ export class CertificateService extends ApiService {
         error: err => observer.error(err)
       });
     });
+  }
+
+  /**
+   * Get certificate (alias for getCertificateById for consistency with guide)
+   */
+  getCertificate(id: string): Observable<CertificateResponse> {
+    return this.getCertificateById(id);
   }
 
   /**
@@ -82,7 +90,7 @@ export class CertificateService extends ApiService {
    */
   getAllCertificates(filters?: {
     status?: CertificateStatus;
-    templateId?: number;
+    templateVersionId?: string;
     recipientEmail?: string;
   }): Observable<CertificateResponse[]> {
     return new Observable(observer => {
@@ -103,7 +111,7 @@ export class CertificateService extends ApiService {
   /**
    * Update certificate
    */
-  updateCertificate(id: number, updates: Partial<CertificateResponse>): Observable<CertificateResponse> {
+  updateCertificate(id: string, updates: Partial<GenerateCertificateRequest>): Observable<CertificateResponse> {
     return new Observable(observer => {
       this.put<CertificateResponse>(`${this.endpoint}/${id}`, updates).subscribe({
         next: response => {
@@ -122,7 +130,7 @@ export class CertificateService extends ApiService {
   /**
    * Delete certificate
    */
-  deleteCertificate(id: number): Observable<void> {
+  deleteCertificate(id: string): Observable<void> {
     return new Observable(observer => {
       this.delete<void>(`${this.endpoint}/${id}`).subscribe({
         next: response => {
@@ -141,7 +149,7 @@ export class CertificateService extends ApiService {
   /**
    * Revoke certificate
    */
-  revokeCertificate(id: number): Observable<CertificateResponse> {
+  revokeCertificate(id: string): Observable<CertificateResponse> {
     return new Observable(observer => {
       this.post<CertificateResponse>(`${this.endpoint}/${id}/revoke`, {}).subscribe({
         next: response => {
@@ -158,14 +166,18 @@ export class CertificateService extends ApiService {
   }
 
   /**
-   * Get signed download URL for certificate
+   * Get signed download URL for certificate (time-limited)
    */
-  getDownloadUrl(id: number): Observable<CertificateDownloadUrl> {
+  getDownloadUrl(id: string, expirationMinutes: number = 60): Observable<string> {
+    const params = new HttpParams().set('expirationMinutes', expirationMinutes.toString());
     return new Observable(observer => {
-      this.get<CertificateDownloadUrl>(`${this.endpoint}/${id}/download-url`).subscribe({
+      this.http.get<ApiResponse<CertificateDownloadUrlResponse>>(
+        `${this.apiUrl}${this.endpoint}/${id}/download-url`,
+        { params }
+      ).subscribe({
         next: response => {
           if (response.success && response.data) {
-            observer.next(response.data);
+            observer.next(response.data.downloadUrl);
             observer.complete();
           } else {
             observer.error(new Error(response.message || 'Failed to get download URL'));
@@ -174,6 +186,35 @@ export class CertificateService extends ApiService {
         error: err => observer.error(err)
       });
     });
+  }
+
+  /**
+   * Get QR code image URL
+   */
+  getQrCodeUrl(id: string): string {
+    return `${this.apiUrl}${this.endpoint}/${id}/qr-code`;
+  }
+
+  /**
+   * Poll certificate status until ISSUED or FAILED
+   * Useful for async generation
+   */
+  pollCertificateStatus(
+    id: string,
+    intervalMs: number = 2000,
+    maxAttempts: number = 30
+  ): Observable<CertificateResponse> {
+    return interval(intervalMs).pipe(
+      switchMap(() => this.getCertificate(id)),
+      takeWhile(cert => 
+        cert.status === CertificateStatus.PENDING || cert.status === CertificateStatus.PROCESSING,
+        true // inclusive: emit final value
+      ),
+      take(maxAttempts),
+      finalize(() => {
+        // Optional: cleanup
+      })
+    );
   }
 
   /**

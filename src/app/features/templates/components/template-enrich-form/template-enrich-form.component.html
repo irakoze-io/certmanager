@@ -1,0 +1,298 @@
+<div class="enrich-form-container">
+  @if (errorMessage()) {
+    <div class="error-notification">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span class="text-sm text-red-700">{{ errorMessage() }}</span>
+      </div>
+    </div>
+  }
+
+  <form [formGroup]="enrichForm" (ngSubmit)="onSubmitForm()">
+    <!-- Template Info (Readonly) -->
+    <div class="form-section">
+      <label class="form-label">Template</label>
+      <input
+        type="text"
+        [value]="getTemplateDisplay()"
+        readonly
+        class="form-input readonly-input"
+      />
+    </div>
+
+    <!-- Existing Fields Display -->
+    @if (existingFields().length > 0 || addedFields().length > 0) {
+      <div class="form-section">
+        <label class="form-label">Existing Fields</label>
+        <div class="existing-fields-container">
+          @for (field of existingFields(); track field.name) {
+            <div class="existing-field-badge">
+              <svg class="existing-field-badge-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getFieldTypeIcon(field.type)"></path>
+              </svg>
+              <span class="existing-field-badge-name">{{ field.label }}</span>
+              <span class="existing-field-badge-type">{{ getFieldTypeLabel(field.type) }}</span>
+              <button
+                type="button"
+                (click)="editExistingField(field)"
+                class="existing-field-badge-edit"
+                title="Edit field"
+              >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+              </button>
+              <button
+                type="button"
+                (click)="removeExistingField(field.name)"
+                class="existing-field-badge-remove"
+                title="Remove field"
+              >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+          }
+          @for (field of addedFields(); track field.name) {
+            <div class="existing-field-badge new-field-badge">
+              <svg class="existing-field-badge-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getFieldTypeIcon(field.type)"></path>
+              </svg>
+              <span class="existing-field-badge-name">{{ field.label }}</span>
+              <span class="existing-field-badge-type">{{ getFieldTypeLabel(field.type) }}</span>
+              <button
+                type="button"
+                (click)="removeAddedField(field.name)"
+                class="existing-field-badge-remove"
+                title="Remove field"
+              >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Edit Existing Field Form -->
+    @if (editingField()) {
+      <div class="form-section">
+        <label class="form-label">Edit Field</label>
+        <div class="field-item">
+          <div class="grid grid-cols-12 gap-4 items-end">
+            <!-- Field Label -->
+            <div class="col-span-12 sm:col-span-5">
+              <label class="field-label">Field Label</label>
+              <input
+                type="text"
+                #editLabelInput
+                [value]="editingField()!.label"
+                (blur)="updateEditingFieldLabel($any($event.target).value)"
+                class="form-input"
+                placeholder="e.g., Home Address"
+              />
+            </div>
+            <!-- Field Type -->
+            <div class="col-span-12 sm:col-span-4">
+              <label class="field-label">Type</label>
+              <select
+                #editTypeSelect
+                [value]="editingField()!.type"
+                (change)="updateEditingFieldType($any($event.target).value)"
+                class="form-input"
+              >
+                @for (type of fieldTypes; track type.value) {
+                  <option [value]="type.value">{{ type.label }}</option>
+                }
+              </select>
+            </div>
+            <!-- Action Buttons -->
+            <div class="col-span-12 sm:col-span-3 flex gap-2 items-center">
+              <button
+                type="button"
+                (click)="saveEditingField()"
+                class="action-button add-button"
+                title="Save changes"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </button>
+              <button
+                type="button"
+                (click)="cancelEditingField()"
+                class="action-button cancel-button"
+                title="Cancel editing"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Fields Schema Builder -->
+    <div class="form-section">
+      <div class="flex items-center justify-between mb-4">
+        <label class="form-label">Fields</label>
+        <button
+          type="button"
+          (click)="addField()"
+          class="add-field-button"
+          [disabled]="fieldsArray.length >= 5"
+          title="@if (fieldsArray.length >= 5) { Maximum 5 fields allowed }"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          Add Field
+        </button>
+      </div>
+
+      <div formArrayName="fields" class="fields-container">
+        @if (fieldsArray.length === 0) {
+          <div class="empty-state">
+            <p class="text-sm text-gray-500">
+              @if (existingFields().length === 0 && addedFields().length === 0) {
+                No fields added yet. Click "Add Field" to get started.
+              } @else {
+                Click "Add Field" to add more.
+              }
+            </p>
+          </div>
+        }
+
+        @for (field of fieldsArray.controls; track $index) {
+          <div [formGroupName]="$index" class="field-item">
+            <div class="grid grid-cols-12 gap-4 items-end">
+              <!-- Field Name -->
+              <div class="col-span-12 sm:col-span-5">
+                <label class="field-label">Field Name</label>
+                <input
+                  type="text"
+                  formControlName="name"
+                  placeholder="e.g., Home Address"
+                  class="form-input"
+                  [class.error]="field.get('name')?.invalid && field.get('name')?.touched"
+                />
+                @if (field.get('name')?.invalid && field.get('name')?.touched) {
+                  <p class="error-text">Field name is required.</p>
+                }
+              </div>
+
+              <!-- Field Type -->
+              <div class="col-span-12 sm:col-span-5">
+                <label class="field-label">Type</label>
+                <select formControlName="type" class="form-input">
+                  @for (ft of fieldTypes; track ft.value) {
+                    <option [value]="ft.value">{{ ft.label }}</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="col-span-12 sm:col-span-2 flex items-end justify-end gap-0">
+                <button
+                  type="button"
+                  (click)="addFieldToHtmlContent($index)"
+                  class="field-action-button field-add-button"
+                  title="Add field to HTML content"
+                  [disabled]="!field.get('name')?.valid || isFieldAdded($index)"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  (click)="removeField($index)"
+                  class="field-action-button field-cancel-button"
+                  title="Remove field"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- HTML Content Editor -->
+    <!-- We are removing this -->
+    <div class="form-section" style="display: none;">
+      <label class="form-label">HTML Content</label>
+      <p class="form-hint">Use {{ '{' }}{{ '{' }}fieldName{{ '}' }}{{ '}' }} to insert field values</p>
+      <textarea
+        formControlName="htmlContent"
+        rows="12"
+        class="form-textarea code-editor"
+        placeholder="Enter HTML content for the certificate template..."
+      ></textarea>
+      @if (enrichForm.get('htmlContent')?.invalid && enrichForm.get('htmlContent')?.touched) {
+        <p class="error-text">HTML content is required</p>
+      }
+    </div>
+    <!-- We are removing this -->
+
+
+    <!-- Settings -->
+    <div class="form-section">
+      <label class="form-label">Settings</label>
+      <div formGroupName="settings" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="field-label">Orientation</label>
+          <select formControlName="orientation" class="form-input">
+            @for (orient of orientations; track orient.value) {
+              <option [value]="orient.value">{{ orient.label }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button
+        type="button"
+        (click)="onCancelClick()"
+        class="cancel-button"
+        [disabled]="isLoading()"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        Cancel
+      </button>
+      <button
+        type="submit"
+        class="submit-button"
+        [disabled]="isLoading()"
+      >
+        @if (isLoading()) {
+          <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Creating...
+        } @else {
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          Edit Template Version
+        }
+      </button>
+    </div>
+  </form>
+</div>
+

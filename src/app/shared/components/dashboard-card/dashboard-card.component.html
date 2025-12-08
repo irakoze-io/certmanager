@@ -1,0 +1,38 @@
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 px-5 pt-5 pb-5 flex flex-col" style="height: 85%;">
+  <!-- Header -->
+  <div class="flex items-start justify-between mb-3">
+    <div class="flex-1">
+      <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ config.title }}</h3>
+      <p class="text-sm text-gray-600">{{ config.description }}</p>
+    </div>
+    <div class="h-10 w-10 flex-shrink-0" [style.color]="iconColor">
+      <svg class="h-full w-full" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path [attr.d]="config.icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+      </svg>
+    </div>
+  </div>
+
+  <!-- Count (if provided) -->
+  @if (count !== undefined) {
+    <div class="mb-3">
+      <span class="text-2xl font-bold text-gray-900">{{ count }}</span>
+      <span class="text-sm text-gray-500 ml-1">items</span>
+    </div>
+  }
+
+  <!-- View Link -->
+  <div class="mt-auto mb-4">
+    <button
+      type="button"
+      (click)="onLinkClick()"
+      class="inline-flex items-center text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-md hover:opacity-80 cursor-pointer bg-transparent border-none p-0"
+      [style.color]="linkColor"
+    >
+      {{ linkText }}
+      <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+  </div>
+</div>
+

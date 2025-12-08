@@ -33,76 +33,234 @@
   <!-- Main Content -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Welcome Section -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+    <!-- <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
       <h2 class="text-xl font-semibold text-gray-900 mb-2">{{ getGreeting() }}</h2>
       @if (customer()) {
         <div class="text-sm text-gray-600">
           <p><span class="font-medium">Customer:</span> {{ customer()?.name }}</p>
         </div>
       }
-    </div>
+    </div> -->
 
     <!-- Quick Actions -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       <!-- Templates Card -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-lg font-semibold text-gray-900">Templates</h3>
-          <svg class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        </div>
-        <p class="text-sm text-gray-600 mb-3">Manage certificate templates and versions</p>
-        <a
-          href="#"
-          class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-700"
-        >
-          View templates
-          <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
-      </div>
+      <app-dashboard-card
+        [config]="templatesConfig"
+        (linkClick)="onCardLinkClick($event)"
+      ></app-dashboard-card>
+
+      <!-- Versions Card -->
+      <app-dashboard-card
+        [config]="versionsConfig"
+        (linkClick)="onCardLinkClick($event)"
+      ></app-dashboard-card>
 
       <!-- Certificates Card -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-lg font-semibold text-gray-900">Certificates</h3>
-          <svg class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <p class="text-sm text-gray-600 mb-3">Generate and manage certificates</p>
-        <a
-          href="#"
-          class="inline-flex items-center text-sm font-medium text-green-600 hover:text-green-700"
-        >
-          View certificates
-          <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
-      </div>
+      <app-dashboard-card
+        [config]="certificatesConfig"
+        (linkClick)="onCardLinkClick($event)"
+      ></app-dashboard-card>
+    </div>
 
-      <!-- Verification Card -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-lg font-semibold text-gray-900">Verification</h3>
-          <svg class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-          </svg>
+    <!-- Data Grid Section -->
+    @if (activeGridType() && gridConfig()) {
+      <div class="mt-8">
+        <!-- Error Message -->
+        @if (errorMessage()) {
+          <div class="mb-4 border-l-[5px] border-red-500 bg-red-50 p-4 flex items-start gap-3">
+            <div class="flex-shrink-0 mt-0.5">
+              <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm text-red-800">{{ errorMessage() }}</p>
+              <button
+                (click)="loadGridData(activeGridType()!)"
+                class="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Data Grid -->
+        <app-data-grid
+          [config]="gridConfig()!"
+          [data]="filteredGridData()"
+          [isLoading]="isLoadingGrid()"
+          (onSearch)="onSearch($event)"
+          (onFilter)="onFilter()"
+          (onAdd)="onAdd()"
+          (onPageChange)="onPageChange($event)"
+          (onItemsPerPageChange)="onItemsPerPageChange($event)"
+          (onRowClick)="onRowClick($event)"
+          (onActionClick)="onActionClick($event)"
+        />
+      </div>
+    }
+
+    <!-- Template Dropdown for Version Creation -->
+    @if (showTemplateDropdown()) {
+      <div class="fixed inset-0 z-40" (click)="closeTemplateDropdown()"></div>
+      <div class="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 max-w-md w-full max-h-96 overflow-y-auto"
+           style="top: 50%; left: 50%; transform: translate(-50%, -50%);">
+        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-900">Select Template</h3>
+          <button
+            type="button"
+            (click)="closeTemplateDropdown()"
+            class="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
         </div>
-        <p class="text-sm text-gray-600 mb-3">Verify certificate authenticity</p>
-        <a
-          href="#"
-          class="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
+        <div class="p-2">
+          @if (availableTemplates().length === 0) {
+            <div class="p-4 text-center text-sm text-gray-500">
+              No templates available. Please create a template first.
+            </div>
+          } @else {
+            @for (template of availableTemplates(); track template.id) {
+              <button
+                type="button"
+                (click)="onTemplateSelectedForVersion(template)"
+                class="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg transition-colors border-b border-gray-100 last:border-b-0"
+              >
+                <div class="font-medium text-gray-900">{{ template.name }}</div>
+                @if (template.description) {
+                  <div class="text-sm text-gray-500 mt-1">{{ template.description }}</div>
+                }
+              </button>
+            }
+          }
+        </div>
+      </div>
+    }
+  </main>
+
+  <!-- Create/Edit Template Modal -->
+  @if (currentUser()?.customerId) {
+    <app-modal
+      [isOpen]="showCreateModal()"
+      [title]="modalTitle()"
+      [subtitle]="isEditingTemplate() ? 'Update template details' : 'Create a new certificate template for your organization'"
+      [showEditButton]="false"
+      [showDeleteButton]="isEditingTemplate()"
+      (onClose)="onModalClose()"
+      (onEdit)="onTemplateEdit()"
+      (onDelete)="onTemplateDelete()"
+    >
+      @if (showCreateModal()) {
+        <app-template-create-form
+          [customerId]="currentUser()!.customerId!"
+          [template]="selectedTemplate() || undefined"
+          (onSuccess)="onTemplateCreated()"
+          (onCancel)="onModalClose()"
+        />
+      }
+    </app-modal>
+  }
+
+  <!-- Delete Confirmation Modal -->
+  @if (showDeleteConfirmation()) {
+    <div class="fixed inset-0 z-50 overflow-y-auto" (click)="cancelDeleteTemplate()">
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div
+          class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+          (click)="$event.stopPropagation()"
         >
-          Verify certificate
-          <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
+          <div class="px-6 pt-6 pb-4">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0">
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="flex-1">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Delete Template</h3>
+                <p class="text-sm text-gray-600">
+                  Are you sure you want to delete "<strong>{{ templateToDelete()?.name }}</strong>"? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="px-6 pb-6 flex justify-end gap-3">
+            <button
+              type="button"
+              (click)="cancelDeleteTemplate()"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              (click)="confirmDeleteTemplate()"
+              class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-  </main>
+  }
+
+  <!-- Enrich Template Modal -->
+  @if (selectedTemplate()) {
+    <app-modal
+      [isOpen]="showEnrichModal()"
+      [title]="modalTitle()"
+      subtitle="Create a new version of this template with custom HTML content and fields"
+      (onClose)="onModalClose()"
+    >
+      @if (showEnrichModal() && selectedTemplate()) {
+        <app-template-enrich-form
+          [template]="selectedTemplate()!"
+          [versionId]="selectedVersionId()"
+          (onSubmit)="onTemplateVersionCreated()"
+          (onCancel)="onModalClose()"
+        />
+      }
+    </app-modal>
+  }
+
+  <!-- Create Certificate Modal -->
+  <app-modal
+    [isOpen]="showCertificateModal()"
+    [title]="modalTitle()"
+    subtitle="Generate a new certificate using a template version"
+    (onClose)="onModalClose()"
+  >
+    @if (showCertificateModal()) {
+      <app-certificate-create-form
+        (onSuccess)="onCertificateCreated()"
+        (onCancel)="onModalClose()"
+      />
+    }
+  </app-modal>
+
+  <!-- View Certificate Modal -->
+  @if (selectedCertificateId()) {
+    <app-modal
+      [isOpen]="showCertificateViewModal()"
+      [title]="modalTitle()"
+      subtitle="View and edit certificate details"
+      (onClose)="onModalClose()"
+    >
+      @if (showCertificateViewModal() && selectedCertificateId()) {
+        <app-certificate-view
+          [certificateId]="selectedCertificateId()!"
+          (onClose)="onModalClose()"
+          (onUpdated)="onCertificateUpdated()"
+        />
+      }
+    </app-modal>
+  }
 </div>

@@ -1,0 +1,82 @@
+@if (isOpen()) {
+  <div
+    class="fixed inset-0 z-50 overflow-y-auto"
+    (click)="onBackdropClick($event)"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="title() ? 'modal-title' : null"
+  >
+    <!-- Backdrop - Minimal blur, background fully visible -->
+    <div class="fixed inset-0 backdrop-blur-sm transition-opacity"></div>
+
+    <!-- Modal Container -->
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div
+        class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+        (click)="$event.stopPropagation()"
+      >
+        <!-- Header -->
+        <div class="px-6 pt-6 pb-4">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              @if (title()) {
+                <h2 id="modal-title" class="text-xl font-semibold text-gray-900">
+                  {{ title() }}
+                </h2>
+              }
+              @if (subtitle()) {
+                <p class="text-sm text-gray-600 mt-1">{{ subtitle() }}</p>
+              }
+            </div>
+            <div class="flex items-center gap-2 ml-4">
+              @if (showEditButton()) {
+                <button
+                  type="button"
+                  (click)="onEdit.emit()"
+                  class="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1.5 transition-colors"
+                  aria-label="Edit"
+                  title="Edit"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                  </svg>
+                </button>
+              }
+              @if (showDeleteButton()) {
+                <button
+                  type="button"
+                  (click)="onDelete.emit()"
+                  class="text-gray-400 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-md p-1.5 transition-colors"
+                  aria-label="Delete"
+                  title="Delete"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                </button>
+              }
+              @if (showCloseButton()) {
+                <button
+                  type="button"
+                  (click)="close()"
+                  class="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1.5 transition-colors"
+                  aria-label="Close modal"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto px-6 pb-6">
+          <ng-content></ng-content>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
