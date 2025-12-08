@@ -31,7 +31,7 @@ export class VerificationListComponent implements OnInit {
       { key: 'certificateNumber', label: 'Certificate Number', sortable: true },
       { key: 'recipientName', label: 'Recipient Name', sortable: true },
       { key: 'status', label: 'Status', sortable: true },
-      { key: 'hash', label: 'Hash', sortable: false },
+      { key: 'signedHash', label: 'Hash', sortable: false },
       { key: 'issuedAt', label: 'Verified', sortable: true }
     ]
   };
@@ -79,11 +79,13 @@ export class VerificationListComponent implements OnInit {
     }
 
     const lowerQuery = query.toLowerCase();
-    const filtered = this.verifications().filter(verification =>
-      verification.certificateNumber.toLowerCase().includes(lowerQuery) ||
-      verification.recipientName.toLowerCase().includes(lowerQuery) ||
-      (verification.hash && verification.hash.toLowerCase().includes(lowerQuery))
-    );
+    const filtered = this.verifications().filter(verification => {
+      const recipientName = verification.recipientData?.['name'] || '';
+      const hash = verification.signedHash || '';
+      return verification.certificateNumber.toLowerCase().includes(lowerQuery) ||
+        recipientName.toLowerCase().includes(lowerQuery) ||
+        (hash && hash.toLowerCase().includes(lowerQuery));
+    });
     this.filteredVerifications.set(filtered);
   }
 
@@ -116,9 +118,9 @@ export class VerificationListComponent implements OnInit {
     return verifications.map(verification => ({
       id: verification.id,
       certificateNumber: verification.certificateNumber,
-      recipientName: verification.recipientName,
+      recipientName: verification.recipientData?.['name'] || '-',
       status: verification.status,
-      hash: verification.hash ? `${verification.hash.substring(0, 8)}...` : '-',
+      signedHash: verification.signedHash ? `${verification.signedHash.substring(0, 8)}...` : '-',
       issuedAt: verification.issuedAt || '-',
       // Keep original for actions
       _original: verification

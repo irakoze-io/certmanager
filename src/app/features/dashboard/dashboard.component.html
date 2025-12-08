@@ -230,4 +230,37 @@
       }
     </app-modal>
   }
+
+  <!-- Create Certificate Modal -->
+  <app-modal
+    [isOpen]="showCertificateModal()"
+    [title]="modalTitle()"
+    subtitle="Generate a new certificate using a template version"
+    (onClose)="onModalClose()"
+  >
+    @if (showCertificateModal()) {
+      <app-certificate-create-form
+        (onSuccess)="onCertificateCreated()"
+        (onCancel)="onModalClose()"
+      />
+    }
+  </app-modal>
+
+  <!-- View Certificate Modal -->
+  @if (selectedCertificateId()) {
+    <app-modal
+      [isOpen]="showCertificateViewModal()"
+      [title]="modalTitle()"
+      subtitle="View and edit certificate details"
+      (onClose)="onModalClose()"
+    >
+      @if (showCertificateViewModal() && selectedCertificateId()) {
+        <app-certificate-view
+          [certificateId]="selectedCertificateId()!"
+          (onClose)="onModalClose()"
+          (onUpdated)="onCertificateUpdated()"
+        />
+      }
+    </app-modal>
+  }
 </div>

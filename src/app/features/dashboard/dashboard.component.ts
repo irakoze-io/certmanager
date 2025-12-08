@@ -15,6 +15,8 @@ import { DataGridComponent, DataGridConfig } from '../../shared/components/data-
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { TemplateCreateFormComponent } from '../templates/components/template-create-form/template-create-form.component';
 import { TemplateEnrichFormComponent } from '../templates/components/template-enrich-form/template-enrich-form.component';
+import { CertificateCreateFormComponent } from '../certificates/components/certificate-create-form/certificate-create-form.component';
+import { CertificateViewComponent } from '../certificates/components/certificate-view/certificate-view.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -25,7 +27,9 @@ import { TemplateEnrichFormComponent } from '../templates/components/template-en
     DataGridComponent,
     ModalComponent,
     TemplateCreateFormComponent,
-    TemplateEnrichFormComponent
+    TemplateEnrichFormComponent,
+    CertificateCreateFormComponent,
+    CertificateViewComponent
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
@@ -47,9 +51,12 @@ export class DashboardComponent implements OnInit {
   // Modal state
   showCreateModal = signal<boolean>(false);
   showEnrichModal = signal<boolean>(false);
+  showCertificateModal = signal<boolean>(false);
+  showCertificateViewModal = signal<boolean>(false);
   modalTitle = signal<string>('');
   selectedTemplate = signal<TemplateResponse | null>(null);
   selectedVersionId = signal<string | undefined>(undefined);
+  selectedCertificateId = signal<string | undefined>(undefined);
   isEditingTemplate = signal<boolean>(false);
   showDeleteConfirmation = signal<boolean>(false);
   templateToDelete = signal<TemplateResponse | null>(null);
@@ -366,6 +373,18 @@ export class DashboardComponent implements OnInit {
         { key: 'recipientEmail', label: 'Recipient Email', sortable: true },
         { key: 'status', label: 'Status', sortable: true },
         { key: 'issuedAt', label: 'Issued', sortable: true }
+      ],
+      actions: [
+        {
+          label: 'Download',
+          action: 'downloadCertificate',
+          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>'
+        },
+        {
+          label: 'View',
+          action: 'viewCertificate',
+          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>'
+        }
       ]
     });
 
@@ -409,11 +428,13 @@ export class DashboardComponent implements OnInit {
         );
         break;
       case 'certificates':
-        filtered = this.gridData().filter(item =>
-          item.certificateNumber?.toLowerCase().includes(lowerQuery) ||
-          item.recipientName?.toLowerCase().includes(lowerQuery) ||
-          item.recipientEmail?.toLowerCase().includes(lowerQuery)
-        );
+        filtered = this.gridData().filter(item => {
+          const recipientName = item.recipientName || '';
+          const recipientEmail = item.recipientEmail || '';
+          return item.certificateNumber?.toLowerCase().includes(lowerQuery) ||
+            recipientName.toLowerCase().includes(lowerQuery) ||
+            recipientEmail.toLowerCase().includes(lowerQuery);
+        });
         break;
     }
 
@@ -449,8 +470,8 @@ export class DashboardComponent implements OnInit {
         });
         break;
       case 'certificates':
-        // TODO: Implement certificate creation modal
-        console.log('Add certificate clicked');
+        this.modalTitle.set('Create New Certificate');
+        this.showCertificateModal.set(true);
         break;
     }
   }
@@ -480,11 +501,29 @@ export class DashboardComponent implements OnInit {
   onModalClose(): void {
     this.showCreateModal.set(false);
     this.showEnrichModal.set(false);
+    this.showCertificateModal.set(false);
+    this.showCertificateViewModal.set(false);
     this.selectedTemplate.set(null);
     this.selectedVersionId.set(undefined);
+    this.selectedCertificateId.set(undefined);
     this.isEditingTemplate.set(false);
     this.showDeleteConfirmation.set(false);
     this.templateToDelete.set(null);
+  }
+
+  onCertificateCreated(): void {
+    this.showCertificateModal.set(false);
+    // Reload certificates to show the new one
+    if (this.activeGridType() === 'certificates') {
+      this.loadCertificates();
+    }
+  }
+
+  onCertificateUpdated(): void {
+    // Reload certificates to reflect updates
+    if (this.activeGridType() === 'certificates') {
+      this.loadCertificates();
+    }
   }
 
   onTemplateEdit(): void {
@@ -929,6 +968,47 @@ export class DashboardComponent implements OnInit {
           }
         });
         break;
+      case 'downloadCertificate':
+        const downloadCertData = item._original || item;
+        
+        if (!downloadCertData || !downloadCertData.id) {
+          this.toastService.error('Invalid certificate data.');
+          return;
+        }
+        
+        if (downloadCertData.status !== 'ISSUED') {
+          this.toastService.warning('Certificate is not ready for download. Status: ' + downloadCertData.status);
+          return;
+        }
+        
+        this.certificateService.getDownloadUrl(downloadCertData.id, 60).subscribe({
+          next: (url) => {
+            window.open(url, '_blank');
+          },
+          error: (error) => {
+            console.error('Failed to get download URL:', error);
+            let errorMsg = 'Failed to get download URL.';
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            }
+            this.toastService.error(errorMsg);
+          }
+        });
+        break;
+      case 'viewCertificate':
+        const viewCertData = item._original || item;
+        
+        if (!viewCertData || !viewCertData.id) {
+          this.toastService.error('Invalid certificate data.');
+          return;
+        }
+        
+        this.selectedCertificateId.set(viewCertData.id);
+        this.modalTitle.set('Certificate Details');
+        this.showCertificateViewModal.set(true);
+        break;
       default:
         console.log('Unknown action:', action);
     }
@@ -951,8 +1031,8 @@ export class DashboardComponent implements OnInit {
     return certificates.map(cert => ({
       id: cert.id,
       certificateNumber: cert.certificateNumber,
-      recipientName: cert.recipientName,
-      recipientEmail: cert.recipientEmail,
+      recipientName: cert.recipientData?.['name'] || '-',
+      recipientEmail: cert.recipientData?.['email'] || '-',
       status: cert.status,
       issuedAt: cert.issuedAt || '-',
       _original: cert

@@ -2,7 +2,8 @@ import { Component, OnInit, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { CertificateService } from '../../core/services/certificate.service';
-import { CertificateResponse } from '../../core/models/certificate.model';
+import { ToastService } from '../../core/services/toast.service';
+import { CertificateResponse, CertificateStatus } from '../../core/models/certificate.model';
 import { DataGridComponent, DataGridConfig } from '../../shared/components/data-grid/data-grid.component';
 
 @Component({
@@ -33,11 +34,24 @@ export class CertificatesListComponent implements OnInit {
       { key: 'recipientEmail', label: 'Recipient Email', sortable: true },
       { key: 'status', label: 'Status', sortable: true },
       { key: 'issuedAt', label: 'Issued', sortable: true }
+    ],
+    actions: [
+      {
+        label: 'Download',
+        action: 'download',
+        icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>'
+      },
+      {
+        label: 'View',
+        action: 'view',
+        icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>'
+      }
     ]
   };
 
   constructor(
     private certificateService: CertificateService,
+    private toastService: ToastService,
     private router: Router
   ) {
     effect(() => {
@@ -76,11 +90,13 @@ export class CertificatesListComponent implements OnInit {
     }
 
     const lowerQuery = query.toLowerCase();
-    const filtered = this.certificates().filter(cert =>
-      cert.certificateNumber.toLowerCase().includes(lowerQuery) ||
-      cert.recipientName.toLowerCase().includes(lowerQuery) ||
-      cert.recipientEmail.toLowerCase().includes(lowerQuery)
-    );
+    const filtered = this.certificates().filter(cert => {
+      const recipientName = cert.recipientData?.['name'] || '';
+      const recipientEmail = cert.recipientData?.['email'] || '';
+      return cert.certificateNumber.toLowerCase().includes(lowerQuery) ||
+        recipientName.toLowerCase().includes(lowerQuery) ||
+        recipientEmail.toLowerCase().includes(lowerQuery);
+    });
     this.filteredCertificates.set(filtered);
   }
 
@@ -104,16 +120,59 @@ export class CertificatesListComponent implements OnInit {
     console.log('Row clicked:', certificate);
   }
 
-  onActionClick(event: { action: string; item: CertificateResponse }): void {
-    console.log('Action clicked:', event);
+  onActionClick(event: { action: string; item: any }): void {
+    const { action, item } = event;
+    const certificate = item._original || item;
+    
+    switch (action) {
+      case 'download':
+        this.downloadCertificate(certificate);
+        break;
+      case 'view':
+        // Navigate to certificate view (could open modal or navigate to route)
+        // For now, just log - can be enhanced to open modal similar to dashboard
+        console.log('View certificate:', certificate);
+        // TODO: Implement view functionality (open modal or navigate)
+        break;
+      default:
+        console.log('Unknown action:', action);
+    }
+  }
+
+  downloadCertificate(certificate: CertificateResponse): void {
+    if (certificate.status !== CertificateStatus.ISSUED) {
+      this.toastService.warning('Certificate is not ready for download. Status: ' + certificate.status);
+      return;
+    }
+    
+    if (!certificate.id) {
+      this.toastService.error('Invalid certificate data.');
+      return;
+    }
+    
+    this.certificateService.getDownloadUrl(certificate.id, 60).subscribe({
+      next: (url) => {
+        window.open(url, '_blank');
+      },
+      error: (error) => {
+        console.error('Failed to get download URL:', error);
+        let errorMsg = 'Failed to get download URL.';
+        if (error?.error?.message) {
+          errorMsg = error.error.message;
+        } else if (error?.message) {
+          errorMsg = error.message;
+        }
+        this.toastService.error(errorMsg);
+      }
+    });
   }
 
   formatCertificateData(certificates: CertificateResponse[]): any[] {
     return certificates.map(cert => ({
       id: cert.id,
       certificateNumber: cert.certificateNumber,
-      recipientName: cert.recipientName,
-      recipientEmail: cert.recipientEmail,
+      recipientName: cert.recipientData?.['name'] || '-',
+      recipientEmail: cert.recipientData?.['email'] || '-',
       status: cert.status,
       issuedAt: cert.issuedAt || '-',
       // Keep original for actions

@@ -3,26 +3,29 @@
  */
 
 export interface GenerateCertificateRequest {
-  templateVersionId: number;
-  recipientName: string;
-  recipientEmail: string;
-  data: Record<string, unknown>;
-  async?: boolean;
+  templateVersionId: string; // UUID
+  certificateNumber?: string | null;
+  recipientData: Record<string, any>; // Must match fieldSchema from template version
+  metadata?: Record<string, any>;
+  issuedAt?: string | null; // ISO datetime
+  expiresAt?: string | null; // ISO datetime
+  issuedBy?: string | null; // UUID
+  synchronous?: boolean; // Default: false (async)
 }
 
 export interface CertificateResponse {
-  id: number;
+  id: string; // UUID
   certificateNumber: string;
-  templateId: number;
-  templateVersionId: number;
-  recipientName: string;
-  recipientEmail: string;
   status: CertificateStatus;
-  pdfUrl?: string;
-  hash?: string;
-  qrCodeUrl?: string;
+  templateVersionId: string;
+  recipientData: Record<string, any>;
+  metadata?: Record<string, any>;
+  storagePath?: string; // Only when ISSUED
+  signedHash?: string; // Only when ISSUED
+  qrCodeUrl?: string; // Only when ISSUED
   issuedAt?: string;
-  createdAt?: string;
+  expiresAt?: string;
+  createdAt: string;
   updatedAt?: string;
 }
 
@@ -34,7 +37,6 @@ export enum CertificateStatus {
   REVOKED = 'REVOKED'
 }
 
-export interface CertificateDownloadUrl {
+export interface CertificateDownloadUrlResponse {
   downloadUrl: string;
-  expiresAt: string;
 }
