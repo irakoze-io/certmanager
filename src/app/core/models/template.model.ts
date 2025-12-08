@@ -3,9 +3,11 @@
  */
 
 export interface CreateTemplateRequest {
+  customerId: number;
   name: string;
   code: string;
   description?: string;
+  currentVersion?: number;
   metadata?: Record<string, unknown>;
 }
 

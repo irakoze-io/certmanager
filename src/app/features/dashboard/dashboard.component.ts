@@ -12,11 +12,19 @@ import { TemplateVersionResponse } from '../../core/models/template.model';
 import { CertificateResponse } from '../../core/models/certificate.model';
 import { DashboardCardComponent, DashboardCardConfig, EntityType } from '../../shared/components/dashboard-card/dashboard-card.component';
 import { DataGridComponent, DataGridConfig } from '../../shared/components/data-grid/data-grid.component';
+import { ModalComponent } from '../../shared/components/modal/modal.component';
+import { TemplateCreateFormComponent } from '../templates/components/template-create-form/template-create-form.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, DashboardCardComponent, DataGridComponent],
+  imports: [
+    CommonModule,
+    DashboardCardComponent,
+    DataGridComponent,
+    ModalComponent,
+    TemplateCreateFormComponent
+  ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
@@ -33,6 +41,10 @@ export class DashboardComponent implements OnInit {
   isLoadingGrid = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
   gridConfig = signal<DataGridConfig | null>(null);
+
+  // Modal state
+  showCreateModal = signal<boolean>(false);
+  modalTitle = signal<string>('');
 
   // Dashboard card configurations
   templatesConfig: DashboardCardConfig = {
@@ -334,8 +346,33 @@ export class DashboardComponent implements OnInit {
 
   onAdd(): void {
     const entityType = this.activeGridType();
-    // TODO: Navigate to create page based on entity type
-    console.log(`Add ${entityType} clicked`);
+    
+    switch (entityType) {
+      case 'templates':
+        this.modalTitle.set('Create New Template');
+        this.showCreateModal.set(true);
+        break;
+      case 'versions':
+        // TODO: Implement version creation modal
+        console.log('Add version clicked');
+        break;
+      case 'certificates':
+        // TODO: Implement certificate creation modal
+        console.log('Add certificate clicked');
+        break;
+    }
+  }
+
+  onTemplateCreated(): void {
+    this.showCreateModal.set(false);
+    // Reload templates to show the new one
+    if (this.activeGridType() === 'templates') {
+      this.loadTemplates();
+    }
+  }
+
+  onModalClose(): void {
+    this.showCreateModal.set(false);
   }
 
   onPageChange(page: number): void {

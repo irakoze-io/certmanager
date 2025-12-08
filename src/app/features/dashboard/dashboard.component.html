@@ -102,4 +102,19 @@
       </div>
     }
   </main>
+
+  <!-- Create Template Modal -->
+  @if (currentUser()?.customerId) {
+    <app-modal
+      [isOpen]="showCreateModal()"
+      [title]="modalTitle()"
+      (onClose)="onModalClose()"
+    >
+      <app-template-create-form
+        [customerId]="currentUser()!.customerId!"
+        (onSuccess)="onTemplateCreated()"
+        (onCancel)="onModalClose()"
+      />
+    </app-modal>
+  }
 </div>
