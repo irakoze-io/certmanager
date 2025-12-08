@@ -183,6 +183,7 @@ export class DashboardComponent implements OnInit {
       columns: [
         { key: 'name', label: 'Template name', sortable: true },
         { key: 'description', label: 'Description', sortable: false },
+        { key: 'versionStatus', label: 'Status', sortable: true },
         { key: 'createdAt', label: 'Created', sortable: true }
       ],
       actions: [
@@ -206,8 +207,43 @@ export class DashboardComponent implements OnInit {
 
     this.templateService.getAllTemplates().subscribe({
       next: (templates) => {
-        this.gridData.set(this.formatTemplateData(templates));
-        this.isLoadingGrid.set(false);
+        // Load version status for each template
+        if (templates.length === 0) {
+          this.gridData.set(this.formatTemplateData(templates));
+          this.isLoadingGrid.set(false);
+          return;
+        }
+
+        const templatesWithStatus: any[] = [];
+        let loadedCount = 0;
+
+        templates.forEach(template => {
+          this.templateService.getLatestTemplateVersion(template.id).subscribe({
+            next: (version) => {
+              templatesWithStatus.push({
+                ...template,
+                versionStatus: version?.status || '-'
+              });
+              loadedCount++;
+              if (loadedCount === templates.length) {
+                this.gridData.set(this.formatTemplateData(templatesWithStatus));
+                this.isLoadingGrid.set(false);
+              }
+            },
+            error: (error) => {
+              console.error(`Error loading version for template ${template.id}:`, error);
+              templatesWithStatus.push({
+                ...template,
+                versionStatus: '-'
+              });
+              loadedCount++;
+              if (loadedCount === templates.length) {
+                this.gridData.set(this.formatTemplateData(templatesWithStatus));
+                this.isLoadingGrid.set(false);
+              }
+            }
+          });
+        });
       },
       error: (error) => {
         console.error('Error loading templates:', error);
@@ -476,13 +512,14 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  formatTemplateData(templates: TemplateResponse[]): any[] {
+  formatTemplateData(templates: any[]): any[] {
     return templates.map(template => ({
       id: template.id,
       name: template.name,
       code: template.code || '-',
       description: template.description || '-',
       currentVersion: template.currentVersion ? `v${template.currentVersion}` : 'v1',
+      versionStatus: template.versionStatus || '-',
       createdAt: template.createdAt ? new Date(template.createdAt).toLocaleDateString() : '-',
       _original: template
     }));

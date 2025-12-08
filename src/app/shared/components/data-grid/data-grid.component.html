@@ -154,7 +154,7 @@
                     </span>
                   </div>
                 </div>
-                } @else if (column.key === 'status') {
+                } @else if (column.key === 'status' || column.key === 'versionStatus') {
                 <div class="flex items-center justify-start">
                   <span [class]="getStatusClass(getNestedValue(item, column.key))"
                     class="whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border"

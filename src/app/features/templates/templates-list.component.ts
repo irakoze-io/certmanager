@@ -32,6 +32,7 @@ export class TemplatesListComponent implements OnInit {
       { key: 'code', label: 'Code', sortable: true },
       { key: 'description', label: 'Description', sortable: false },
       { key: 'currentVersion', label: 'Version', sortable: true },
+      { key: 'versionStatus', label: 'Status', sortable: true },
       { key: 'createdAt', label: 'Created', sortable: true }
     ]
   };
@@ -55,9 +56,46 @@ export class TemplatesListComponent implements OnInit {
     this.errorMessage.set(null);
     this.templateService.getAllTemplates().subscribe({
       next: (templates) => {
-        this.templates.set(templates);
-        this.filteredTemplates.set(templates);
-        this.isLoading.set(false);
+        // Load version status for each template
+        if (templates.length === 0) {
+          this.templates.set(templates);
+          this.filteredTemplates.set(templates);
+          this.isLoading.set(false);
+          return;
+        }
+
+        const templatesWithStatus: any[] = [];
+        let loadedCount = 0;
+
+        templates.forEach(template => {
+          this.templateService.getLatestTemplateVersion(template.id).subscribe({
+            next: (version) => {
+              templatesWithStatus.push({
+                ...template,
+                versionStatus: version?.status || '-'
+              });
+              loadedCount++;
+              if (loadedCount === templates.length) {
+                this.templates.set(templatesWithStatus);
+                this.filteredTemplates.set(templatesWithStatus);
+                this.isLoading.set(false);
+              }
+            },
+            error: (error) => {
+              console.error(`Error loading version for template ${template.id}:`, error);
+              templatesWithStatus.push({
+                ...template,
+                versionStatus: '-'
+              });
+              loadedCount++;
+              if (loadedCount === templates.length) {
+                this.templates.set(templatesWithStatus);
+                this.filteredTemplates.set(templatesWithStatus);
+                this.isLoading.set(false);
+              }
+            }
+          });
+        });
       },
       error: (error) => {
         console.error('Error loading templates:', error);
@@ -114,13 +152,14 @@ export class TemplatesListComponent implements OnInit {
   }
 
   // Format data for display
-  formatTemplateData(templates: TemplateResponse[]): any[] {
+  formatTemplateData(templates: any[]): any[] {
     return templates.map(template => ({
       id: template.id,
       name: template.name,
       code: template.code || '-',
       description: template.description || '-',
       currentVersion: template.currentVersion ? `v${template.currentVersion}` : 'v1',
+      versionStatus: template.versionStatus || '-',
       createdAt: template.createdAt ? new Date(template.createdAt).toLocaleDateString() : '-',
       // Keep original for actions
       _original: template

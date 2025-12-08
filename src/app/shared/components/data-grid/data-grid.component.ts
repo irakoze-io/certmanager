@@ -270,7 +270,7 @@ export class DataGridComponent<T = any> {
       return `${baseClass} px-6 w-40 whitespace-nowrap`;
     } else if (columnKey === 'currentVersion' || columnKey === 'version') {
       return `${baseClass} px-6 w-28 whitespace-nowrap`;
-    } else if (columnKey === 'status') {
+    } else if (columnKey === 'status' || columnKey === 'versionStatus') {
       return `${baseClass} px-6 w-32 whitespace-nowrap`;
     } else if (['createdAt', 'issuedAt'].includes(columnKey)) {
       return `${baseClass} px-6 w-36 whitespace-nowrap`;
@@ -290,7 +290,7 @@ export class DataGridComponent<T = any> {
       return `${baseClass} px-6 w-40 whitespace-nowrap`;
     } else if (columnKey === 'currentVersion' || columnKey === 'version') {
       return `${baseClass} px-6 w-28 whitespace-nowrap`;
-    } else if (columnKey === 'status') {
+    } else if (columnKey === 'status' || columnKey === 'versionStatus') {
       return `${baseClass} px-6 w-32 whitespace-nowrap`;
     } else if (['createdAt', 'issuedAt'].includes(columnKey)) {
       return `${baseClass} px-6 w-36 whitespace-nowrap`;
