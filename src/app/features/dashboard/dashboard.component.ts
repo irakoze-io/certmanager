@@ -585,35 +585,73 @@ export class DashboardComponent implements OnInit {
 
         if (!templateData || !templateData.id) {
           console.error('Invalid template data:', item);
-          this.errorMessage.set('Invalid template data. Please try again.');
+          this.toastService.error('Invalid template data. Please try again.');
           return;
         }
 
-        // Clear any previous error
-        this.errorMessage.set(null);
-
-        // Fetch full template details to ensure we have latest data
-        this.templateService.getTemplateById(templateData.id).subscribe({
-          next: (template) => {
-            if (!template) {
-              this.errorMessage.set('Template not found. Please try again.');
+        // Check if template has a published version
+        this.templateService.getLatestTemplateVersion(templateData.id).subscribe({
+          next: (version) => {
+            if (version && version.status === TemplateVersionStatus.PUBLISHED) {
+              this.toastService.error('This template cannot be enriched because it has a published version.');
               return;
             }
 
-            this.selectedTemplate.set(template);
-            this.selectedVersionId.set(undefined);
-            this.modalTitle.set('Enrich Template');
-            this.showEnrichModal.set(true);
+            // Clear any previous error
+            this.errorMessage.set(null);
+
+            // Fetch full template details to ensure we have latest data
+            this.templateService.getTemplateById(templateData.id).subscribe({
+              next: (template) => {
+                if (!template) {
+                  this.toastService.error('Template not found. Please try again.');
+                  return;
+                }
+
+                this.selectedTemplate.set(template);
+                this.selectedVersionId.set(undefined);
+                this.modalTitle.set('Enrich Template');
+                this.showEnrichModal.set(true);
+              },
+              error: (error) => {
+                console.error('Error fetching template:', error);
+                let errorMsg = 'Failed to load template details.';
+                if (error?.error?.message) {
+                  errorMsg = error.error.message;
+                } else if (error?.message) {
+                  errorMsg = error.message;
+                }
+                this.toastService.error(errorMsg);
+              }
+            });
           },
           error: (error) => {
-            console.error('Error fetching template:', error);
-            let errorMsg = 'Failed to load template details.';
-            if (error?.error?.message) {
-              errorMsg = error.error.message;
-            } else if (error?.message) {
-              errorMsg = error.message;
-            }
-            this.errorMessage.set(errorMsg);
+            // If version fetch fails, still allow enriching (might be a new template)
+            console.error('Error fetching version:', error);
+            // Continue with enrich flow
+            this.templateService.getTemplateById(templateData.id).subscribe({
+              next: (template) => {
+                if (!template) {
+                  this.toastService.error('Template not found. Please try again.');
+                  return;
+                }
+
+                this.selectedTemplate.set(template);
+                this.selectedVersionId.set(undefined);
+                this.modalTitle.set('Enrich Template');
+                this.showEnrichModal.set(true);
+              },
+              error: (error) => {
+                console.error('Error fetching template:', error);
+                let errorMsg = 'Failed to load template details.';
+                if (error?.error?.message) {
+                  errorMsg = error.error.message;
+                } else if (error?.message) {
+                  errorMsg = error.message;
+                }
+                this.toastService.error(errorMsg);
+              }
+            });
           }
         });
         break;
@@ -714,6 +752,12 @@ export class DashboardComponent implements OnInit {
               return;
             }
 
+            // Check if already published
+            if (version.status === TemplateVersionStatus.PUBLISHED) {
+              this.toastService.info('This template version has already been published.');
+              return;
+            }
+
             // Publish the latest version
             this.templateService.publishTemplateVersion(publishTemplateData.id, version.id).subscribe({
               next: (response) => {
@@ -801,6 +845,12 @@ export class DashboardComponent implements OnInit {
         if (!publishVersionData || !publishVersionData.templateId || !publishVersionData.id) {
           console.error('Invalid version data:', item);
           this.toastService.error('Invalid version data. Please try again.');
+          return;
+        }
+
+        // Check if already published
+        if (publishVersionData.status === TemplateVersionStatus.PUBLISHED) {
+          this.toastService.info('This template version has already been published.');
           return;
         }
 
