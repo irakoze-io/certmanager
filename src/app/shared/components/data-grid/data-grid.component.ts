@@ -1,4 +1,4 @@
-import { Component, input, output, signal, computed, effect } from '@angular/core';
+import { Component, input, output, signal, computed, effect, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -8,10 +8,18 @@ export interface DataGridColumn {
   sortable?: boolean;
 }
 
+export interface GridAction {
+  label: string;
+  action: string;
+  icon: string; // SVG path
+  danger?: boolean; // For destructive actions
+}
+
 export interface DataGridConfig {
   title: string;
   addButtonLabel: string;
   columns: DataGridColumn[];
+  actions?: GridAction[]; // Context-specific actions
   showCheckbox?: boolean;
   showDateSelector?: boolean;
   showSearch?: boolean;
@@ -50,6 +58,9 @@ export class DataGridComponent<T = any> {
   // Pagination
   currentPage = signal<number>(1);
   itemsPerPage = signal<number>(10);
+  
+  // Action menu state
+  openMenuIndex = signal<number | null>(null);
   
   // Computed values
   totalPages = computed(() => {
@@ -144,6 +155,32 @@ export class DataGridComponent<T = any> {
   onActionClickHandler(action: string, item: T, event: Event): void {
     event.stopPropagation();
     this.onActionClick.emit({ action, item });
+    this.openMenuIndex.set(null); // Close menu after action
+  }
+
+  toggleMenu(index: number, event: Event): void {
+    event.stopPropagation();
+    if (this.openMenuIndex() === index) {
+      this.openMenuIndex.set(null);
+    } else {
+      this.openMenuIndex.set(index);
+    }
+  }
+
+  closeMenu(): void {
+    this.openMenuIndex.set(null);
+  }
+
+  capitalizeLabel(label: string): string {
+    return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    // Close menu if clicking outside
+    if (this.openMenuIndex() !== null) {
+      this.openMenuIndex.set(null);
+    }
   }
 
   getFormattedDate(): string {
