@@ -23,7 +23,7 @@
     </div>
 
     <!-- Existing Fields Display -->
-    @if (existingFields().length > 0 || newFields().length > 0) {
+    @if (existingFields().length > 0 || addedFields().length > 0) {
       <div class="form-section">
         <label class="form-label">Existing Fields</label>
         <div class="existing-fields-container">
@@ -36,7 +36,7 @@
               <span class="existing-field-badge-type">{{ getFieldTypeLabel(field.type) }}</span>
             </div>
           }
-          @for (field of newFields(); track field.index) {
+          @for (field of addedFields(); track field.index) {
             <div class="existing-field-badge new-field-badge">
               <svg class="existing-field-badge-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getFieldTypeIcon(field.type)"></path>
@@ -45,7 +45,7 @@
               <span class="existing-field-badge-type">{{ getFieldTypeLabel(field.type) }}</span>
               <button
                 type="button"
-                (click)="removeNewField(field.index)"
+                (click)="removeAddedField(field.index)"
                 class="existing-field-badge-remove"
                 title="Remove field"
               >
@@ -79,7 +79,7 @@
         @if (fieldsArray.length === 0) {
           <div class="empty-state">
             <p class="text-sm text-gray-500">
-              @if (existingFields().length === 0) {
+              @if (existingFields().length === 0 && addedFields().length === 0) {
                 No fields added yet. Click "Add Field" to get started.
               } @else {
                 Click "Add Field" to add more.

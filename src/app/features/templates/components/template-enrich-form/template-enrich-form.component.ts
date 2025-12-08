@@ -26,7 +26,7 @@ export class TemplateEnrichFormComponent implements OnInit {
   addedFieldsIndices = new Set<number>(); // Track which fields have been added to htmlContent
   existingVersion = signal<TemplateVersionResponse | null>(null);
   existingFields = signal<Array<{ name: string; type: FieldType; label: string }>>([]);
-  newFields = signal<Array<{ name: string; type: FieldType; label: string; index: number }>>([]);
+  addedFields = signal<Array<{ name: string; type: FieldType; label: string; index: number }>>([]);
 
   // User-friendly field types
   fieldTypes = [
@@ -79,6 +79,7 @@ export class TemplateEnrichFormComponent implements OnInit {
     // Reset form to ensure clean state
     this.enrichForm.reset();
     this.addedFieldsIndices.clear(); // Clear added fields tracking
+    this.addedFields.set([]); // Clear added fields list
     
     // Set template ID in form
     this.enrichForm.patchValue({
@@ -200,39 +201,7 @@ p {
       type: [FieldType.TEXT, Validators.required]
     });
 
-    const index = this.fieldsArray.length;
     this.fieldsArray.push(fieldGroup);
-    
-    // Subscribe to field changes to update new fields list
-    fieldGroup.valueChanges.subscribe(() => {
-      this.updateNewFieldsList();
-    });
-    
-    // Initial update
-    this.updateNewFieldsList();
-  }
-
-  updateNewFieldsList(): void {
-    const newFieldsList: Array<{ name: string; type: FieldType; label: string; index: number }> = [];
-    
-    this.fieldsArray.controls.forEach((field, index) => {
-      const fieldValue = field.value;
-      if (fieldValue.name && fieldValue.name.trim() !== '') {
-        const label = fieldValue.name
-          .replace(/([A-Z])/g, ' $1')
-          .replace(/^./, (str: string) => str.toUpperCase())
-          .trim();
-        
-        newFieldsList.push({
-          name: fieldValue.name,
-          type: fieldValue.type,
-          label: label,
-          index: index
-        });
-      }
-    });
-    
-    this.newFields.set(newFieldsList);
   }
 
   addFieldToHtmlContent(index: number): void {
@@ -249,6 +218,33 @@ p {
     // Mark this field as added
     this.addedFieldsIndices.add(index);
     
+    // Add to added fields list for badge display
+    const label = fieldValue.name
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, (str: string) => str.toUpperCase())
+      .trim();
+    
+    const currentAddedFields = this.addedFields();
+    const newField = {
+      name: fieldValue.name,
+      type: fieldValue.type,
+      label: label,
+      index: index
+    };
+    
+    // Check if already exists (avoid duplicates)
+    const exists = currentAddedFields.some(f => f.index === index);
+    if (!exists) {
+      this.addedFields.set([...currentAddedFields, newField]);
+    }
+    
+    // Clear the field form
+    field.patchValue({
+      name: '',
+      type: FieldType.TEXT
+    });
+    field.markAsUntouched();
+    
     // Update HTML content with all added fields
     this.updateHtmlContent();
   }
@@ -260,6 +256,10 @@ p {
   removeField(index: number): void {
     // Remove from added fields set
     this.addedFieldsIndices.delete(index);
+    
+    // Remove from added fields list
+    const currentAddedFields = this.addedFields();
+    this.addedFields.set(currentAddedFields.filter(f => f.index !== index));
     
     // Adjust indices for fields added after this one
     const indicesToUpdate: number[] = [];
@@ -275,13 +275,34 @@ p {
       this.addedFieldsIndices.add(oldIdx - 1);
     });
     
+    // Update added fields indices
+    const updatedAddedFields = this.addedFields().map(f => {
+      if (f.index > index) {
+        return { ...f, index: f.index - 1 };
+      }
+      return f;
+    });
+    this.addedFields.set(updatedAddedFields);
+    
     this.fieldsArray.removeAt(index);
-    this.updateNewFieldsList();
     this.updateHtmlContent();
   }
 
-  removeNewField(index: number): void {
-    this.removeField(index);
+  removeAddedField(index: number): void {
+    // Remove from added fields list
+    const currentAddedFields = this.addedFields();
+    const fieldToRemove = currentAddedFields.find(f => f.index === index);
+    
+    if (fieldToRemove) {
+      // Remove from added fields indices
+      this.addedFieldsIndices.delete(index);
+      
+      // Remove from added fields list
+      this.addedFields.set(currentAddedFields.filter(f => f.index !== index));
+      
+      // Update HTML content
+      this.updateHtmlContent();
+    }
   }
 
   getFieldTypeIcon(type: FieldType): string {
