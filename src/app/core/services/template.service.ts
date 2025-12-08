@@ -376,4 +376,24 @@ h2 {
       });
     });
   }
+
+  /**
+   * Publish a template version
+   */
+  publishTemplateVersion(templateId: number, versionId: string): Observable<any> {
+    const url = `${this.templatesEndpoint}/${templateId}/versions/${versionId}/publish`;
+    return new Observable(observer => {
+      this.post<any>(url, {}).subscribe({
+        next: response => {
+          if (response.success) {
+            observer.next(response.data || response);
+            observer.complete();
+          } else {
+            observer.error(new Error(response.message || 'Failed to publish template version'));
+          }
+        },
+        error: err => observer.error(err)
+      });
+    });
+  }
 }

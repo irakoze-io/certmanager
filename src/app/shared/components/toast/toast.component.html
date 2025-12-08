@@ -1,0 +1,22 @@
+<div class="toast-container">
+  @for (toast of toasts(); track toast.id) {
+    <div [class]="getToastClasses(toast.type)">
+      <svg [class]="getIconClasses(toast.type)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getToastIcon(toast.type)"></path>
+      </svg>
+      <div class="flex-1">
+        <p class="text-sm font-medium">{{ toast.message }}</p>
+      </div>
+      <button
+        type="button"
+        (click)="removeToast(toast.id)"
+        class="flex-shrink-0 ml-2 text-gray-400 hover:text-gray-600 transition-colors"
+        aria-label="Close"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+  }
+</div>

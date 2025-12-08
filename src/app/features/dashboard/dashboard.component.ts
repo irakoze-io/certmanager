@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CustomerService } from '../../core/services/customer.service';
 import { TemplateService } from '../../core/services/template.service';
 import { CertificateService } from '../../core/services/certificate.service';
+import { ToastService } from '../../core/services/toast.service';
 import { User } from '../../core/models/auth.model';
 import { CustomerResponse } from '../../core/models/customer.model';
 import { TemplateResponse } from '../../core/models/template.model';
@@ -91,6 +92,7 @@ export class DashboardComponent implements OnInit {
     private customerService: CustomerService,
     private templateService: TemplateService,
     private certificateService: CertificateService,
+    private toastService: ToastService,
     private router: Router
   ) {
     // Update filtered data when grid data changes
@@ -552,8 +554,83 @@ export class DashboardComponent implements OnInit {
         console.log('Publish clicked:', item);
         break;
       case 'publishVersion':
-        // TODO: Implement publish version functionality
-        console.log('Publish version clicked:', item);
+        // Get version data
+        const publishVersionData = item._original || item;
+        
+        if (!publishVersionData || !publishVersionData.templateId || !publishVersionData.id) {
+          console.error('Invalid version data:', item);
+          this.toastService.error('Invalid version data. Please try again.');
+          return;
+        }
+
+        // Clear any previous error
+        this.errorMessage.set(null);
+
+        // Publish the version
+        this.templateService.publishTemplateVersion(publishVersionData.templateId, publishVersionData.id).subscribe({
+          next: (response) => {
+            // Determine toast type and message from response
+            let toastType: 'success' | 'error' | 'warning' | 'info' = 'success';
+            let message = 'Template version published successfully.';
+
+            // Check if response has a message or status
+            if (response && typeof response === 'object') {
+              if (response.message) {
+                message = response.message;
+              }
+              if (response.status) {
+                const status = response.status.toLowerCase();
+                if (status.includes('error') || status.includes('fail')) {
+                  toastType = 'error';
+                } else if (status.includes('warning')) {
+                  toastType = 'warning';
+                } else if (status.includes('info')) {
+                  toastType = 'info';
+                }
+              }
+            } else if (typeof response === 'string') {
+              message = response;
+            }
+
+            // Show appropriate toast
+            if (toastType === 'success') {
+              this.toastService.success(message);
+            } else if (toastType === 'error') {
+              this.toastService.error(message);
+            } else if (toastType === 'warning') {
+              this.toastService.warning(message);
+            } else {
+              this.toastService.info(message);
+            }
+
+            // Reload versions to reflect the change
+            if (this.activeGridType() === 'versions') {
+              this.loadVersions();
+            } else if (this.activeGridType() === 'templates') {
+              this.loadTemplates();
+            }
+          },
+          error: (error) => {
+            console.error('Error publishing version:', error);
+            let errorMsg = 'Failed to publish template version.';
+            
+            // Extract error message from response
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            } else if (typeof error?.error === 'string') {
+              errorMsg = error.error;
+            }
+
+            // Determine if it's a warning or error based on status code
+            if (error?.status === 400 || error?.status === 422) {
+              this.toastService.warning(errorMsg);
+            } else {
+              this.toastService.error(errorMsg);
+            }
+          }
+        });
         break;
       case 'editVersion':
         // Get version data
