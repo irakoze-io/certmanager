@@ -50,7 +50,7 @@ export class DashboardComponent implements OnInit {
   modalTitle = signal<string>('');
   selectedTemplate = signal<TemplateResponse | null>(null);
   selectedVersionId = signal<string | undefined>(undefined);
-  
+
   // Template dropdown for version creation
   showTemplateDropdown = signal<boolean>(false);
   availableTemplates = signal<TemplateResponse[]>([]);
@@ -558,7 +558,7 @@ export class DashboardComponent implements OnInit {
       case 'editVersion':
         // Get version data
         const versionData = item._original || item;
-        
+
         if (!versionData || !versionData.templateId || !versionData.id) {
           console.error('Invalid version data:', item);
           this.errorMessage.set('Invalid version data. Please try again.');
@@ -578,7 +578,7 @@ export class DashboardComponent implements OnInit {
 
             this.selectedTemplate.set(template);
             this.selectedVersionId.set(versionData.id);
-            this.modalTitle.set('Create Version');
+            this.modalTitle.set('Edit Template Version');
             this.showEnrichModal.set(true);
           },
           error: (error) => {
