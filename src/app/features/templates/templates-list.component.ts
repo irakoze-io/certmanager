@@ -160,7 +160,7 @@ export class TemplatesListComponent implements OnInit {
       description: template.description || '-',
       currentVersion: template.currentVersion ? `v${template.currentVersion}` : 'v1',
       versionStatus: template.versionStatus || '-',
-      createdAt: template.createdAt ? new Date(template.createdAt).toLocaleDateString() : '-',
+      createdAt: template.createdAt || '-',
       // Keep original for actions
       _original: template
     }));

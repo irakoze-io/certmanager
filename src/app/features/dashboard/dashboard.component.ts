@@ -8,8 +8,7 @@ import { CertificateService } from '../../core/services/certificate.service';
 import { ToastService } from '../../core/services/toast.service';
 import { User } from '../../core/models/auth.model';
 import { CustomerResponse } from '../../core/models/customer.model';
-import { TemplateResponse } from '../../core/models/template.model';
-import { TemplateVersionResponse } from '../../core/models/template.model';
+import { TemplateResponse, TemplateVersionResponse, TemplateVersionStatus } from '../../core/models/template.model';
 import { CertificateResponse } from '../../core/models/certificate.model';
 import { DashboardCardComponent, DashboardCardConfig, EntityType } from '../../shared/components/dashboard-card/dashboard-card.component';
 import { DataGridComponent, DataGridConfig } from '../../shared/components/data-grid/data-grid.component';
@@ -321,7 +320,7 @@ export class DashboardComponent implements OnInit {
                     : `v${version.version}`,
                   status: version.status,
                   createdBy: version.createdBy || '-',
-                  createdAt: version.createdAt ? new Date(version.createdAt).toLocaleDateString() : '-',
+                  createdAt: version.createdAt || '-',
                   _original: version
                 });
               });
@@ -628,31 +627,69 @@ export class DashboardComponent implements OnInit {
           return;
         }
 
-        // Clear any previous error
-        this.errorMessage.set(null);
-
-        // Fetch full template details to ensure we have latest data
-        this.templateService.getTemplateById(editTemplateData.id).subscribe({
-          next: (template) => {
-            if (!template) {
-              this.toastService.error('Template not found. Please try again.');
+        // Check if template has a published version
+        this.templateService.getLatestTemplateVersion(editTemplateData.id).subscribe({
+          next: (version) => {
+            if (version && version.status === TemplateVersionStatus.PUBLISHED) {
+              this.toastService.error('This template cannot be edited because it has a published version.');
               return;
             }
 
-            this.selectedTemplate.set(template);
-            this.isEditingTemplate.set(true);
-            this.modalTitle.set('Edit Template');
-            this.showCreateModal.set(true);
+            // Clear any previous error
+            this.errorMessage.set(null);
+
+            // Fetch full template details to ensure we have latest data
+            this.templateService.getTemplateById(editTemplateData.id).subscribe({
+              next: (template) => {
+                if (!template) {
+                  this.toastService.error('Template not found. Please try again.');
+                  return;
+                }
+
+                this.selectedTemplate.set(template);
+                this.isEditingTemplate.set(true);
+                this.modalTitle.set('Edit Template');
+                this.showCreateModal.set(true);
+              },
+              error: (error) => {
+                console.error('Error fetching template:', error);
+                let errorMsg = 'Failed to load template details.';
+                if (error?.error?.message) {
+                  errorMsg = error.error.message;
+                } else if (error?.message) {
+                  errorMsg = error.message;
+                }
+                this.toastService.error(errorMsg);
+              }
+            });
           },
           error: (error) => {
-            console.error('Error fetching template:', error);
-            let errorMsg = 'Failed to load template details.';
-            if (error?.error?.message) {
-              errorMsg = error.error.message;
-            } else if (error?.message) {
-              errorMsg = error.message;
-            }
-            this.toastService.error(errorMsg);
+            // If version fetch fails, still allow editing (might be a new template)
+            console.error('Error fetching version:', error);
+            // Continue with edit flow
+            this.templateService.getTemplateById(editTemplateData.id).subscribe({
+              next: (template) => {
+                if (!template) {
+                  this.toastService.error('Template not found. Please try again.');
+                  return;
+                }
+
+                this.selectedTemplate.set(template);
+                this.isEditingTemplate.set(true);
+                this.modalTitle.set('Edit Template');
+                this.showCreateModal.set(true);
+              },
+              error: (error) => {
+                console.error('Error fetching template:', error);
+                let errorMsg = 'Failed to load template details.';
+                if (error?.error?.message) {
+                  errorMsg = error.error.message;
+                } else if (error?.message) {
+                  errorMsg = error.message;
+                }
+                this.toastService.error(errorMsg);
+              }
+            });
           }
         });
         break;
@@ -839,10 +876,16 @@ export class DashboardComponent implements OnInit {
       case 'editVersion':
         // Get version data
         const versionData = item._original || item;
-
+        
         if (!versionData || !versionData.templateId || !versionData.id) {
           console.error('Invalid version data:', item);
-          this.errorMessage.set('Invalid version data. Please try again.');
+          this.toastService.error('Invalid version data. Please try again.');
+          return;
+        }
+
+        // Check if version is published
+        if (versionData.status === TemplateVersionStatus.PUBLISHED) {
+          this.toastService.error('This template version cannot be edited because it is published.');
           return;
         }
 
@@ -853,7 +896,7 @@ export class DashboardComponent implements OnInit {
         this.templateService.getTemplateById(versionData.templateId).subscribe({
           next: (template) => {
             if (!template) {
-              this.errorMessage.set('Template not found. Please try again.');
+              this.toastService.error('Template not found. Please try again.');
               return;
             }
 
@@ -870,7 +913,7 @@ export class DashboardComponent implements OnInit {
             } else if (error?.message) {
               errorMsg = error.message;
             }
-            this.errorMessage.set(errorMsg);
+            this.toastService.error(errorMsg);
           }
         });
         break;
@@ -887,7 +930,7 @@ export class DashboardComponent implements OnInit {
       description: template.description || '-',
       currentVersion: template.currentVersion ? `v${template.currentVersion}` : 'v1',
       versionStatus: template.versionStatus || '-',
-      createdAt: template.createdAt ? new Date(template.createdAt).toLocaleDateString() : '-',
+      createdAt: template.createdAt || '-',
       _original: template
     }));
   }
@@ -899,7 +942,7 @@ export class DashboardComponent implements OnInit {
       recipientName: cert.recipientName,
       recipientEmail: cert.recipientEmail,
       status: cert.status,
-      issuedAt: cert.issuedAt ? new Date(cert.issuedAt).toLocaleDateString() : '-',
+      issuedAt: cert.issuedAt || '-',
       _original: cert
     }));
   }

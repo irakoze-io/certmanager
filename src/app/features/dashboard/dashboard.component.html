@@ -149,7 +149,7 @@
       [isOpen]="showCreateModal()"
       [title]="modalTitle()"
       [subtitle]="isEditingTemplate() ? 'Update template details' : 'Create a new certificate template for your organization'"
-      [showEditButton]="isEditingTemplate()"
+      [showEditButton]="false"
       [showDeleteButton]="isEditingTemplate()"
       (onClose)="onModalClose()"
       (onEdit)="onTemplateEdit()"

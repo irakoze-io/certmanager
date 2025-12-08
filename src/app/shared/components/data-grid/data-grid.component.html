@@ -171,6 +171,15 @@
                   [title]="getNestedValue(item, column.key) || '-'">
                   {{ getNestedValue(item, column.key) || '-' }}
                 </div>
+                } @else if (['createdAt', 'issuedAt', 'updatedAt'].includes(column.key)) {
+                <div class="flex flex-col">
+                  <span class="font-medium text-gray-900">
+                    {{ formatDate(getNestedValue(item, column.key)) }}
+                  </span>
+                  <span class="text-xs text-gray-500">
+                    {{ formatTime(getNestedValue(item, column.key)) }}
+                  </span>
+                </div>
                 } @else if (['start', 'clockIn', 'time'].includes(column.key)) {
                 <div class="whitespace-nowrap text-gray-600 font-medium">
                   {{ getNestedValue(item, column.key) || '-' }}

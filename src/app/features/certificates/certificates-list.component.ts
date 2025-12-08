@@ -115,7 +115,7 @@ export class CertificatesListComponent implements OnInit {
       recipientName: cert.recipientName,
       recipientEmail: cert.recipientEmail,
       status: cert.status,
-      issuedAt: cert.issuedAt ? new Date(cert.issuedAt).toLocaleDateString() : '-',
+      issuedAt: cert.issuedAt || '-',
       // Keep original for actions
       _original: cert
     }));

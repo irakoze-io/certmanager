@@ -119,7 +119,7 @@ export class VerificationListComponent implements OnInit {
       recipientName: verification.recipientName,
       status: verification.status,
       hash: verification.hash ? `${verification.hash.substring(0, 8)}...` : '-',
-      issuedAt: verification.issuedAt ? new Date(verification.issuedAt).toLocaleDateString() : '-',
+      issuedAt: verification.issuedAt || '-',
       // Keep original for actions
       _original: verification
     }));

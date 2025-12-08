@@ -2,6 +2,7 @@ import { Component, input, output, signal, computed, effect, HostListener, injec
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { formatDate, formatTime } from '../../../core/utils/date.util';
 
 export interface DataGridColumn {
   key: string;
@@ -100,6 +101,9 @@ export class DataGridComponent<T = any> {
   }
 
   // Helper method to safely get nested property values
+  formatDate = formatDate;
+  formatTime = formatTime;
+
   getNestedValue(item: T, key: string): any {
     const itemObj = item as Record<string, any>;
     return itemObj[key] ?? null;
