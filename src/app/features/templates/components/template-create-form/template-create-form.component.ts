@@ -2,7 +2,7 @@ import {Component, OnInit, input, output, signal, effect} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {FormBuilder, FormGroup, Validators, ReactiveFormsModule} from '@angular/forms';
 import {TemplateService} from '../../../../core/services/template.service';
-import {CreateTemplateRequest} from '../../../../core/models/template.model';
+import {CreateTemplateRequest, TemplateResponse} from '../../../../core/models/template.model';
 
 // Predefined codes and categories
 export const TEMPLATE_CODES = [
@@ -40,12 +40,15 @@ export const TEMPLATE_CATEGORIES = [
 })
 export class TemplateCreateFormComponent implements OnInit {
   customerId = input.required<number>();
+  template = input<TemplateResponse | undefined>(undefined); // Optional: for editing
+  
   onSuccess = output<void>();
   onCancel = output<void>();
 
   form!: FormGroup;
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
+  isEditMode = signal<boolean>(false);
 
   readonly codes = TEMPLATE_CODES;
   readonly categories = TEMPLATE_CATEGORIES;
@@ -60,14 +63,44 @@ export class TemplateCreateFormComponent implements OnInit {
       description: ['', [Validators.maxLength(500)]],
       category: ['', [Validators.required]]
     });
+
+    // Re-initialize form data when template input changes
+    effect(() => {
+      const templateData = this.template();
+      if (templateData) {
+        this.initializeFormData(templateData);
+      } else {
+        this.resetForm();
+      }
+    });
   }
 
   ngOnInit(): void {
-    this.resetForm();
+    const templateData = this.template();
+    if (templateData) {
+      this.initializeFormData(templateData);
+    } else {
+      this.resetForm();
+    }
+  }
+
+  private initializeFormData(template: TemplateResponse): void {
+    this.isEditMode.set(true);
+    const category = template.metadata?.['category'] || '';
+    
+    this.form.patchValue({
+      name: template.name || '',
+      code: template.code || '',
+      description: template.description || '',
+      category: category || (this.categories.length > 0 ? this.categories[0] : '')
+    });
+    
+    this.errorMessage.set(null);
   }
 
   private resetForm(): void {
     // Reset form to initial state
+    this.isEditMode.set(false);
     this.form.reset();
     // Set default code if available
     if (this.codes.length > 0) {
@@ -90,30 +123,59 @@ export class TemplateCreateFormComponent implements OnInit {
     this.errorMessage.set(null);
 
     const formValue = this.form.value;
-    const request: CreateTemplateRequest = {
-      customerId: this.customerId(),
-      name: formValue.name,
-      code: formValue.code,
-      description: formValue.description || undefined,
-      currentVersion: 1,
-      metadata: {
-        category: formValue.category
-      }
-    };
+    const templateData = this.template();
 
-    this.templateService.createTemplateWithVersion(request).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        // Reset form after successful submission
-        this.resetForm();
-        this.onSuccess.emit();
-      },
-      error: (error) => {
-        this.isLoading.set(false);
-        const errorMsg = error?.error?.message || error?.message || 'Failed to create template. Please try again.';
-        this.errorMessage.set(errorMsg);
-      }
-    });
+    if (this.isEditMode() && templateData) {
+      // Update existing template
+      const updateRequest: CreateTemplateRequest = {
+        customerId: this.customerId(),
+        name: formValue.name,
+        code: formValue.code,
+        description: formValue.description || undefined,
+        currentVersion: templateData.currentVersion,
+        metadata: {
+          category: formValue.category
+        }
+      };
+
+      this.templateService.updateTemplate(templateData.id, updateRequest).subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          this.onSuccess.emit();
+        },
+        error: (error) => {
+          this.isLoading.set(false);
+          const errorMsg = error?.error?.message || error?.message || 'Failed to update template. Please try again.';
+          this.errorMessage.set(errorMsg);
+        }
+      });
+    } else {
+      // Create new template
+      const request: CreateTemplateRequest = {
+        customerId: this.customerId(),
+        name: formValue.name,
+        code: formValue.code,
+        description: formValue.description || undefined,
+        currentVersion: 1,
+        metadata: {
+          category: formValue.category
+        }
+      };
+
+      this.templateService.createTemplateWithVersion(request).subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          // Reset form after successful submission
+          this.resetForm();
+          this.onSuccess.emit();
+        },
+        error: (error) => {
+          this.isLoading.set(false);
+          const errorMsg = error?.error?.message || error?.message || 'Failed to create template. Please try again.';
+          this.errorMessage.set(errorMsg);
+        }
+      });
+    }
   }
 
   onCancelClick(): void {

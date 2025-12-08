@@ -51,6 +51,9 @@ export class DashboardComponent implements OnInit {
   modalTitle = signal<string>('');
   selectedTemplate = signal<TemplateResponse | null>(null);
   selectedVersionId = signal<string | undefined>(undefined);
+  isEditingTemplate = signal<boolean>(false);
+  showDeleteConfirmation = signal<boolean>(false);
+  templateToDelete = signal<TemplateResponse | null>(null);
 
   // Template dropdown for version creation
   showTemplateDropdown = signal<boolean>(false);
@@ -428,6 +431,8 @@ export class DashboardComponent implements OnInit {
 
     switch (entityType) {
       case 'templates':
+        this.selectedTemplate.set(null);
+        this.isEditingTemplate.set(false);
         this.modalTitle.set('Create New Template');
         this.showCreateModal.set(true);
         break;
@@ -465,7 +470,9 @@ export class DashboardComponent implements OnInit {
 
   onTemplateCreated(): void {
     this.showCreateModal.set(false);
-    // Reload templates to show the new one
+    this.selectedTemplate.set(null);
+    this.isEditingTemplate.set(false);
+    // Reload templates to show the new one or updated one
     if (this.activeGridType() === 'templates') {
       this.loadTemplates();
     }
@@ -476,6 +483,72 @@ export class DashboardComponent implements OnInit {
     this.showEnrichModal.set(false);
     this.selectedTemplate.set(null);
     this.selectedVersionId.set(undefined);
+    this.isEditingTemplate.set(false);
+    this.showDeleteConfirmation.set(false);
+    this.templateToDelete.set(null);
+  }
+
+  onTemplateEdit(): void {
+    // Edit action is already handled by the edit button in the modal
+    // This can be used for future enhancements if needed
+  }
+
+  onTemplateDelete(): void {
+    const template = this.selectedTemplate();
+    if (template) {
+      this.templateToDelete.set(template);
+      this.showDeleteConfirmation.set(true);
+    }
+  }
+
+  confirmDeleteTemplate(): void {
+    const template = this.templateToDelete();
+    if (!template || !template.id) {
+      this.toastService.error('Invalid template data.');
+      this.showDeleteConfirmation.set(false);
+      this.templateToDelete.set(null);
+      return;
+    }
+
+    this.templateService.deleteTemplate(template.id).subscribe({
+      next: () => {
+        this.toastService.success('Template deleted successfully.');
+        this.showDeleteConfirmation.set(false);
+        this.templateToDelete.set(null);
+        this.onModalClose();
+        
+        // Reload templates to reflect the change
+        if (this.activeGridType() === 'templates') {
+          this.loadTemplates();
+        }
+      },
+      error: (error) => {
+        console.error('Error deleting template:', error);
+        let errorMsg = 'Failed to delete template.';
+        
+        if (error?.error?.message) {
+          errorMsg = error.error.message;
+        } else if (error?.message) {
+          errorMsg = error.message;
+        } else if (typeof error?.error === 'string') {
+          errorMsg = error.error;
+        }
+
+        if (error?.status === 400 || error?.status === 422) {
+          this.toastService.warning(errorMsg);
+        } else {
+          this.toastService.error(errorMsg);
+        }
+        
+        this.showDeleteConfirmation.set(false);
+        this.templateToDelete.set(null);
+      }
+    });
+  }
+
+  cancelDeleteTemplate(): void {
+    this.showDeleteConfirmation.set(false);
+    this.templateToDelete.set(null);
   }
 
   onTemplateVersionCreated(): void {
@@ -546,8 +619,42 @@ export class DashboardComponent implements OnInit {
         });
         break;
       case 'edit':
-        // TODO: Implement edit functionality
-        console.log('Edit clicked:', item);
+        // Get template data
+        const editTemplateData = item._original || item;
+        
+        if (!editTemplateData || !editTemplateData.id) {
+          console.error('Invalid template data:', item);
+          this.toastService.error('Invalid template data. Please try again.');
+          return;
+        }
+
+        // Clear any previous error
+        this.errorMessage.set(null);
+
+        // Fetch full template details to ensure we have latest data
+        this.templateService.getTemplateById(editTemplateData.id).subscribe({
+          next: (template) => {
+            if (!template) {
+              this.toastService.error('Template not found. Please try again.');
+              return;
+            }
+
+            this.selectedTemplate.set(template);
+            this.isEditingTemplate.set(true);
+            this.modalTitle.set('Edit Template');
+            this.showCreateModal.set(true);
+          },
+          error: (error) => {
+            console.error('Error fetching template:', error);
+            let errorMsg = 'Failed to load template details.';
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            }
+            this.toastService.error(errorMsg);
+          }
+        });
         break;
       case 'publish':
         // Get template data

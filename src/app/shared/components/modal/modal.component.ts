@@ -12,8 +12,12 @@ export class ModalComponent {
   title = input<string>('');
   subtitle = input<string>('');
   showCloseButton = input<boolean>(true);
+  showEditButton = input<boolean>(false);
+  showDeleteButton = input<boolean>(false);
   
   onClose = output<void>();
+  onEdit = output<void>();
+  onDelete = output<void>();
 
   constructor() {
     effect(() => {
