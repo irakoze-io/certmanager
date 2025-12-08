@@ -368,9 +368,9 @@ export class DashboardComponent implements OnInit {
       itemsPerPageOptions: [10, 25, 50, 100],
       defaultItemsPerPage: 10,
       columns: [
-        { key: 'certificateNumber', label: 'Certificate Number', sortable: true },
-        { key: 'recipientName', label: 'Recipient Name', sortable: true },
-        { key: 'recipientEmail', label: 'Recipient Email', sortable: true },
+        { key: 'recipientName', label: 'Recipient', sortable: true },
+        { key: 'templateName', label: 'Template', sortable: true },
+        { key: 'issuerUserId', label: 'Issuer', sortable: true },
         { key: 'status', label: 'Status', sortable: true },
         { key: 'issuedAt', label: 'Issued', sortable: true }
       ],
@@ -404,7 +404,6 @@ export class DashboardComponent implements OnInit {
       next: (certificates) => {
         console.log('[Certificates] Raw response:', certificates);
         console.log('[Certificates] Count:', certificates?.length || 0);
-        console.log('[Certificates] Is array:', Array.isArray(certificates));
         
         if (!certificates || certificates.length === 0) {
           console.warn('[Certificates] No certificates returned from API');
@@ -413,18 +412,59 @@ export class DashboardComponent implements OnInit {
           return;
         }
         
-        const formatted = this.formatCertificateData(certificates);
-        console.log('[Certificates] Formatted:', formatted);
-        console.log('[Certificates] Formatted count:', formatted?.length || 0);
-        if (formatted.length > 0) {
-          console.log('[Certificates] First item:', formatted[0]);
-        }
-        
-        this.gridData.set(formatted);
-        // filteredGridData will be set automatically by the effect
-        console.log('[Certificates] gridData after set:', this.gridData().length, 'items');
-        console.log('[Certificates] filteredGridData after effect:', this.filteredGridData().length, 'items');
-        this.isLoadingGrid.set(false);
+        // Load templates and their versions to get template names
+        this.templateService.getAllTemplates().subscribe({
+          next: (templates) => {
+            // Load all versions for all templates
+            const templateVersionMap = new Map<string, { name: string; templateId: number }>();
+            let loadedCount = 0;
+            
+            if (templates.length === 0) {
+              // No templates, format certificates without template names
+              const formatted = this.formatCertificateData(certificates, templateVersionMap);
+              this.gridData.set(formatted);
+              this.isLoadingGrid.set(false);
+              return;
+            }
+            
+            templates.forEach(template => {
+              this.templateService.getTemplateVersions(template.id).subscribe({
+                next: (versions) => {
+                  versions.forEach(version => {
+                    if (version.id) {
+                      templateVersionMap.set(version.id, { name: template.name, templateId: template.id });
+                    }
+                  });
+                  loadedCount++;
+                  if (loadedCount === templates.length) {
+                    // All versions loaded, now format certificates
+                    const formatted = this.formatCertificateData(certificates, templateVersionMap);
+                    console.log('[Certificates] Formatted:', formatted);
+                    this.gridData.set(formatted);
+                    this.isLoadingGrid.set(false);
+                  }
+                },
+                error: (error) => {
+                  console.error(`[Certificates] Error loading versions for template ${template.id}:`, error);
+                  loadedCount++;
+                  if (loadedCount === templates.length) {
+                    // Format even if some versions failed to load
+                    const formatted = this.formatCertificateData(certificates, templateVersionMap);
+                    this.gridData.set(formatted);
+                    this.isLoadingGrid.set(false);
+                  }
+                }
+              });
+            });
+          },
+          error: (error) => {
+            console.error('[Certificates] Error loading templates:', error);
+            // Format without template names if template loading fails
+            const formatted = this.formatCertificateData(certificates, new Map());
+            this.gridData.set(formatted);
+            this.isLoadingGrid.set(false);
+          }
+        });
       },
       error: (error) => {
         console.error('[Certificates] Error loading:', error);
@@ -1060,7 +1100,10 @@ export class DashboardComponent implements OnInit {
     }));
   }
 
-  formatCertificateData(certificates: CertificateResponse[]): any[] {
+  formatCertificateData(
+    certificates: CertificateResponse[], 
+    templateVersionMap: Map<string, { name: string; templateId: number }>
+  ): any[] {
     if (!certificates || !Array.isArray(certificates)) {
       console.warn('[formatCertificateData] Invalid input:', certificates);
       return [];
@@ -1072,11 +1115,18 @@ export class DashboardComponent implements OnInit {
         return null;
       }
       
+      // Find template name by matching templateVersionId
+      const templateInfo = templateVersionMap.get(cert.templateVersionId);
+      const templateName = templateInfo?.name || '-';
+      
       const formatted = {
         id: cert.id || '-',
         certificateNumber: cert.certificateNumber || '-',
         recipientName: cert.recipientData?.['name'] || '-',
         recipientEmail: cert.recipientData?.['email'] || '-',
+        templateName: templateName,
+        templateVersionId: cert.templateVersionId,
+        issuerUserId: cert.metadata?.['issuedBy'] || cert.metadata?.['issuedByUserId'] || '-',
         status: cert.status || '-',
         issuedAt: cert.issuedAt || '-',
         _original: cert

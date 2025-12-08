@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { formatDate, formatTime } from '../../../core/utils/date.util';
+import { ToastService } from '../../../core/services/toast.service';
 
 export interface DataGridColumn {
   key: string;
@@ -51,6 +52,7 @@ export class DataGridComponent<T = any> {
   onActionClick = output<{ action: string; item: T }>();
 
   private sanitizer = inject(DomSanitizer);
+  private toastService = inject(ToastService);
 
   // Date management
   currentDate = signal<Date>(new Date());
@@ -107,6 +109,21 @@ export class DataGridComponent<T = any> {
   getNestedValue(item: T, key: string): any {
     const itemObj = item as Record<string, any>;
     return itemObj[key] ?? null;
+  }
+
+  copyToClipboard(text: string, event: Event): void {
+    event.stopPropagation(); // Prevent row click
+    
+    if (!text || text === '-') {
+      return;
+    }
+    
+    navigator.clipboard.writeText(text).then(() => {
+      this.toastService.success('Certificate number copied to clipboard');
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+      this.toastService.error('Failed to copy certificate number');
+    });
   }
 
   onSearchInput(value: string): void {
