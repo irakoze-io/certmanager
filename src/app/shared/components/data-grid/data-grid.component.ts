@@ -265,7 +265,7 @@ export class DataGridComponent<T = any> {
     if (['name', 'recipientName', 'templateName'].includes(columnKey)) {
       return `${baseClass} px-6 w-72 lg:w-96`;
     } else if (columnKey === 'description') {
-      return `${baseClass} px-6 w-auto min-w-[200px]`;
+      return `${baseClass} px-6 w-auto min-w-[150px] max-w-[200px]`;
     } else if (columnKey === 'code' || columnKey === 'certificateNumber') {
       return `${baseClass} px-6 w-40 whitespace-nowrap`;
     } else if (columnKey === 'currentVersion' || columnKey === 'version') {
@@ -285,7 +285,7 @@ export class DataGridComponent<T = any> {
     if (['name', 'recipientName', 'templateName'].includes(columnKey)) {
       return `${baseClass} px-6 w-72 lg:w-96`;
     } else if (columnKey === 'description') {
-      return `${baseClass} px-6 w-auto min-w-[200px]`;
+      return `${baseClass} px-6 w-auto min-w-[150px] max-w-[200px]`;
     } else if (columnKey === 'code' || columnKey === 'certificateNumber') {
       return `${baseClass} px-6 w-40 whitespace-nowrap`;
     } else if (columnKey === 'currentVersion' || columnKey === 'version') {

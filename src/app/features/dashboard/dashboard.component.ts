@@ -230,6 +230,7 @@ export class DashboardComponent implements OnInit {
       defaultItemsPerPage: 10,
       columns: [
         { key: 'templateName', label: 'Template', sortable: true },
+        { key: 'description', label: 'Description', sortable: false },
         { key: 'version', label: 'Version', sortable: true },
         { key: 'status', label: 'Status', sortable: true },
         { key: 'createdAt', label: 'Created', sortable: true }
@@ -255,6 +256,7 @@ export class DashboardComponent implements OnInit {
                 allVersions.push({
                   id: version.id,
                   templateName: template.name,
+                  description: template.description || '-',
                   templateId: template.id,
                   version: typeof version.version === 'string' && version.version.startsWith('v')
                     ? version.version
