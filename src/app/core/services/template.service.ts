@@ -17,7 +17,6 @@ import { AuthService } from './auth.service';
 })
 export class TemplateService extends ApiService {
   private readonly templatesEndpoint = '/templates';
-  private readonly templateVersionsEndpoint = '/template-versions';
 
   constructor(
     protected override http: HttpClient,
@@ -278,10 +277,11 @@ h2 {
 
   /**
    * Get template version by ID
+   * GET /api/templates/{templateId}/versions/{versionId}
    */
-  getTemplateVersionById(id: number): Observable<TemplateVersionResponse> {
+  getTemplateVersionById(templateId: number, versionId: string): Observable<TemplateVersionResponse> {
     return new Observable(observer => {
-      this.get<TemplateVersionResponse>(`${this.templateVersionsEndpoint}/${id}`).subscribe({
+      this.get<TemplateVersionResponse>(`${this.templatesEndpoint}/${templateId}/versions/${versionId}`).subscribe({
         next: response => {
           if (response.success && response.data) {
             observer.next(response.data);
@@ -297,10 +297,11 @@ h2 {
 
   /**
    * Get all versions for a template
+   * GET /api/templates/{templateId}/versions
    */
   getTemplateVersions(templateId: number): Observable<TemplateVersionResponse[]> {
     return new Observable(observer => {
-      this.get<TemplateVersionResponse[]>(`${this.templateVersionsEndpoint}?templateId=${templateId}`).subscribe({
+      this.get<TemplateVersionResponse[]>(`${this.templatesEndpoint}/${templateId}/versions`).subscribe({
         next: response => {
           if (response.success && response.data) {
             observer.next(Array.isArray(response.data) ? response.data : [response.data]);

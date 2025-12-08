@@ -27,9 +27,10 @@ const angularApp = new AngularNodeAppEngine();
 /**
  * Serve static files from /browser
  */
+const isDevelopment = process.env['NODE_ENV'] !== 'production';
 app.use(
   express.static(browserDistFolder, {
-    maxAge: '1y',
+    maxAge: isDevelopment ? '0' : '1y', // Disable caching in development
     index: false,
     redirect: false,
   }),
