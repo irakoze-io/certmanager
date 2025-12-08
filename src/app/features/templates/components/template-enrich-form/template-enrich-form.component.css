@@ -361,6 +361,31 @@ select.form-input:disabled {
   background-color: #eff6ff;
 }
 
+.existing-field-badge-edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.125rem;
+  margin-left: 0.25rem;
+  color: #6b7280;
+  background-color: transparent;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  flex-shrink: 0;
+}
+
+.existing-field-badge-edit:hover {
+  color: #2563eb;
+  background-color: #eff6ff;
+}
+
+.existing-field-badge-edit svg {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
 .existing-field-badge-remove {
   display: flex;
   align-items: center;

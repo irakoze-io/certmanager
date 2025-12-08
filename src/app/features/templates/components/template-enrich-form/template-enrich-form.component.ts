@@ -15,6 +15,7 @@ import { FieldType, FieldSchemaField } from '../../../../core/models/template.mo
 })
 export class TemplateEnrichFormComponent implements OnInit {
   template = input.required<TemplateResponse>();
+  versionId = input<string | undefined>(undefined); // Optional: if provided, load this specific version instead of latest
   
   onSubmit = output<void>();
   onCancel = output<void>();
@@ -26,6 +27,7 @@ export class TemplateEnrichFormComponent implements OnInit {
   existingVersion = signal<TemplateVersionResponse | null>(null);
   existingFields = signal<Array<{ name: string; type: FieldType; label: string }>>([]);
   addedFields = signal<Array<{ name: string; type: FieldType; label: string }>>([]);
+  editingField = signal<{ name: string; type: FieldType; label: string } | null>(null);
 
   // User-friendly field types
   fieldTypes = [
@@ -78,6 +80,7 @@ export class TemplateEnrichFormComponent implements OnInit {
     // Reset form to ensure clean state
     this.enrichForm.reset();
     this.addedFields.set([]); // Clear added fields list
+    this.editingField.set(null); // Clear editing state
     
     // Set template ID in form
     this.enrichForm.patchValue({
@@ -87,8 +90,13 @@ export class TemplateEnrichFormComponent implements OnInit {
     // Clear any previous error
     this.errorMessage.set(null);
     
-    // Load existing template version
-    this.templateService.getLatestTemplateVersion(templateData.id).subscribe({
+    // Load existing template version (specific version if versionId provided, otherwise latest)
+    const versionId = this.versionId();
+    const versionObservable = versionId && templateData.id
+      ? this.templateService.getTemplateVersionById(templateData.id, versionId)
+      : this.templateService.getLatestTemplateVersion(templateData.id);
+    
+    versionObservable.subscribe({
       next: (version) => {
         if (version) {
           this.existingVersion.set(version);
@@ -281,6 +289,55 @@ p {
     // Remove from added fields list by field name
     const currentAddedFields = this.addedFields();
     this.addedFields.set(currentAddedFields.filter(f => f.name !== fieldName));
+    
+    // Update HTML content
+    this.updateHtmlContent();
+  }
+
+  editExistingField(field: { name: string; type: FieldType; label: string }): void {
+    this.editingField.set({ ...field });
+  }
+
+  updateEditingFieldLabel(newLabel: string): void {
+    const current = this.editingField();
+    if (current) {
+      this.editingField.set({ ...current, label: newLabel.trim() });
+    }
+  }
+
+  updateEditingFieldType(newType: FieldType): void {
+    const current = this.editingField();
+    if (current) {
+      this.editingField.set({ ...current, type: newType });
+    }
+  }
+
+  saveEditingField(): void {
+    const editing = this.editingField();
+    if (!editing) return;
+
+    // Update the existing field in the existingFields array
+    const currentFields = this.existingFields();
+    const updatedFields = currentFields.map(field => 
+      field.name === editing.name ? { ...editing } : field
+    );
+    this.existingFields.set(updatedFields);
+
+    // Update HTML content
+    this.updateHtmlContent();
+
+    // Clear editing state
+    this.editingField.set(null);
+  }
+
+  cancelEditingField(): void {
+    this.editingField.set(null);
+  }
+
+  removeExistingField(fieldName: string): void {
+    // Remove from existing fields list
+    const currentFields = this.existingFields();
+    this.existingFields.set(currentFields.filter(f => f.name !== fieldName));
     
     // Update HTML content
     this.updateHtmlContent();

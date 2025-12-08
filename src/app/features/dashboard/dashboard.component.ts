@@ -49,6 +49,11 @@ export class DashboardComponent implements OnInit {
   showEnrichModal = signal<boolean>(false);
   modalTitle = signal<string>('');
   selectedTemplate = signal<TemplateResponse | null>(null);
+  selectedVersionId = signal<string | undefined>(undefined);
+  
+  // Template dropdown for version creation
+  showTemplateDropdown = signal<boolean>(false);
+  availableTemplates = signal<TemplateResponse[]>([]);
 
   // Dashboard card configurations
   templatesConfig: DashboardCardConfig = {
@@ -270,6 +275,18 @@ export class DashboardComponent implements OnInit {
         { key: 'version', label: 'Version', sortable: true },
         { key: 'status', label: 'Status', sortable: true },
         { key: 'createdAt', label: 'Created', sortable: true }
+      ],
+      actions: [
+        {
+          label: 'Publish',
+          action: 'publishVersion',
+          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>'
+        },
+        {
+          label: 'Edit',
+          action: 'editVersion',
+          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>'
+        }
       ]
     });
 
@@ -298,6 +315,7 @@ export class DashboardComponent implements OnInit {
                     ? version.version
                     : `v${version.version}`,
                   status: version.status,
+                  createdBy: version.createdBy || '-',
                   createdAt: version.createdAt ? new Date(version.createdAt).toLocaleDateString() : '-',
                   _original: version
                 });
@@ -412,14 +430,35 @@ export class DashboardComponent implements OnInit {
         this.showCreateModal.set(true);
         break;
       case 'versions':
-        // TODO: Implement version creation modal
-        console.log('Add version clicked');
+        // Load templates and show dropdown
+        this.templateService.getAllTemplates().subscribe({
+          next: (templates) => {
+            this.availableTemplates.set(templates);
+            this.showTemplateDropdown.set(true);
+          },
+          error: (error) => {
+            console.error('Error loading templates:', error);
+            this.errorMessage.set('Failed to load templates. Please try again.');
+          }
+        });
         break;
       case 'certificates':
         // TODO: Implement certificate creation modal
         console.log('Add certificate clicked');
         break;
     }
+  }
+
+  onTemplateSelectedForVersion(template: TemplateResponse): void {
+    this.selectedTemplate.set(template);
+    this.selectedVersionId.set(undefined);
+    this.modalTitle.set('Create template version');
+    this.showTemplateDropdown.set(false);
+    this.showEnrichModal.set(true);
+  }
+
+  closeTemplateDropdown(): void {
+    this.showTemplateDropdown.set(false);
   }
 
   onTemplateCreated(): void {
@@ -434,14 +473,18 @@ export class DashboardComponent implements OnInit {
     this.showCreateModal.set(false);
     this.showEnrichModal.set(false);
     this.selectedTemplate.set(null);
+    this.selectedVersionId.set(undefined);
   }
 
   onTemplateVersionCreated(): void {
     this.showEnrichModal.set(false);
     this.selectedTemplate.set(null);
-    // Reload templates to show the new version
+    this.selectedVersionId.set(undefined);
+    // Reload data based on active grid type
     if (this.activeGridType() === 'templates') {
       this.loadTemplates();
+    } else if (this.activeGridType() === 'versions') {
+      this.loadVersions();
     }
   }
 
@@ -484,6 +527,7 @@ export class DashboardComponent implements OnInit {
             }
 
             this.selectedTemplate.set(template);
+            this.selectedVersionId.set(undefined);
             this.modalTitle.set('Enrich Template');
             this.showEnrichModal.set(true);
           },
@@ -506,6 +550,48 @@ export class DashboardComponent implements OnInit {
       case 'publish':
         // TODO: Implement publish functionality
         console.log('Publish clicked:', item);
+        break;
+      case 'publishVersion':
+        // TODO: Implement publish version functionality
+        console.log('Publish version clicked:', item);
+        break;
+      case 'editVersion':
+        // Get version data
+        const versionData = item._original || item;
+        
+        if (!versionData || !versionData.templateId || !versionData.id) {
+          console.error('Invalid version data:', item);
+          this.errorMessage.set('Invalid version data. Please try again.');
+          return;
+        }
+
+        // Clear any previous error
+        this.errorMessage.set(null);
+
+        // Fetch template details
+        this.templateService.getTemplateById(versionData.templateId).subscribe({
+          next: (template) => {
+            if (!template) {
+              this.errorMessage.set('Template not found. Please try again.');
+              return;
+            }
+
+            this.selectedTemplate.set(template);
+            this.selectedVersionId.set(versionData.id);
+            this.modalTitle.set('Create Version');
+            this.showEnrichModal.set(true);
+          },
+          error: (error) => {
+            console.error('Error fetching template:', error);
+            let errorMsg = 'Failed to load template details.';
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            }
+            this.errorMessage.set(errorMsg);
+          }
+        });
         break;
       default:
         console.log('Unknown action:', action);

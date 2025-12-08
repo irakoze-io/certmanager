@@ -148,6 +148,8 @@
                       <span class="mx-1.5">•</span>
                       {{ getNestedValue(item, 'currentVersion') || getNestedValue(item, 'version') }}
                       }
+                      } @else if (getNestedValue(item, 'createdBy')) {
+                      By {{ getNestedValue(item, 'createdBy') }}
                       } @else {
                       {{ getNestedValue(item, 'email') || getNestedValue(item, 'recipientEmail') }}
                       }

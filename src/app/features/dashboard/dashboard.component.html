@@ -101,6 +101,46 @@
         />
       </div>
     }
+
+    <!-- Template Dropdown for Version Creation -->
+    @if (showTemplateDropdown()) {
+      <div class="fixed inset-0 z-40" (click)="closeTemplateDropdown()"></div>
+      <div class="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 max-w-md w-full max-h-96 overflow-y-auto"
+           style="top: 50%; left: 50%; transform: translate(-50%, -50%);">
+        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-900">Select Template</h3>
+          <button
+            type="button"
+            (click)="closeTemplateDropdown()"
+            class="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="p-2">
+          @if (availableTemplates().length === 0) {
+            <div class="p-4 text-center text-sm text-gray-500">
+              No templates available. Please create a template first.
+            </div>
+          } @else {
+            @for (template of availableTemplates(); track template.id) {
+              <button
+                type="button"
+                (click)="onTemplateSelectedForVersion(template)"
+                class="w-full text-left px-4 py-3 hover:bg-gray-50 rounded-lg transition-colors border-b border-gray-100 last:border-b-0"
+              >
+                <div class="font-medium text-gray-900">{{ template.name }}</div>
+                @if (template.description) {
+                  <div class="text-sm text-gray-500 mt-1">{{ template.description }}</div>
+                }
+              </button>
+            }
+          }
+        </div>
+      </div>
+    }
   </main>
 
   <!-- Create Template Modal -->
@@ -132,6 +172,7 @@
       @if (showEnrichModal() && selectedTemplate()) {
         <app-template-enrich-form
           [template]="selectedTemplate()!"
+          [versionId]="selectedVersionId()"
           (onSubmit)="onTemplateVersionCreated()"
           (onCancel)="onModalClose()"
         />
