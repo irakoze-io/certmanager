@@ -196,6 +196,12 @@ p {
   }
 
   addField(): void {
+    // Limit to 5 new fields
+    if (this.fieldsArray.length >= 5) {
+      this.errorMessage.set('Maximum of 5 new fields allowed. Please add existing fields to htmlContent before adding more.');
+      return;
+    }
+
     const fieldGroup = this.fb.group({
       name: ['', [Validators.required]],
       type: [FieldType.TEXT, Validators.required]
