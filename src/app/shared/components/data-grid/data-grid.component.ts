@@ -1,4 +1,4 @@
-import { Component, input, output, signal, computed, effect, HostListener } from '@angular/core';
+import { Component, input, output, signal, computed, effect, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -49,6 +49,8 @@ export class DataGridComponent<T = any> {
   onRowClick = output<T>();
   onActionClick = output<{ action: string; item: T }>();
 
+  private sanitizer = inject(DomSanitizer);
+
   // Date management
   currentDate = signal<Date>(new Date());
   currentYear = computed(() => this.currentDate().getFullYear());
@@ -62,7 +64,7 @@ export class DataGridComponent<T = any> {
 
   // Action menu state
   openMenuIndex = signal<number | null>(null);
-  menuPosition = signal<'above' | 'below'>('below');
+  menuStyles = signal<{ [key: string]: string }>({});
 
   // Computed values
   totalPages = computed(() => {
@@ -75,7 +77,7 @@ export class DataGridComponent<T = any> {
     return this.data().slice(start, end);
   });
 
-  constructor(private sanitizer: DomSanitizer) {
+  constructor() {
     // Set default items per page from config using effect
     effect(() => {
       const config = this.config();
@@ -168,9 +170,12 @@ export class DataGridComponent<T = any> {
     event.stopPropagation();
     if (this.openMenuIndex() === index) {
       this.openMenuIndex.set(null);
-      this.menuPosition.set('below');
+      this.menuStyles.set({});
     } else {
       this.openMenuIndex.set(index);
+      // Initialize with opacity 0 to measure without flashing in wrong place
+      this.menuStyles.set({ 'opacity': '0', 'position': 'fixed' });
+
       // Calculate menu position after DOM update - use multiple frames to ensure rendering
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -184,11 +189,11 @@ export class DataGridComponent<T = any> {
 
   private calculateMenuPosition(buttonElement: HTMLElement | null, index: number): void {
     if (!buttonElement) {
-      this.menuPosition.set('below');
+      this.menuStyles.set({});
       return;
     }
 
-    // Find the menu element in the DOM - try multiple times if needed
+    // Find the menu element in the DOM
     let menuElement = document.querySelector(`[data-menu-index="${index}"]`) as HTMLElement;
 
     // If menu not found, retry after a short delay
@@ -198,8 +203,7 @@ export class DataGridComponent<T = any> {
         if (menuElement) {
           this.performPositionCalculation(buttonElement, menuElement);
         } else {
-          // Fallback to below if we can't find the element
-          this.menuPosition.set('below');
+          this.openMenuIndex.set(null); // Just close if cannot find
         }
       }, 50);
       return;
@@ -211,39 +215,44 @@ export class DataGridComponent<T = any> {
   private performPositionCalculation(buttonElement: HTMLElement, menuElement: HTMLElement): void {
     const buttonRect = buttonElement.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
 
-    // Calculate available space relative to viewport
+    const menuHeight = menuElement.offsetHeight || menuElement.scrollHeight;
+
+    // Dimensions
     const spaceBelow = viewportHeight - buttonRect.bottom;
-    const spaceAbove = buttonRect.top;
+    const totalHeightNeeded = menuHeight + 10; // Extra margin
 
-    // Get actual menu height
-    let menuHeight = menuElement.offsetHeight || menuElement.scrollHeight;
+    // Choose position
+    let top: number;
+    let originClass = '';
 
-    // Get computed margins
-    const computedStyle = window.getComputedStyle(menuElement);
-    const marginTop = parseFloat(computedStyle.marginTop) || 8;
-    const marginBottom = parseFloat(computedStyle.marginBottom) || 0;
-
-    // Total height needed including margins
-    const totalHeightNeeded = menuHeight + marginTop + marginBottom;
-
-    // Only position above if menu would be significantly cut off below (less than 50% visible)
-    // and there's enough space above to show it fully
-    const minVisibleBelow = totalHeightNeeded * 0.5; // At least 50% of menu should be visible
-    const wouldBeCutOffBelow = spaceBelow < minVisibleBelow;
-    const hasEnoughSpaceAbove = spaceAbove >= totalHeightNeeded;
-
-    // Only position above if menu would be cut off AND there's space above
-    // Otherwise, always position below to allow normal page scrolling
-    if (wouldBeCutOffBelow && hasEnoughSpaceAbove) {
-      this.menuPosition.set('above');
+    if (spaceBelow >= totalHeightNeeded) {
+      // Position below
+      top = buttonRect.bottom + 5;
+      originClass = 'origin-top-right';
     } else {
-      this.menuPosition.set('below');
+      // Position above
+      top = buttonRect.top - menuHeight - 5;
+      originClass = 'origin-bottom-right';
     }
+
+    // Position fixed to viewport, aligning right edge of menu with right edge of button (approx)
+    const right = viewportWidth - buttonRect.right;
+
+    this.menuStyles.set({
+      'position': 'fixed',
+      'top': `${top}px`,
+      'right': `${right}px`,
+      'z-index': '9999', // Ensure it's on top of everything
+      'opacity': '1',    // Make visible
+      'transform-origin': originClass === 'origin-top-right' ? 'top right' : 'bottom right'
+    });
   }
 
   closeMenu(): void {
     this.openMenuIndex.set(null);
+    this.menuStyles.set({}); // Clear styles when closing
   }
 
   capitalizeLabel(label: string): string {
@@ -292,9 +301,17 @@ export class DataGridComponent<T = any> {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    // Close menu if clicking outside
+    // Close menu if clicking outside. 
+    // Note: The menu itself has (click)="$event.stopPropagation()" so this only catches outside clicks.
     if (this.openMenuIndex() !== null) {
-      this.openMenuIndex.set(null);
+      this.closeMenu();
+    }
+  }
+
+  @HostListener('window:scroll')
+  onWindowScroll(): void {
+    if (this.openMenuIndex() !== null) {
+      this.closeMenu();
     }
   }
 

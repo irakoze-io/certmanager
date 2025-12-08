@@ -24,6 +24,7 @@ export class TemplateService extends ApiService {
    * Create a new template
    */
   createTemplate(request: CreateTemplateRequest): Observable<TemplateResponse> {
+    console.log('Sending request:', request)
     return new Observable(observer => {
       this.post<TemplateResponse>(this.templatesEndpoint, request).subscribe({
         next: response => {
@@ -144,7 +145,7 @@ export class TemplateService extends ApiService {
         next: template => {
           // Get the highest version number from versions array or use currentVersion
           let latestVersion = template.currentVersion || 0;
-          
+
           if (template.versions && template.versions.length > 0) {
             const versions = template.versions
               .map(v => {
@@ -155,12 +156,12 @@ export class TemplateService extends ApiService {
                 return isNaN(parsed) ? 0 : parsed;
               })
               .filter(v => v > 0);
-            
+
             if (versions.length > 0) {
               latestVersion = Math.max(...versions);
             }
           }
-          
+
           observer.next(latestVersion);
           observer.complete();
         },

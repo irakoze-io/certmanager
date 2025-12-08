@@ -6,18 +6,18 @@ import {CreateTemplateRequest} from '../../../../core/models/template.model';
 
 // Predefined codes and categories
 export const TEMPLATE_CODES = [
-    'CERT - BASIC',
-    'CERT - ADVANCED',
-    'CERT - PROFESSIONAL',
-    'CERT - MASTERY',
-    'CERT - ACHIEVEMENT',
-    'CERT - EXCELLENCE',
-    'CERT - PARTICIPATION',
-    'CERT - VERIFICATION',
-    'CERT - COMPLIANCE',
-    'CERT - COMPLETION',
-    'CERT - GENERIC',
-    'CERT - CUSTOM',
+    'BASIC',
+    'ADVANCED',
+    'PROFESSIONAL',
+    'MASTERY',
+    'ACHIEVEMENT',
+    'EXCELLENCE',
+    'PARTICIPATION',
+    'VERIFICATION',
+    'COMPLIANCE',
+    'COMPLETION',
+    'GENERIC',
+    'CUSTOM',
   ]
 ;
 
