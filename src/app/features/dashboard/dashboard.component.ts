@@ -550,8 +550,105 @@ export class DashboardComponent implements OnInit {
         console.log('Edit clicked:', item);
         break;
       case 'publish':
-        // TODO: Implement publish functionality
-        console.log('Publish clicked:', item);
+        // Get template data
+        const publishTemplateData = item._original || item;
+        
+        if (!publishTemplateData || !publishTemplateData.id) {
+          console.error('Invalid template data:', item);
+          this.toastService.error('Invalid template data. Please try again.');
+          return;
+        }
+
+        // Clear any previous error
+        this.errorMessage.set(null);
+
+        // Get the latest version of the template and publish it
+        this.templateService.getLatestTemplateVersion(publishTemplateData.id).subscribe({
+          next: (version) => {
+            if (!version || !version.id) {
+              this.toastService.warning('No version found for this template. Please create a version first.');
+              return;
+            }
+
+            // Publish the latest version
+            this.templateService.publishTemplateVersion(publishTemplateData.id, version.id).subscribe({
+              next: (response) => {
+                // Determine toast type and message from response
+                let toastType: 'success' | 'error' | 'warning' | 'info' = 'success';
+                let message = 'Template version published successfully.';
+
+                // Check if response has a message or status
+                if (response && typeof response === 'object') {
+                  if (response.message) {
+                    message = response.message;
+                  }
+                  if (response.status) {
+                    const status = response.status.toLowerCase();
+                    if (status.includes('error') || status.includes('fail')) {
+                      toastType = 'error';
+                    } else if (status.includes('warning')) {
+                      toastType = 'warning';
+                    } else if (status.includes('info')) {
+                      toastType = 'info';
+                    }
+                  }
+                } else if (typeof response === 'string') {
+                  message = response;
+                }
+
+                // Show appropriate toast
+                if (toastType === 'success') {
+                  this.toastService.success(message);
+                } else if (toastType === 'error') {
+                  this.toastService.error(message);
+                } else if (toastType === 'warning') {
+                  this.toastService.warning(message);
+                } else {
+                  this.toastService.info(message);
+                }
+
+                // Reload templates to reflect the change
+                if (this.activeGridType() === 'templates') {
+                  this.loadTemplates();
+                } else if (this.activeGridType() === 'versions') {
+                  this.loadVersions();
+                }
+              },
+              error: (error) => {
+                console.error('Error publishing template version:', error);
+                let errorMsg = 'Failed to publish template version.';
+                
+                // Extract error message from response
+                if (error?.error?.message) {
+                  errorMsg = error.error.message;
+                } else if (error?.message) {
+                  errorMsg = error.message;
+                } else if (typeof error?.error === 'string') {
+                  errorMsg = error.error;
+                }
+
+                // Determine if it's a warning or error based on status code
+                if (error?.status === 400 || error?.status === 422) {
+                  this.toastService.warning(errorMsg);
+                } else {
+                  this.toastService.error(errorMsg);
+                }
+              }
+            });
+          },
+          error: (error) => {
+            console.error('Error fetching latest version:', error);
+            let errorMsg = 'Failed to load template version.';
+            
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            }
+            
+            this.toastService.error(errorMsg);
+          }
+        });
         break;
       case 'publishVersion':
         // Get version data
