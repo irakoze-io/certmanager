@@ -101,7 +101,7 @@ export class TemplateCreateFormComponent implements OnInit {
       }
     };
 
-    this.templateService.createTemplate(request).subscribe({
+    this.templateService.createTemplateWithVersion(request).subscribe({
       next: () => {
         this.isLoading.set(false);
         // Reset form after successful submission

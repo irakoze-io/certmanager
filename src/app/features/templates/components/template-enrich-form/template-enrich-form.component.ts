@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { TemplateService } from '../../../../core/services/template.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { TemplateResponse, TemplateVersionStatus } from '../../../../core/models/template.model';
+import { TemplateResponse, TemplateVersionStatus, TemplateVersionResponse } from '../../../../core/models/template.model';
 import { FieldType, FieldSchemaField } from '../../../../core/models/template.model';
 
 @Component({
@@ -24,6 +24,8 @@ export class TemplateEnrichFormComponent implements OnInit {
   errorMessage = signal<string | null>(null);
   nextVersion = signal<number>(1);
   addedFieldsIndices = new Set<number>(); // Track which fields have been added to htmlContent
+  existingVersion = signal<TemplateVersionResponse | null>(null);
+  existingFields = signal<Array<{ name: string; type: FieldType; label: string }>>([]);
 
   // User-friendly field types
   fieldTypes = [
@@ -85,13 +87,41 @@ export class TemplateEnrichFormComponent implements OnInit {
     // Clear any previous error
     this.errorMessage.set(null);
     
-    // Load latest version number
-    this.templateService.getLatestVersionNumber(templateData.id).subscribe({
-      next: (latestVersion) => {
-        this.nextVersion.set(latestVersion + 1);
+    // Load existing template version
+    this.templateService.getLatestTemplateVersion(templateData.id).subscribe({
+      next: (version) => {
+        if (version) {
+          this.existingVersion.set(version);
+          this.nextVersion.set(typeof version.version === 'number' ? version.version : parseInt(version.version.toString(), 10));
+          
+          // Extract existing fields from fieldSchema
+          if (version.fieldSchema) {
+            const fields: Array<{ name: string; type: FieldType; label: string }> = [];
+            Object.keys(version.fieldSchema).forEach(fieldName => {
+              const field = version.fieldSchema![fieldName];
+              fields.push({
+                name: fieldName,
+                type: field.type,
+                label: field.label || fieldName
+              });
+            });
+            this.existingFields.set(fields);
+          }
+          
+          // Load existing HTML content and CSS
+          if (version.htmlContent) {
+            this.enrichForm.patchValue({
+              htmlContent: version.htmlContent,
+              cssStyles: version.cssStyles || ''
+            });
+          }
+        } else {
+          // No existing version, will create new one
+          this.nextVersion.set(1);
+        }
       },
       error: (error) => {
-        console.error('Error fetching latest version:', error);
+        console.error('Error fetching latest template version:', error);
         // Default to version 1 if error
         this.nextVersion.set(1);
       }
@@ -263,26 +293,62 @@ p {
       createdBy: currentUser?.id || undefined
     };
 
-    this.templateService.createTemplateVersion(this.template().id, request).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        this.onSubmit.emit();
-      },
-      error: (error) => {
-        console.error('Error creating template version:', error);
-        this.isLoading.set(false);
-        
-        // Extract meaningful error message
-        let errorMsg = 'Failed to create template version.';
-        if (error?.error?.message) {
-          errorMsg = error.error.message;
-        } else if (error?.message) {
-          errorMsg = error.message;
+    const existingVersion = this.existingVersion();
+    
+    if (existingVersion && existingVersion.id) {
+      // Update existing version
+      this.templateService.updateTemplateVersion(
+        this.template().id,
+        existingVersion.id,
+        {
+          htmlContent: formValue.htmlContent,
+          fieldSchema: Object.keys(fieldSchema).length > 0 ? fieldSchema : undefined,
+          cssStyles: formValue.cssStyles || undefined,
+          settings: formValue.settings
         }
-        
-        this.errorMessage.set(errorMsg);
-      }
-    });
+      ).subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          this.onSubmit.emit();
+        },
+        error: (error) => {
+          console.error('Error updating template version:', error);
+          this.isLoading.set(false);
+          
+          // Extract meaningful error message
+          let errorMsg = 'Failed to update template version.';
+          if (error?.error?.message) {
+            errorMsg = error.error.message;
+          } else if (error?.message) {
+            errorMsg = error.message;
+          }
+          
+          this.errorMessage.set(errorMsg);
+        }
+      });
+    } else {
+      // Create new version
+      this.templateService.createTemplateVersion(this.template().id, request).subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          this.onSubmit.emit();
+        },
+        error: (error) => {
+          console.error('Error creating template version:', error);
+          this.isLoading.set(false);
+          
+          // Extract meaningful error message
+          let errorMsg = 'Failed to create template version.';
+          if (error?.error?.message) {
+            errorMsg = error.error.message;
+          } else if (error?.message) {
+            errorMsg = error.message;
+          }
+          
+          this.errorMessage.set(errorMsg);
+        }
+      });
+    }
   }
 
   onCancelClick(): void {

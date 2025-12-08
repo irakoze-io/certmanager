@@ -22,6 +22,21 @@
       />
     </div>
 
+    <!-- Existing Fields Display -->
+    @if (existingFields().length > 0) {
+      <div class="form-section">
+        <label class="form-label">Existing Fields</label>
+        <div class="existing-fields-container">
+          @for (field of existingFields(); track field.name) {
+            <div class="field-badge">
+              <span class="field-badge-name">{{ field.label }}</span>
+              <span class="field-badge-type">{{ getFieldTypeLabel(field.type) }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
     <!-- Fields Schema Builder -->
     <div class="form-section">
       <div class="flex items-center justify-between mb-4">
