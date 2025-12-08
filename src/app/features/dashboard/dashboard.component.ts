@@ -589,69 +589,31 @@ export class DashboardComponent implements OnInit {
           return;
         }
 
-        // Check if template has a published version
-        this.templateService.getLatestTemplateVersion(templateData.id).subscribe({
-          next: (version) => {
-            if (version && version.status === TemplateVersionStatus.PUBLISHED) {
-              this.toastService.error('This template cannot be enriched because it has a published version.');
+        // Clear any previous error
+        this.errorMessage.set(null);
+
+        // Fetch full template details to ensure we have latest data
+        this.templateService.getTemplateById(templateData.id).subscribe({
+          next: (template) => {
+            if (!template) {
+              this.toastService.error('Template not found. Please try again.');
               return;
             }
 
-            // Clear any previous error
-            this.errorMessage.set(null);
-
-            // Fetch full template details to ensure we have latest data
-            this.templateService.getTemplateById(templateData.id).subscribe({
-              next: (template) => {
-                if (!template) {
-                  this.toastService.error('Template not found. Please try again.');
-                  return;
-                }
-
-                this.selectedTemplate.set(template);
-                this.selectedVersionId.set(undefined);
-                this.modalTitle.set('Enrich Template');
-                this.showEnrichModal.set(true);
-              },
-              error: (error) => {
-                console.error('Error fetching template:', error);
-                let errorMsg = 'Failed to load template details.';
-                if (error?.error?.message) {
-                  errorMsg = error.error.message;
-                } else if (error?.message) {
-                  errorMsg = error.message;
-                }
-                this.toastService.error(errorMsg);
-              }
-            });
+            this.selectedTemplate.set(template);
+            this.selectedVersionId.set(undefined);
+            this.modalTitle.set('Enrich Template');
+            this.showEnrichModal.set(true);
           },
           error: (error) => {
-            // If version fetch fails, still allow enriching (might be a new template)
-            console.error('Error fetching version:', error);
-            // Continue with enrich flow
-            this.templateService.getTemplateById(templateData.id).subscribe({
-              next: (template) => {
-                if (!template) {
-                  this.toastService.error('Template not found. Please try again.');
-                  return;
-                }
-
-                this.selectedTemplate.set(template);
-                this.selectedVersionId.set(undefined);
-                this.modalTitle.set('Enrich Template');
-                this.showEnrichModal.set(true);
-              },
-              error: (error) => {
-                console.error('Error fetching template:', error);
-                let errorMsg = 'Failed to load template details.';
-                if (error?.error?.message) {
-                  errorMsg = error.error.message;
-                } else if (error?.message) {
-                  errorMsg = error.message;
-                }
-                this.toastService.error(errorMsg);
-              }
-            });
+            console.error('Error fetching template:', error);
+            let errorMsg = 'Failed to load template details.';
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            }
+            this.toastService.error(errorMsg);
           }
         });
         break;
