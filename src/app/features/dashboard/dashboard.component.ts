@@ -14,6 +14,7 @@ import { DashboardCardComponent, DashboardCardConfig, EntityType } from '../../s
 import { DataGridComponent, DataGridConfig } from '../../shared/components/data-grid/data-grid.component';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { TemplateCreateFormComponent } from '../templates/components/template-create-form/template-create-form.component';
+import { TemplateEnrichFormComponent } from '../templates/components/template-enrich-form/template-enrich-form.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -23,7 +24,8 @@ import { TemplateCreateFormComponent } from '../templates/components/template-cr
     DashboardCardComponent,
     DataGridComponent,
     ModalComponent,
-    TemplateCreateFormComponent
+    TemplateCreateFormComponent,
+    TemplateEnrichFormComponent
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
@@ -44,7 +46,9 @@ export class DashboardComponent implements OnInit {
 
   // Modal state
   showCreateModal = signal<boolean>(false);
+  showEnrichModal = signal<boolean>(false);
   modalTitle = signal<string>('');
+  selectedTemplate = signal<TemplateResponse | null>(null);
 
   // Dashboard card configurations
   templatesConfig: DashboardCardConfig = {
@@ -254,7 +258,9 @@ export class DashboardComponent implements OnInit {
                   id: version.id,
                   templateName: template.name,
                   templateId: template.id,
-                  version: version.version.startsWith('v') ? version.version : `v${version.version}`,
+                  version: typeof version.version === 'string' && version.version.startsWith('v') 
+                    ? version.version 
+                    : `v${version.version}`,
                   status: version.status,
                   createdAt: version.createdAt ? new Date(version.createdAt).toLocaleDateString() : '-',
                   _original: version
@@ -390,8 +396,17 @@ export class DashboardComponent implements OnInit {
 
   onModalClose(): void {
     this.showCreateModal.set(false);
-    // Reset the form when modal closes by triggering a reset through the component
-    // The form component will handle reset on success, but we also want to reset on cancel
+    this.showEnrichModal.set(false);
+    this.selectedTemplate.set(null);
+  }
+
+  onTemplateVersionCreated(): void {
+    this.showEnrichModal.set(false);
+    this.selectedTemplate.set(null);
+    // Reload templates to show the new version
+    if (this.activeGridType() === 'templates') {
+      this.loadTemplates();
+    }
   }
 
   onPageChange(page: number): void {
@@ -408,8 +423,57 @@ export class DashboardComponent implements OnInit {
   }
 
   onActionClick(event: { action: string; item: any }): void {
-    // TODO: Show action menu (edit, delete, etc.)
-    console.log('Action clicked:', event);
+    const { action, item } = event;
+    
+    switch (action) {
+      case 'enrich':
+        // Ensure we have the original template data
+        const templateData = item._original || item;
+        
+        if (!templateData || !templateData.id) {
+          console.error('Invalid template data:', item);
+          this.errorMessage.set('Invalid template data. Please try again.');
+          return;
+        }
+
+        // Clear any previous error
+        this.errorMessage.set(null);
+        
+        // Fetch full template details to ensure we have latest data
+        this.templateService.getTemplateById(templateData.id).subscribe({
+          next: (template) => {
+            if (!template) {
+              this.errorMessage.set('Template not found. Please try again.');
+              return;
+            }
+            
+            this.selectedTemplate.set(template);
+            this.modalTitle.set('Enrich Template');
+            this.showEnrichModal.set(true);
+          },
+          error: (error) => {
+            console.error('Error fetching template:', error);
+            let errorMsg = 'Failed to load template details.';
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            }
+            this.errorMessage.set(errorMsg);
+          }
+        });
+        break;
+      case 'edit':
+        // TODO: Implement edit functionality
+        console.log('Edit clicked:', item);
+        break;
+      case 'publish':
+        // TODO: Implement publish functionality
+        console.log('Publish clicked:', item);
+        break;
+      default:
+        console.log('Unknown action:', action);
+    }
   }
 
   formatTemplateData(templates: TemplateResponse[]): any[] {

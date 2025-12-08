@@ -26,21 +26,41 @@ export interface TemplateResponse {
 
 export interface CreateTemplateVersionRequest {
   templateId: number;
+  version?: number; // Integer - will be auto-incremented if not provided
   htmlContent: string;
-  cssContent?: string;
-  jsonSchema?: Record<string, unknown>;
-  version?: string;
+  fieldSchema?: Record<string, FieldSchemaField>; // Map of field name to field definition
+  cssStyles?: string;
+  settings?: Record<string, unknown>; // e.g., { pageSize: 'A4', orientation: 'portrait' }
   status?: TemplateVersionStatus;
+  createdBy?: string; // UUID - will be set from current user
+}
+
+export interface FieldSchemaField {
+  name: string;
+  type: FieldType;
+  required: boolean;
+  label: string;
+}
+
+export enum FieldType {
+  TEXT = 'text',
+  EMAIL = 'email',
+  NUMBER = 'number',
+  DATE = 'date',
+  BINARY = 'binary', // Yes/No
+  TEXTAREA = 'textarea'
 }
 
 export interface TemplateVersionResponse {
-  id: number;
+  id?: string; // UUID
   templateId: number;
-  version: string;
+  version: number | string; // Integer from backend, but can be string in some cases
   htmlContent: string;
-  cssContent?: string;
-  jsonSchema?: Record<string, unknown>;
+  fieldSchema?: Record<string, FieldSchemaField>;
+  cssStyles?: string;
+  settings?: Record<string, unknown>;
   status: TemplateVersionStatus;
+  createdBy?: string; // UUID
   createdAt?: string;
   updatedAt?: string;
 }

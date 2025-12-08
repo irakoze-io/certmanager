@@ -163,13 +163,16 @@ export class DataGridComponent<T = any> {
     event.stopPropagation();
     if (this.openMenuIndex() === index) {
       this.openMenuIndex.set(null);
+      this.menuPosition.set('below');
     } else {
       this.openMenuIndex.set(index);
-      // Calculate menu position after DOM update using requestAnimationFrame for accurate measurement
+      // Calculate menu position after DOM update - use multiple frames to ensure rendering
       requestAnimationFrame(() => {
-        setTimeout(() => {
-          this.calculateMenuPosition(event.target as HTMLElement, index);
-        }, 0);
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            this.calculateMenuPosition(event.target as HTMLElement, index);
+          }, 10);
+        });
       });
     }
   }
@@ -180,45 +183,54 @@ export class DataGridComponent<T = any> {
       return;
     }
 
-    // Find the menu element in the DOM
-    const menuElement = document.querySelector(`[data-menu-index="${index}"]`) as HTMLElement;
+    // Find the menu element in the DOM - try multiple times if needed
+    let menuElement = document.querySelector(`[data-menu-index="${index}"]`) as HTMLElement;
     
+    // If menu not found, retry after a short delay
+    if (!menuElement) {
+      setTimeout(() => {
+        menuElement = document.querySelector(`[data-menu-index="${index}"]`) as HTMLElement;
+        if (menuElement) {
+          this.performPositionCalculation(buttonElement, menuElement);
+        } else {
+          // Fallback to below if we can't find the element
+          this.menuPosition.set('below');
+        }
+      }, 50);
+      return;
+    }
+
+    this.performPositionCalculation(buttonElement, menuElement);
+  }
+
+  private performPositionCalculation(buttonElement: HTMLElement, menuElement: HTMLElement): void {
     const buttonRect = buttonElement.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
     
-    // Calculate available space
+    // Calculate available space relative to viewport
     const spaceBelow = viewportHeight - buttonRect.bottom;
     const spaceAbove = buttonRect.top;
     
-    // Get actual menu height if available, otherwise estimate
-    let menuHeight = 200; // Default estimate
-    if (menuElement) {
-      const computedStyle = window.getComputedStyle(menuElement);
-      menuHeight = menuElement.offsetHeight || menuHeight;
-      // Add margin to height calculation
-      const marginTop = parseInt(computedStyle.marginTop) || 8;
-      const marginBottom = parseInt(computedStyle.marginBottom) || 0;
-      menuHeight = menuHeight + marginTop + marginBottom;
-    } else {
-      // Estimate based on number of actions
-      const actionsCount = this.config().actions?.length || 3;
-      menuHeight = (actionsCount * 40) + 16; // 40px per item + padding
-    }
+    // Get actual menu height
+    let menuHeight = menuElement.offsetHeight || menuElement.scrollHeight;
     
-    // Add buffer for better UX (20px)
-    const buffer = 20;
-    const requiredSpace = menuHeight + buffer;
+    // Get computed margins
+    const computedStyle = window.getComputedStyle(menuElement);
+    const marginTop = parseFloat(computedStyle.marginTop) || 8;
+    const marginBottom = parseFloat(computedStyle.marginBottom) || 0;
     
-    // Check if menu would overflow viewport
-    const wouldOverflowBelow = spaceBelow < requiredSpace;
-    const hasEnoughSpaceAbove = spaceAbove >= requiredSpace;
+    // Total height needed including margins
+    const totalHeightNeeded = menuHeight + marginTop + marginBottom;
     
-    // Position above if it would overflow below and there's enough space above
-    // Also position above if there's significantly more space above than below
-    if (wouldOverflowBelow && hasEnoughSpaceAbove) {
-      this.menuPosition.set('above');
-    } else if (spaceAbove > spaceBelow && spaceAbove >= requiredSpace) {
-      // If more space above and it fits, prefer above
+    // Only position above if menu would be significantly cut off below (less than 50% visible)
+    // and there's enough space above to show it fully
+    const minVisibleBelow = totalHeightNeeded * 0.5; // At least 50% of menu should be visible
+    const wouldBeCutOffBelow = spaceBelow < minVisibleBelow;
+    const hasEnoughSpaceAbove = spaceAbove >= totalHeightNeeded;
+    
+    // Only position above if menu would be cut off AND there's space above
+    // Otherwise, always position below to allow normal page scrolling
+    if (wouldBeCutOffBelow && hasEnoughSpaceAbove) {
       this.menuPosition.set('above');
     } else {
       this.menuPosition.set('below');

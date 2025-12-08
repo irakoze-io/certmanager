@@ -117,10 +117,11 @@ export class TemplateService extends ApiService {
 
   /**
    * Create template version
+   * POST /api/templates/{templateId}/versions
    */
-  createTemplateVersion(request: CreateTemplateVersionRequest): Observable<TemplateVersionResponse> {
+  createTemplateVersion(templateId: number, request: CreateTemplateVersionRequest): Observable<TemplateVersionResponse> {
     return new Observable(observer => {
-      this.post<TemplateVersionResponse>(this.templateVersionsEndpoint, request).subscribe({
+      this.post<TemplateVersionResponse>(`${this.templatesEndpoint}/${templateId}/versions`, request).subscribe({
         next: response => {
           if (response.success && response.data) {
             observer.next(response.data);
@@ -130,6 +131,45 @@ export class TemplateService extends ApiService {
           }
         },
         error: err => observer.error(err)
+      });
+    });
+  }
+
+  /**
+   * Get latest version number for a template
+   */
+  getLatestVersionNumber(templateId: number): Observable<number> {
+    return new Observable(observer => {
+      this.getTemplateById(templateId).subscribe({
+        next: template => {
+          // Get the highest version number from versions array or use currentVersion
+          let latestVersion = template.currentVersion || 0;
+          
+          if (template.versions && template.versions.length > 0) {
+            const versions = template.versions
+              .map(v => {
+                if (typeof v.version === 'number') {
+                  return v.version;
+                }
+                const parsed = parseInt(v.version.toString(), 10);
+                return isNaN(parsed) ? 0 : parsed;
+              })
+              .filter(v => v > 0);
+            
+            if (versions.length > 0) {
+              latestVersion = Math.max(...versions);
+            }
+          }
+          
+          observer.next(latestVersion);
+          observer.complete();
+        },
+        error: err => {
+          console.error('Error getting latest version:', err);
+          // Return 0 as fallback
+          observer.next(0);
+          observer.complete();
+        }
       });
     });
   }

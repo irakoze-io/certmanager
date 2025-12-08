@@ -101,7 +101,7 @@
       <!-- Table Section -->
       <div class="pb-4">
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
+          <table class="w-full divide-y divide-gray-200">
             <thead class="bg-gray-100">
             <tr>
               @if (config().showCheckbox) {
@@ -110,8 +110,8 @@
                 </th>
               }
               @for (column of config().columns; track column.key) {
-                <th scope="col" class="px-6 py-3 text-left text-sm font-bold text-gray-700 tracking-wider">
-                  {{ capitalizeLabel(column.label) }}
+                <th scope="col" class="px-6 py-3 text-left text-sm font-bold text-gray-700 tracking-wider overflow-hidden">
+                  <div class="truncate">{{ capitalizeLabel(column.label) }}</div>
                 </th>
               }
               <th scope="col" class="px-6 py-3 text-left text-sm font-bold text-gray-700 tracking-wider">
@@ -138,15 +138,15 @@
                     </td>
                   }
                   @for (column of config().columns; track column.key) {
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td class="px-6 py-4 text-sm text-gray-900 overflow-hidden">
                       @if (column.key === 'status') {
-                        <span [class]="getStatusClass(getNestedValue(item, column.key))">
+                        <span [class]="getStatusClass(getNestedValue(item, column.key))" class="whitespace-nowrap inline-block">
                           {{ getNestedValue(item, column.key) }}
                         </span>
                       } @else {
-                        <span class="block max-w-xs truncate" [title]="getNestedValue(item, column.key) || '-'">
+                        <div class="truncate" [title]="getNestedValue(item, column.key) || '-'">
                           {{ getNestedValue(item, column.key) || '-' }}
-                        </span>
+                        </div>
                       }
                     </td>
                   }

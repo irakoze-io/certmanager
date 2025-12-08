@@ -120,4 +120,22 @@
       }
     </app-modal>
   }
+
+  <!-- Enrich Template Modal -->
+  @if (selectedTemplate()) {
+    <app-modal
+      [isOpen]="showEnrichModal()"
+      [title]="modalTitle()"
+      subtitle="Create a new version of this template with custom HTML content and fields"
+      (onClose)="onModalClose()"
+    >
+      @if (showEnrichModal() && selectedTemplate()) {
+        <app-template-enrich-form
+          [template]="selectedTemplate()!"
+          (onSubmit)="onTemplateVersionCreated()"
+          (onCancel)="onModalClose()"
+        />
+      }
+    </app-modal>
+  }
 </div>
