@@ -36,7 +36,7 @@
               <span class="existing-field-badge-type">{{ getFieldTypeLabel(field.type) }}</span>
             </div>
           }
-          @for (field of addedFields(); track field.index) {
+          @for (field of addedFields(); track field.name) {
             <div class="existing-field-badge new-field-badge">
               <svg class="existing-field-badge-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getFieldTypeIcon(field.type)"></path>
@@ -45,7 +45,7 @@
               <span class="existing-field-badge-type">{{ getFieldTypeLabel(field.type) }}</span>
               <button
                 type="button"
-                (click)="removeAddedField(field.index)"
+                (click)="removeAddedField(field.name)"
                 class="existing-field-badge-remove"
                 title="Remove field"
               >
