@@ -197,11 +197,27 @@ p {
 
   addField(): void {
     const fieldGroup = this.fb.group({
-      name: ['', [Validators.required, Validators.pattern(/^[a-zA-Z][a-zA-Z0-9_]*$/)]],
+      name: ['', [Validators.required]],
       type: [FieldType.TEXT, Validators.required]
     });
 
     this.fieldsArray.push(fieldGroup);
+  }
+
+  /**
+   * Converts user-friendly field name (e.g., "Home Address") to camelCase field name (e.g., "homeAddress")
+   */
+  private convertToFieldName(userInput: string): string {
+    return userInput
+      .trim()
+      .split(/\s+/)
+      .map((word, index) => {
+        if (index === 0) {
+          return word.toLowerCase();
+        }
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join('');
   }
 
   addFieldToHtmlContent(index: number): void {
@@ -215,18 +231,17 @@ p {
       return;
     }
 
+    // Convert user input to camelCase field name
+    const fieldName = this.convertToFieldName(fieldValue.name);
+    const label = fieldValue.name.trim(); // Use original input as label
+    
     // Mark this field as added
     this.addedFieldsIndices.add(index);
     
     // Add to added fields list for badge display
-    const label = fieldValue.name
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, (str: string) => str.toUpperCase())
-      .trim();
-    
     const currentAddedFields = this.addedFields();
     const newField = {
-      name: fieldValue.name,
+      name: fieldName,
       type: fieldValue.type,
       label: label,
       index: index
@@ -238,12 +253,30 @@ p {
       this.addedFields.set([...currentAddedFields, newField]);
     }
     
-    // Clear the field form
-    field.patchValue({
-      name: '',
-      type: FieldType.TEXT
+    // Remove the field from the form array
+    this.fieldsArray.removeAt(index);
+    
+    // Update indices for remaining fields
+    const updatedAddedFields = this.addedFields().map(f => {
+      if (f.index > index) {
+        return { ...f, index: f.index - 1 };
+      }
+      return f;
     });
-    field.markAsUntouched();
+    this.addedFields.set(updatedAddedFields);
+    
+    // Update addedFieldsIndices
+    const indicesToUpdate: number[] = [];
+    this.addedFieldsIndices.forEach(idx => {
+      if (idx > index) {
+        indicesToUpdate.push(idx);
+      }
+    });
+    indicesToUpdate.forEach(oldIdx => {
+      this.addedFieldsIndices.delete(oldIdx);
+      this.addedFieldsIndices.add(oldIdx - 1);
+    });
+    this.addedFieldsIndices.delete(index);
     
     // Update HTML content with all added fields
     this.updateHtmlContent();
@@ -330,9 +363,9 @@ p {
   }
 
   onSubmitForm(): void {
-    if (this.enrichForm.invalid) {
-      this.markFormGroupTouched(this.enrichForm);
-      this.errorMessage.set('Please fill in all required fields correctly.');
+    // Check if htmlContent is valid (required)
+    if (!this.enrichForm.get('htmlContent')?.value || this.enrichForm.get('htmlContent')?.value.trim() === '') {
+      this.errorMessage.set('HTML content is required. Please add at least one field.');
       return;
     }
 
@@ -342,20 +375,26 @@ p {
     const formValue = this.enrichForm.getRawValue();
     const currentUser = this.authService.currentUser();
 
-    // Build field schema
+    // Build field schema from added fields
     const fieldSchema: Record<string, FieldSchemaField> = {};
-    formValue.fields.forEach((field: any) => {
-      // Use field name as label (capitalize first letter and add spaces)
-      const label = field.name
-        .replace(/([A-Z])/g, ' $1')
-        .replace(/^./, (str: string) => str.toUpperCase())
-        .trim();
-      
+    
+    // Add existing fields
+    this.existingFields().forEach(field => {
       fieldSchema[field.name] = {
         name: field.name,
         type: field.type,
-        required: false, // Not using required anymore
-        label: label
+        required: false,
+        label: field.label
+      };
+    });
+    
+    // Add newly added fields
+    this.addedFields().forEach(field => {
+      fieldSchema[field.name] = {
+        name: field.name,
+        type: field.type,
+        required: false,
+        label: field.label
       };
     });
 
@@ -464,27 +503,12 @@ p {
     let htmlBody = '  <div class="certificate-container">\n';
     htmlBody += '    <h1>Certificate of Completion</h1>\n';
     
-    // Add only fields that have been explicitly added by the user
-    const addedFields: any[] = [];
-    this.addedFieldsIndices.forEach(index => {
-      if (index < this.fieldsArray.length) {
-        const field = this.fieldsArray.at(index);
-        if (field && field.get('name')?.valid) {
-          const fieldValue = field.value;
-          if (fieldValue.name && fieldValue.name.trim() !== '') {
-            addedFields.push(fieldValue);
-          }
-        }
-      }
-    });
+    // Combine existing fields and added fields
+    const allFields = [...this.existingFields(), ...this.addedFields()];
     
-    if (addedFields.length > 0) {
-      addedFields.forEach((field: any) => {
-        const label = field.name
-          .replace(/([A-Z])/g, ' $1')
-          .replace(/^./, (str: string) => str.toUpperCase())
-          .trim();
-        htmlBody += `    <p><strong>${label}:</strong> {{${field.name}}}</p>\n`;
+    if (allFields.length > 0) {
+      allFields.forEach((field) => {
+        htmlBody += `    <p><strong>${field.label}:</strong> {{${field.name}}}</p>\n`;
       });
     } else {
       htmlBody += '    <p>This certifies that the recipient has successfully completed the course.</p>\n';

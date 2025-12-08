@@ -97,12 +97,12 @@
                 <input
                   type="text"
                   formControlName="name"
-                  placeholder="e.g., recipientName"
+                  placeholder="e.g., Home Address"
                   class="form-input"
                   [class.error]="field.get('name')?.invalid && field.get('name')?.touched"
                 />
                 @if (field.get('name')?.invalid && field.get('name')?.touched) {
-                  <p class="error-text">Required. Use letters, numbers, or underscore.</p>
+                  <p class="error-text">Field name is required.</p>
                 }
               </div>
 
@@ -195,7 +195,7 @@
       <button
         type="submit"
         class="submit-button"
-        [disabled]="isLoading() || enrichForm.invalid"
+        [disabled]="isLoading()"
       >
         @if (isLoading()) {
           <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
