@@ -29,6 +29,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
 
   form!: FormGroup;
   isLoading = signal<boolean>(false);
+  isLoadingVersions = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
 
   // Template and version selection
@@ -114,13 +115,13 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   }
 
   loadTemplateVersions(templateId: number): void {
-    this.isLoading.set(true);
+    this.isLoadingVersions.set(true);
     this.templateService.getTemplateVersions(templateId).subscribe({
       next: (versions) => {
         // Filter to only PUBLISHED versions
         const publishedVersions = versions.filter(v => v.status === TemplateVersionStatus.PUBLISHED);
         this.templateVersions.set(publishedVersions);
-        this.isLoading.set(false);
+        this.isLoadingVersions.set(false);
 
         if (publishedVersions.length === 0) {
           this.toastService.warning('No published versions available for this template.');
@@ -129,7 +130,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error loading template versions:', error);
         this.toastService.error('Failed to load template versions.');
-        this.isLoading.set(false);
+        this.isLoadingVersions.set(false);
       }
     });
   }
