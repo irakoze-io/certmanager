@@ -15,6 +15,13 @@ table tbody td.max-w-0 > div.truncate {
   display: block;
 }
 
+/* Template name should truncate with ellipsis */
+table tbody td[class*="templateName"] .flex.flex-col > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Certificate number should not truncate - allow wrapping */
 table tbody td[class*="templateName"] .flex.items-center.gap-1\.5 span:first-child {
   white-space: normal;

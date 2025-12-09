@@ -66,12 +66,22 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
     this.form = this.fb.group({
       templateId: ['', Validators.required],
       templateVersionId: ['', Validators.required],
-      certificateNumber: [''],
+      certificateNumber: [''], // Leave empty - will be generated on submit if not provided
       synchronous: [false], // Default to async
       recipientData: this.fb.group({})
     });
     
     this.recipientDataForm = this.form.get('recipientData') as FormGroup;
+  }
+
+  /**
+   * Generate a unique 10-digit certificate number
+   */
+  private generateCertificateNumber(): string {
+    // Generate a 10-digit number (ensuring it doesn't start with 0)
+    const firstDigit = Math.floor(Math.random() * 9) + 1; // 1-9
+    const remainingDigits = Math.floor(Math.random() * 1000000000); // 0-999999999
+    return `${firstDigit}${remainingDigits.toString().padStart(9, '0')}`;
   }
 
   loadTemplates(): void {
@@ -203,9 +213,12 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
     const formValue = this.form.value;
     const isSync = formValue.synchronous;
     
+    // Generate 10-digit certificate number if not provided
+    const certificateNumber = formValue.certificateNumber?.trim() || this.generateCertificateNumber();
+    
     const request: GenerateCertificateRequest = {
       templateVersionId: formValue.templateVersionId,
-      certificateNumber: formValue.certificateNumber || null,
+      certificateNumber: certificateNumber,
       recipientData: formValue.recipientData,
       metadata: {},
       issuedAt: null,

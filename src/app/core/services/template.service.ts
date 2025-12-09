@@ -95,6 +95,7 @@ export class TemplateService extends ApiService {
     <h1 style="color: #2c3e50; margin-bottom: 20px;">Certificate of Completion</h1>
     <p style="font-size: 18px; margin: 20px 0;">This certifies that</p>
     <h2 style="color: #3498db; margin: 20px 0;">{{recipient.name}}</h2>
+    <p style="font-size: 14px; color: #666; margin: 10px 0;">Email: {{recipient.email}}</p>
     <p style="font-size: 16px; margin: 20px 0;">has successfully completed</p>
     <p style="font-size: 18px; font-weight: bold; margin: 20px 0;">${templateName}</p>
     <p style="margin-top: 40px; font-size: 14px; color: #666;">Issued on: {{currentDate}}</p>
@@ -114,6 +115,12 @@ export class TemplateService extends ApiService {
         required: true,
         label: 'Recipient Name',
         description: 'Full name of the certificate recipient'
+      },
+      email: {
+        type: 'email',
+        required: true,
+        label: 'Recipient Email',
+        description: 'Email address of the certificate recipient'
       }
     };
   }
@@ -302,6 +309,26 @@ h2 {
   getTemplateVersions(templateId: number): Observable<TemplateVersionResponse[]> {
     return new Observable(observer => {
       this.get<TemplateVersionResponse[]>(`${this.templatesEndpoint}/${templateId}/versions`).subscribe({
+        next: response => {
+          if (response.success && response.data) {
+            observer.next(Array.isArray(response.data) ? response.data : [response.data]);
+            observer.complete();
+          } else {
+            observer.error(new Error(response.message || 'Failed to fetch template versions'));
+          }
+        },
+        error: err => observer.error(err)
+      });
+    });
+  }
+
+  /**
+   * Get all template versions for a customer
+   * GET /api/customers/{customerId}/template-versions
+   */
+  getAllTemplateVersionsByCustomer(customerId: number): Observable<TemplateVersionResponse[]> {
+    return new Observable(observer => {
+      this.get<TemplateVersionResponse[]>(`/customers/${customerId}/template-versions`).subscribe({
         next: response => {
           if (response.success && response.data) {
             observer.next(Array.isArray(response.data) ? response.data : [response.data]);

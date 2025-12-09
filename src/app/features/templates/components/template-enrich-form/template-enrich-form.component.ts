@@ -138,7 +138,7 @@ export class TemplateEnrichFormComponent implements OnInit {
     // Initialize HTML content with a basic template
     const defaultHtml = `<html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8"/>
   <title>Certificate</title>
 </head>
 <body>
@@ -523,7 +523,7 @@ p {
 
     const htmlContent = `<html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8"/>
   <title>Certificate</title>
 </head>
 <body>

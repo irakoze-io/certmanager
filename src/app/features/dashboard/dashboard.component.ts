@@ -301,57 +301,80 @@ export class DashboardComponent implements OnInit {
       ]
     });
 
-    // Load all templates first, then get versions for each
-    this.templateService.getAllTemplates().subscribe({
-      next: (templates) => {
-        const allVersions: any[] = [];
-        let loadedCount = 0;
+    this.isLoadingGrid.set(true);
+    this.errorMessage.set(null);
 
-        if (templates.length === 0) {
-          this.gridData.set([]);
-          this.isLoadingGrid.set(false);
-          return;
-        }
+    const customerId = this.currentUser()?.customerId;
+    if (!customerId) {
+      console.error('[Versions] No customerId available for current user');
+      this.errorMessage.set('Unable to load template versions: Customer ID not found.');
+      this.isLoadingGrid.set(false);
+      this.gridData.set([]);
+      return;
+    }
 
-        templates.forEach(template => {
-          this.templateService.getTemplateVersions(template.id).subscribe({
-            next: (versions) => {
-              versions.forEach(version => {
-                allVersions.push({
-                  id: version.id,
-                  templateName: template.name,
-                  description: template.description || '-',
-                  templateId: template.id,
-                  version: typeof version.version === 'string' && version.version.startsWith('v')
-                    ? version.version
-                    : `v${version.version}`,
-                  status: version.status,
-                  createdBy: version.createdBy || '-',
-                  createdByName: version.createdByName || '-',
-                  createdAt: version.createdAt || '-',
-                  _original: version
-                });
+    // Load all template versions for the customer using the new endpoint
+    this.templateService.getAllTemplateVersionsByCustomer(customerId).subscribe({
+      next: (versions) => {
+        // We need to get template names, so load templates to create a map
+        this.templateService.getAllTemplates().subscribe({
+          next: (templates) => {
+            // Create a map of templateId -> template name
+            const templateMap = new Map<number, { name: string; description: string }>();
+            templates.forEach(template => {
+              templateMap.set(template.id, {
+                name: template.name,
+                description: template.description || '-'
               });
-              loadedCount++;
-              if (loadedCount === templates.length) {
-                this.gridData.set(allVersions);
-                this.isLoadingGrid.set(false);
-              }
-            },
-            error: (error) => {
-              console.error(`Error loading versions for template ${template.id}:`, error);
-              loadedCount++;
-              if (loadedCount === templates.length) {
-                this.gridData.set(allVersions);
-                this.isLoadingGrid.set(false);
-              }
-            }
-          });
+            });
+
+            // Format versions with template names
+            const formattedVersions = versions.map(version => {
+              const templateInfo = templateMap.get(version.templateId);
+              return {
+                id: version.id,
+                templateName: templateInfo?.name || '-',
+                description: templateInfo?.description || '-',
+                templateId: version.templateId,
+                version: typeof version.version === 'string' && version.version.startsWith('v')
+                  ? version.version
+                  : `v${version.version}`,
+                status: version.status,
+                createdBy: version.createdBy || '-',
+                createdByName: version.createdByName || '-',
+                createdAt: version.createdAt || '-',
+                _original: version
+              };
+            });
+
+            this.gridData.set(formattedVersions);
+            this.isLoadingGrid.set(false);
+          },
+          error: (error) => {
+            console.error('[Versions] Error loading templates:', error);
+            // Still show versions even if template names fail to load
+            const formattedVersions = versions.map(version => ({
+              id: version.id,
+              templateName: '-',
+              description: '-',
+              templateId: version.templateId,
+              version: typeof version.version === 'string' && version.version.startsWith('v')
+                ? version.version
+                : `v${version.version}`,
+              status: version.status,
+              createdBy: version.createdBy || '-',
+              createdByName: version.createdByName || '-',
+              createdAt: version.createdAt || '-',
+              _original: version
+            }));
+            this.gridData.set(formattedVersions);
+            this.isLoadingGrid.set(false);
+          }
         });
       },
       error: (error) => {
-        console.error('Error loading templates for versions:', error);
-        this.errorMessage.set(error?.message || 'Failed to load versions. Please try again.');
+        console.error('[Versions] Error loading template versions:', error);
+        this.errorMessage.set(error?.message || 'Failed to load template versions. Please try again.');
         this.isLoadingGrid.set(false);
         this.gridData.set([]);
       }
