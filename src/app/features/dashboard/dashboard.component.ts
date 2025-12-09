@@ -327,6 +327,7 @@ export class DashboardComponent implements OnInit {
                     : `v${version.version}`,
                   status: version.status,
                   createdBy: version.createdBy || '-',
+                  createdByName: version.createdByName || '-',
                   createdAt: version.createdAt || '-',
                   _original: version
                 });
@@ -404,6 +405,10 @@ export class DashboardComponent implements OnInit {
       next: (certificates) => {
         console.log('[Certificates] Raw response:', certificates);
         console.log('[Certificates] Count:', certificates?.length || 0);
+        if (certificates && certificates.length > 0) {
+          console.log('[Certificates] First certificate structure:', certificates[0]);
+          console.log('[Certificates] First certificate keys:', Object.keys(certificates[0]));
+        }
         
         if (!certificates || certificates.length === 0) {
           console.warn('[Certificates] No certificates returned from API');
@@ -1119,6 +1124,9 @@ export class DashboardComponent implements OnInit {
       const templateInfo = templateVersionMap.get(cert.templateVersionId);
       const templateName = templateInfo?.name || '-';
       
+      // Use issuedBy (UUID) for issuer user ID
+      const issuerUserId = cert.issuedBy || '-';
+      
       const formatted = {
         id: cert.id || '-',
         certificateNumber: cert.certificateNumber || '-',
@@ -1126,7 +1134,8 @@ export class DashboardComponent implements OnInit {
         recipientEmail: cert.recipientData?.['email'] || '-',
         templateName: templateName,
         templateVersionId: cert.templateVersionId,
-        issuerUserId: cert.metadata?.['issuedBy'] || cert.metadata?.['issuedByUserId'] || '-',
+        issuerUserId: issuerUserId,
+        issuerByName: cert.issuedByName || '-',
         status: cert.status || '-',
         issuedAt: cert.issuedAt || '-',
         _original: cert

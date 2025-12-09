@@ -87,8 +87,8 @@
     } @else {
     <!-- Table Section -->
     <div class="pb-4">
-      <div class="overflow-x-auto">
-        <table class="w-full divide-y divide-gray-200">
+      <div class="overflow-x-auto max-w-full">
+        <table class="w-full divide-y divide-gray-200" style="table-layout: auto; width: 100%;">
           <thead class="bg-gray-50">
             <tr>
               @if (config().showCheckbox) {
@@ -137,7 +137,7 @@
                     {{ getInitials(getNestedValue(item, column.key)) }}
                     }
                   </div>
-                  <div class="flex flex-col">
+                  <div class="flex flex-col min-w-0 flex-1">
                     <span class="font-medium text-gray-900 truncate" [title]="getNestedValue(item, column.key)">
                       {{ getNestedValue(item, column.key) || '-' }}
                     </span>
@@ -145,13 +145,13 @@
                       @if (column.key === 'recipientName') {
                         {{ getNestedValue(item, 'recipientEmail') || '-' }}
                       } @else if (column.key === 'templateName') {
-                        <div class="flex items-center gap-1.5">
-                          <span>{{ getNestedValue(item, 'certificateNumber') || '-' }}</span>
+                        <div class="flex items-center gap-1.5 min-w-0">
+                          <span class="truncate">{{ getNestedValue(item, 'certificateNumber') || '-' }}</span>
                           @if (getNestedValue(item, 'certificateNumber') && getNestedValue(item, 'certificateNumber') !== '-') {
                             <button
                               type="button"
                               (click)="copyToClipboard(getNestedValue(item, 'certificateNumber'), $event)"
-                              class="inline-flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                              class="inline-flex items-center text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
                               [title]="'Copy certificate number'"
                             >
                               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,8 +203,15 @@
                   {{ getNestedValue(item, column.key) || '-' }}
                 </div>
                 } @else if (column.key === 'issuerUserId') {
-                <div class="text-gray-600 font-medium">
-                  {{ getNestedValue(item, column.key) || '-' }}
+                <div class="flex flex-col">
+                  <span class="text-gray-900 font-medium">
+                    {{ getNestedValue(item, 'issuerByName') || getNestedValue(item, column.key) || '-' }}
+                  </span>
+                  @if (getNestedValue(item, 'issuerByName') && getNestedValue(item, column.key) && getNestedValue(item, column.key) !== '-') {
+                    <span class="text-xs text-gray-500">
+                      {{ getNestedValue(item, column.key) }}
+                    </span>
+                  }
                 </div>
                 } @else {
                 <div class="truncate text-gray-600 font-medium" [title]="getNestedValue(item, column.key) || '-'">

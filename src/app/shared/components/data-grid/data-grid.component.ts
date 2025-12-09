@@ -283,12 +283,19 @@ export class DataGridComponent<T = any> {
   getColumnHeaderClass(columnKey: string): string {
     const baseClass = 'py-3 text-left text-sm font-bold text-gray-700 tracking-wider';
 
-    if (['name', 'recipientName', 'templateName'].includes(columnKey)) {
+    if (columnKey === 'recipientName') {
+      return `${baseClass} px-6 min-w-[200px] max-w-[250px]`;
+    } else if (columnKey === 'templateName') {
+      // Wider to accommodate certificate number without truncation
+      return `${baseClass} px-6 min-w-[220px] max-w-[280px]`;
+    } else if (columnKey === 'name') {
       return `${baseClass} px-6 w-72 lg:w-96`;
     } else if (columnKey === 'description') {
       return `${baseClass} px-6 w-auto min-w-[150px] max-w-[200px]`;
     } else if (columnKey === 'code' || columnKey === 'certificateNumber') {
-      return `${baseClass} px-6 w-40 whitespace-nowrap`;
+      return `${baseClass} px-6 min-w-[180px] max-w-[220px] whitespace-nowrap`;
+    } else if (columnKey === 'issuerUserId') {
+      return `${baseClass} px-6 min-w-[150px] max-w-[200px]`;
     } else if (columnKey === 'currentVersion' || columnKey === 'version') {
       return `${baseClass} px-6 w-28 whitespace-nowrap`;
     } else if (columnKey === 'status' || columnKey === 'versionStatus') {
@@ -303,12 +310,19 @@ export class DataGridComponent<T = any> {
   getColumnCellClass(columnKey: string): string {
     const baseClass = 'py-3 text-sm text-gray-900';
 
-    if (['name', 'recipientName', 'templateName'].includes(columnKey)) {
+    if (columnKey === 'recipientName') {
+      return `${baseClass} px-6 min-w-[200px] max-w-[250px]`;
+    } else if (columnKey === 'templateName') {
+      // Wider to accommodate certificate number without truncation
+      return `${baseClass} px-6 min-w-[220px] max-w-[280px]`;
+    } else if (columnKey === 'name') {
       return `${baseClass} px-6 w-72 lg:w-96`;
     } else if (columnKey === 'description') {
       return `${baseClass} px-6 w-auto min-w-[150px] max-w-[200px]`;
     } else if (columnKey === 'code' || columnKey === 'certificateNumber') {
-      return `${baseClass} px-6 w-40 whitespace-nowrap`;
+      return `${baseClass} px-6 min-w-[180px] max-w-[220px] whitespace-nowrap`;
+    } else if (columnKey === 'issuerUserId') {
+      return `${baseClass} px-6 min-w-[150px] max-w-[200px]`;
     } else if (columnKey === 'currentVersion' || columnKey === 'version') {
       return `${baseClass} px-6 w-28 whitespace-nowrap`;
     } else if (columnKey === 'status' || columnKey === 'versionStatus') {
