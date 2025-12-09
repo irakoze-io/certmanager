@@ -414,7 +414,7 @@ export class DashboardComponent implements OnInit {
 
     this.isLoadingGrid.set(true);
     this.errorMessage.set(null);
-    
+
     const customerId = this.currentUser()?.customerId;
     if (!customerId) {
       console.error('[Certificates] No customerId available for current user');
@@ -423,7 +423,7 @@ export class DashboardComponent implements OnInit {
       this.gridData.set([]);
       return;
     }
-    
+
     this.certificateService.getAllCertificates({ customerId }).subscribe({
       next: (certificates) => {
         console.log('[Certificates] Raw response:', certificates);
@@ -432,21 +432,21 @@ export class DashboardComponent implements OnInit {
           console.log('[Certificates] First certificate structure:', certificates[0]);
           console.log('[Certificates] First certificate keys:', Object.keys(certificates[0]));
         }
-        
+
         if (!certificates || certificates.length === 0) {
           console.warn('[Certificates] No certificates returned from API');
           this.gridData.set([]);
           this.isLoadingGrid.set(false);
           return;
         }
-        
+
         // Load templates and their versions to get template names
         this.templateService.getAllTemplates().subscribe({
           next: (templates) => {
             // Load all versions for all templates
             const templateVersionMap = new Map<string, { name: string; templateId: number }>();
             let loadedCount = 0;
-            
+
             if (templates.length === 0) {
               // No templates, format certificates without template names
               const formatted = this.formatCertificateData(certificates, templateVersionMap);
@@ -454,7 +454,7 @@ export class DashboardComponent implements OnInit {
               this.isLoadingGrid.set(false);
               return;
             }
-            
+
             templates.forEach(template => {
               this.templateService.getTemplateVersions(template.id).subscribe({
                 next: (versions) => {
@@ -620,6 +620,13 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  onCertificateGenerated(): void {
+    // Reload certificates list without closing the modal
+    if (this.activeGridType() === 'certificates') {
+      this.loadCertificates();
+    }
+  }
+
   onCertificateUpdated(): void {
     // Reload certificates to reflect updates
     if (this.activeGridType() === 'certificates') {
@@ -655,7 +662,7 @@ export class DashboardComponent implements OnInit {
         this.showDeleteConfirmation.set(false);
         this.templateToDelete.set(null);
         this.onModalClose();
-        
+
         // Reload templates to reflect the change
         if (this.activeGridType() === 'templates') {
           this.loadTemplates();
@@ -664,7 +671,7 @@ export class DashboardComponent implements OnInit {
       error: (error) => {
         console.error('Error deleting template:', error);
         let errorMsg = 'Failed to delete template.';
-        
+
         if (error?.error?.message) {
           errorMsg = error.error.message;
         } else if (error?.message) {
@@ -678,7 +685,7 @@ export class DashboardComponent implements OnInit {
         } else {
           this.toastService.error(errorMsg);
         }
-        
+
         this.showDeleteConfirmation.set(false);
         this.templateToDelete.set(null);
       }
@@ -760,7 +767,7 @@ export class DashboardComponent implements OnInit {
       case 'edit':
         // Get template data
         const editTemplateData = item._original || item;
-        
+
         if (!editTemplateData || !editTemplateData.id) {
           console.error('Invalid template data:', item);
           this.toastService.error('Invalid template data. Please try again.');
@@ -836,7 +843,7 @@ export class DashboardComponent implements OnInit {
       case 'publish':
         // Get template data
         const publishTemplateData = item._original || item;
-        
+
         if (!publishTemplateData || !publishTemplateData.id) {
           console.error('Invalid template data:', item);
           this.toastService.error('Invalid template data. Please try again.');
@@ -907,7 +914,7 @@ export class DashboardComponent implements OnInit {
               error: (error) => {
                 console.error('Error publishing template version:', error);
                 let errorMsg = 'Failed to publish template version.';
-                
+
                 // Extract error message from response
                 if (error?.error?.message) {
                   errorMsg = error.error.message;
@@ -929,13 +936,13 @@ export class DashboardComponent implements OnInit {
           error: (error) => {
             console.error('Error fetching latest version:', error);
             let errorMsg = 'Failed to load template version.';
-            
+
             if (error?.error?.message) {
               errorMsg = error.error.message;
             } else if (error?.message) {
               errorMsg = error.message;
             }
-            
+
             this.toastService.error(errorMsg);
           }
         });
@@ -943,7 +950,7 @@ export class DashboardComponent implements OnInit {
       case 'publishVersion':
         // Get version data
         const publishVersionData = item._original || item;
-        
+
         if (!publishVersionData || !publishVersionData.templateId || !publishVersionData.id) {
           console.error('Invalid version data:', item);
           this.toastService.error('Invalid version data. Please try again.');
@@ -1006,7 +1013,7 @@ export class DashboardComponent implements OnInit {
           error: (error) => {
             console.error('Error publishing version:', error);
             let errorMsg = 'Failed to publish template version.';
-            
+
             // Extract error message from response
             if (error?.error?.message) {
               errorMsg = error.error.message;
@@ -1028,7 +1035,7 @@ export class DashboardComponent implements OnInit {
       case 'editVersion':
         // Get version data
         const versionData = item._original || item;
-        
+
         if (!versionData || !versionData.templateId || !versionData.id) {
           console.error('Invalid version data:', item);
           this.toastService.error('Invalid version data. Please try again.');
@@ -1071,17 +1078,17 @@ export class DashboardComponent implements OnInit {
         break;
       case 'downloadCertificate':
         const downloadCertData = item._original || item;
-        
+
         if (!downloadCertData || !downloadCertData.id) {
           this.toastService.error('Invalid certificate data.');
           return;
         }
-        
+
         if (downloadCertData.status !== 'ISSUED') {
           this.toastService.warning('Certificate is not ready for download. Status: ' + downloadCertData.status);
           return;
         }
-        
+
         this.certificateService.getDownloadUrl(downloadCertData.id, 60).subscribe({
           next: (url) => {
             window.open(url, '_blank');
@@ -1100,12 +1107,12 @@ export class DashboardComponent implements OnInit {
         break;
       case 'viewCertificate':
         const viewCertData = item._original || item;
-        
+
         if (!viewCertData || !viewCertData.id) {
           this.toastService.error('Invalid certificate data.');
           return;
         }
-        
+
         this.selectedCertificateId.set(viewCertData.id);
         this.modalTitle.set('Certificate Details');
         this.showCertificateViewModal.set(true);
@@ -1129,27 +1136,27 @@ export class DashboardComponent implements OnInit {
   }
 
   formatCertificateData(
-    certificates: CertificateResponse[], 
+    certificates: CertificateResponse[],
     templateVersionMap: Map<string, { name: string; templateId: number }>
   ): any[] {
     if (!certificates || !Array.isArray(certificates)) {
       console.warn('[formatCertificateData] Invalid input:', certificates);
       return [];
     }
-    
+
     return certificates.map(cert => {
       if (!cert) {
         console.warn('[formatCertificateData] Null certificate in array');
         return null;
       }
-      
+
       // Find template name by matching templateVersionId
       const templateInfo = templateVersionMap.get(cert.templateVersionId);
       const templateName = templateInfo?.name || '-';
-      
+
       // Use issuedBy (UUID) for issuer user ID
       const issuerUserId = cert.issuedBy || '-';
-      
+
       const formatted = {
         id: cert.id || '-',
         certificateNumber: cert.certificateNumber || '-',
