@@ -8,10 +8,10 @@
       <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="2" r="1" fill="currentColor" class="text-blue-600"/>
+            <circle cx="2" cy="2" r="1" fill="currentColor" class="text-blue-600" />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#dots)"/>
+        <rect width="100%" height="100%" fill="url(#dots)" />
       </svg>
     </div>
   </div>
@@ -33,33 +33,27 @@
       <div class="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden">
         <!-- Tabs -->
         <div class="flex border-b border-gray-200">
-          <button
-            type="button"
-            (click)="setActiveTab('login')"
-            [class]="activeTab() === 'login'
+          <button type="button" (click)="setActiveTab('login')" [class]="activeTab() === 'login'
               ? 'flex-1 py-4 px-6 text-sm font-medium text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 transition-colors'
-              : 'flex-1 py-4 px-6 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors'"
-          >
+              : 'flex-1 py-4 px-6 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors'">
             Login
           </button>
-          <button
-            type="button"
-            (click)="setActiveTab('customer')"
-            [disabled]="isLoading()"
+          <button type="button" (click)="setActiveTab('customer')" [disabled]="isLoading()"
             [class]="activeTab() === 'customer'
               ? 'flex-1 py-4 px-6 text-sm font-medium text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 transition-colors disabled:opacity-75'
-              : 'flex-1 py-4 px-6 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-75'"
-          >
+              : 'flex-1 py-4 px-6 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-75'">
             @if (isLoading() && loadingStatus()) {
-              <span class="flex items-center justify-center gap-2">
-                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                {{ loadingStatus() }}
-              </span>
+            <span class="flex items-center justify-center gap-2">
+              <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+              </svg>
+              {{ loadingStatus() }}
+            </span>
             } @else {
-              Create Customer
+            Create Customer
             }
           </button>
         </div>
@@ -68,60 +62,47 @@
         <div class="p-8">
           <!-- Notifications -->
           @if (errorMessage()) {
-            <app-notification type="error" [message]="errorMessage()!" />
+          <app-notification type="error" [message]="errorMessage()!" />
           }
           @if (warningMessage()) {
-            <app-notification type="warning" [message]="warningMessage()!" />
+          <app-notification type="warning" [message]="warningMessage()!" />
           }
           @if (successMessage()) {
-            <app-notification type="success" [message]="successMessage()!" />
+          <app-notification type="success" [message]="successMessage()!" />
           }
 
           <!-- Login Tab Content -->
           @if (activeTab() === 'login') {
-            <app-login-form
-              [form]="loginForm"
-              [isLoading]="isLoading()"
-              (onSubmit)="onLoginSubmit()"
-            />
+          <app-login-form [form]="loginForm" [isLoading]="isLoading()" (onSubmit)="onLoginSubmit()" />
           }
 
           <!-- Customer Creation Tab Content -->
           @if (activeTab() === 'customer' && !showUserForm()) {
-            <app-customer-form
-              [form]="customerForm"
-              [isLoading]="isLoading()"
-              (onSubmit)="onCustomerSubmit()"
-            />
+          <app-customer-form [form]="customerForm" [isLoading]="isLoading()" (onSubmit)="onCustomerSubmit()" />
           }
 
           <!-- User Creation Form (shown after customer creation) -->
           @if (showUserForm()) {
-            <app-user-form
-              [form]="userForm"
-              [isLoading]="isLoading()"
-              (onSubmit)="onUserSubmit()"
-              (onSkip)="skipUserCreation()"
-            />
+          <app-user-form [form]="userForm" [isLoading]="isLoading()" [showTenantField]="!createdCustomerId()"
+            (onSubmit)="onUserSubmit()" (onSkip)="skipUserCreation()" />
           }
 
           <!-- Footer Link -->
           @if (activeTab() === 'login') {
-            <div class="mt-6 text-center text-sm text-gray-600">
-              <p>
-                Don't have an account?
-                <button
-                  type="button"
-                  (click)="setActiveTab('customer')"
-                  class="text-blue-600 hover:text-blue-700 font-medium transition-colors inline-flex items-center gap-1"
-                >
-                  Create a free account!
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
-                  </svg>
-                </button>
-              </p>
-            </div>
+          <div class="mt-6 text-center text-sm text-gray-600">
+            <p>
+              Don't have an account?
+              <button type="button" (click)="onCreateNewLogin()"
+                class="text-blue-600 hover:text-blue-700 font-medium transition-colors inline-flex items-center gap-1">
+                Create a new login
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+                </svg>
+              </button>
+            </p>
+          </div>
           }
         </div>
       </div>

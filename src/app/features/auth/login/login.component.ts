@@ -1,15 +1,15 @@
-import {Component, signal} from '@angular/core';
-import {FormBuilder, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
-import {ActivatedRoute, Router, RouterLink} from '@angular/router';
-import {CommonModule} from '@angular/common';
-import {AuthService} from '../../../core/services/auth.service';
-import {CustomerService} from '../../../core/services/customer.service';
-import {LoginRequest, UserRole} from '../../../core/models/auth.model';
-import {CreateCustomerRequest, CustomerStatus} from '../../../core/models/customer.model';
-import {NotificationComponent} from './components/notification/notification.component';
-import {LoginFormComponent} from './components/login-form/login-form.component';
-import {CustomerFormComponent} from './components/customer-form/customer-form.component';
-import {UserFormComponent} from './components/user-form/user-form.component';
+import { Component, signal } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { AuthService } from '../../../core/services/auth.service';
+import { CustomerService } from '../../../core/services/customer.service';
+import { LoginRequest, UserRole } from '../../../core/models/auth.model';
+import { CreateCustomerRequest, CustomerStatus } from '../../../core/models/customer.model';
+import { NotificationComponent } from './components/notification/notification.component';
+import { LoginFormComponent } from './components/login-form/login-form.component';
+import { CustomerFormComponent } from './components/customer-form/customer-form.component';
+import { UserFormComponent } from './components/user-form/user-form.component';
 
 @Component({
   selector: 'app-login',
@@ -67,6 +67,7 @@ export class LoginComponent {
 
     // Initialize user form
     this.userForm = this.fb.group({
+      tenantId: ['', [Validators.required, Validators.min(1)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       firstName: ['', [Validators.required, Validators.minLength(1)]],
@@ -85,6 +86,24 @@ export class LoginComponent {
     this.warningMessage.set(null);
     this.loadingStatus.set(null);
     this.showUserForm.set(false);
+    this.createdCustomerId.set(null); // Reset customer ID when switching tabs
+  }
+
+  /**
+   * Handle "Create a new login" link click
+   */
+  onCreateNewLogin(): void {
+    this.activeTab.set('customer'); // reusing customer tab container for now
+    this.showUserForm.set(true);
+    this.createdCustomerId.set(null); // Ensure we are in "direct user creation" mode
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    // Reset form and ensure tenantId is empty for user input
+    this.userForm.reset({
+      role: 'VIEWER',
+      tenantId: ''
+    });
   }
 
 
@@ -219,10 +238,15 @@ export class LoginComponent {
           maxUsers: 10,
           maxCertificatesPerMonth: 100
         });
+
+        // Patch the created customer ID into the user form
+        this.userForm.patchValue({
+          tenantId: response.id
+        });
       },
       error: (error) => {
         console.error('Customer creation error:', error);
-        
+
         // Handle validation errors - extract field-specific errors
         if (error.status === 400) {
           const fieldErrors = this.extractFieldErrors(error);
@@ -241,7 +265,7 @@ export class LoginComponent {
           error.error?.message ||
           error.message ||
           'Failed to create customer. Please check your input and try again.';
-        
+
         this.errorMessage.set(errorMsg);
         this.isLoading.set(false);
         this.loadingStatus.set(null);
@@ -326,7 +350,7 @@ export class LoginComponent {
   private extractFieldErrors(error: any): string[] {
     const errors: string[] = [];
     const errorResponse = error.error?.error || error.error;
-    
+
     if (!errorResponse) {
       return errors;
     }
@@ -376,9 +400,12 @@ export class LoginComponent {
       return;
     }
 
-    const customerId = this.createdCustomerId();
+    const formValue = this.userForm.value;
+    // Use created customer ID if available (flow 1), otherwise use entered tenantId (flow 2)
+    const customerId = this.createdCustomerId() || formValue.tenantId;
+
     if (!customerId) {
-      this.errorMessage.set('Customer ID is missing. Please create a customer first.');
+      this.errorMessage.set('Customer ID is missing.');
       return;
     }
 
@@ -388,7 +415,7 @@ export class LoginComponent {
     this.successMessage.set(null);
     this.warningMessage.set(null);
 
-    const formValue = this.userForm.value;
+
     const userRequest: LoginRequest = {
       email: formValue.email,
       password: formValue.password,
@@ -413,6 +440,7 @@ export class LoginComponent {
             this.loadingStatus.set(null);
             this.showUserForm.set(false);
             this.setActiveTab('login');
+            this.setActiveTab('login');
             // Pre-fill email and password in login form
             this.loginForm.patchValue({
               tenantId: customerId,
@@ -428,7 +456,7 @@ export class LoginComponent {
       },
       error: (error) => {
         console.error('User creation error:', error);
-        
+
         // Handle validation errors - extract field-specific errors
         if (error.status === 400) {
           const fieldErrors = this.extractFieldErrors(error);
@@ -447,7 +475,7 @@ export class LoginComponent {
           error.error?.message ||
           error.message ||
           'Failed to create user. Please check your input and try again.';
-        
+
         this.errorMessage.set(errorMsg);
         this.isLoading.set(false);
         this.loadingStatus.set(null);
@@ -459,7 +487,7 @@ export class LoginComponent {
    * Skip user creation and go to login
    */
   skipUserCreation(): void {
-    const customerId = this.createdCustomerId();
+    const customerId = this.createdCustomerId() || this.userForm.value.tenantId;
     this.showUserForm.set(false);
     this.setActiveTab('login');
     if (customerId) {
