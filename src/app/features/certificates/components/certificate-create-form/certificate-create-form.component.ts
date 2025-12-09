@@ -216,10 +216,18 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
     // Generate 10-digit certificate number if not provided
     const certificateNumber = formValue.certificateNumber?.trim() || this.generateCertificateNumber();
     
+    // Structure recipientData to match template placeholder format
+    // Templates use {{recipient.name}}, {{recipient.email}}, or {{fieldName}} format
+    // Wrap the flat recipientData in a 'recipient' object to match {{recipient.*}} placeholders
+    const recipientData = {
+      recipient: formValue.recipientData,
+      ...formValue.recipientData // Also include flat fields for {{fieldName}} format
+    };
+    
     const request: GenerateCertificateRequest = {
       templateVersionId: formValue.templateVersionId,
       certificateNumber: certificateNumber,
-      recipientData: formValue.recipientData,
+      recipientData: recipientData,
       metadata: {},
       issuedAt: null,
       expiresAt: null,
