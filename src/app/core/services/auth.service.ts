@@ -53,7 +53,7 @@ export class AuthService {
   login(tenantId: number, request: LoginRequest): Observable<ApiResponse<LoginResponse>> {
     // Clear any existing auth state before logging in to prevent stale data
     this.clearAuthState();
-    
+
     return this.http.post<ApiResponse<LoginResponse>>(
       `${this.authUrl}/login`,
       request,
@@ -251,7 +251,7 @@ export class AuthService {
     if (this.tokenSignal() && this.userSignal()) {
       return;
     }
-    
+
     const token = this.getStoredToken();
     const user = this.getStoredUser();
     const tenantId = this.getStoredTenantId();

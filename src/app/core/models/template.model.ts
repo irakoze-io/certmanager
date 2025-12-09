@@ -61,6 +61,7 @@ export interface TemplateVersionResponse {
   settings?: Record<string, unknown>;
   status: TemplateVersionStatus;
   createdBy?: string; // UUID
+  createdByName?: string; // Name of user who created the version
   createdAt?: string;
   updatedAt?: string;
 }

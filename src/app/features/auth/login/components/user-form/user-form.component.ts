@@ -12,8 +12,9 @@ import { CommonModule } from '@angular/common';
 export class UserFormComponent {
   form = input.required<FormGroup>();
   isLoading = input.required<boolean>();
+  showTenantField = input<boolean>(false);
   showPassword = signal(false);
-  
+
   onSubmit = output<void>();
   onSkip = output<void>();
 
@@ -46,12 +47,16 @@ export class UserFormComponent {
       if (field.errors['minlength']) {
         return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['minlength'].requiredLength} characters`;
       }
+      if (field.errors['min']) {
+        return `${this.getFieldLabel(fieldName)} must be at least 1`;
+      }
     }
     return null;
   }
 
   private getFieldLabel(fieldName: string): string {
     const labels: Record<string, string> = {
+      tenantId: 'Customer ID',
       email: 'Email',
       password: 'Password',
       firstName: 'First Name',

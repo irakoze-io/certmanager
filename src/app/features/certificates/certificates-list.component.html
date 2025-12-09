@@ -41,7 +41,7 @@
   <!-- Data Grid -->
   <app-data-grid
     [config]="gridConfig"
-    [data]="formatCertificateData(filteredCertificates())"
+    [data]="filteredCertificates()"
     [isLoading]="isLoading()"
     (onSearch)="onSearch($event)"
     (onFilter)="onFilter()"

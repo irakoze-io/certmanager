@@ -1,5 +1,11 @@
 /* Data grid component styles */
 
+/* Ensure table fits viewport without horizontal scroll */
+.overflow-x-auto {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 /* Ensure table cells truncate long content properly */
 table tbody td.max-w-0 > div.truncate {
   overflow: hidden;
@@ -7,6 +13,22 @@ table tbody td.max-w-0 > div.truncate {
   white-space: nowrap;
   max-width: 100%;
   display: block;
+}
+
+/* Template name should truncate with ellipsis */
+table tbody td[class*="templateName"] .flex.flex-col > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Certificate number should not truncate - allow wrapping */
+table tbody td[class*="templateName"] .flex.items-center.gap-1\.5 span:first-child {
+  white-space: normal;
+  word-break: break-all;
+  overflow: visible;
+  text-overflow: clip;
+  min-width: 0;
 }
 
 table tbody td.max-w-0 > span.truncate {

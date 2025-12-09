@@ -68,8 +68,11 @@ export class CertificatesListComponent implements OnInit {
     this.errorMessage.set(null);
     this.certificateService.getAllCertificates().subscribe({
       next: (certificates) => {
+        console.log('Certificates loaded:', certificates);
         this.certificates.set(certificates);
-        this.filteredCertificates.set(certificates);
+        const formatted = this.formatCertificateData(certificates);
+        console.log('Formatted certificates:', formatted);
+        this.filteredCertificates.set(formatted);
         this.isLoading.set(false);
       },
       error: (error) => {
@@ -85,7 +88,8 @@ export class CertificatesListComponent implements OnInit {
 
   onSearch(query: string): void {
     if (!query.trim()) {
-      this.filteredCertificates.set(this.certificates());
+      const formatted = this.formatCertificateData(this.certificates());
+      this.filteredCertificates.set(formatted);
       return;
     }
 
@@ -97,7 +101,8 @@ export class CertificatesListComponent implements OnInit {
         recipientName.toLowerCase().includes(lowerQuery) ||
         recipientEmail.toLowerCase().includes(lowerQuery);
     });
-    this.filteredCertificates.set(filtered);
+    const formatted = this.formatCertificateData(filtered);
+    this.filteredCertificates.set(formatted);
   }
 
   onFilter(): void {

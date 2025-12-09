@@ -4,10 +4,10 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractContro
 import { CertificateService } from '../../../../core/services/certificate.service';
 import { TemplateService } from '../../../../core/services/template.service';
 import { ToastService } from '../../../../core/services/toast.service';
-import { 
-  GenerateCertificateRequest, 
-  CertificateResponse, 
-  CertificateStatus 
+import {
+  GenerateCertificateRequest,
+  CertificateResponse,
+  CertificateStatus
 } from '../../../../core/models/certificate.model';
 import { TemplateResponse, TemplateVersionResponse, TemplateVersionStatus, FieldSchemaField, FieldType } from '../../../../core/models/template.model';
 import { Subscription } from 'rxjs';
@@ -22,25 +22,26 @@ import { Subscription } from 'rxjs';
 export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   FieldType = FieldType; // Expose to template
   Object = Object; // Expose Object to template
-  
+
   onSuccess = output<void>();
   onCancelClick = output<void>();
-  
+  certificateGenerated = output<void>();
+
   form!: FormGroup;
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
-  
+
   // Template and version selection
   templates = signal<TemplateResponse[]>([]);
   selectedTemplate = signal<TemplateResponse | null>(null);
   templateVersions = signal<TemplateVersionResponse[]>([]);
   selectedVersion = signal<TemplateVersionResponse | null>(null);
-  
+
   // Certificate generation
   generatedCertificate = signal<CertificateResponse | null>(null);
   isPolling = signal<boolean>(false);
   pollingSubscription?: Subscription;
-  
+
   // Field schema for dynamic form
   fieldSchema = signal<Record<string, FieldSchemaField>>({});
   recipientDataForm!: FormGroup;
@@ -66,12 +67,22 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
     this.form = this.fb.group({
       templateId: ['', Validators.required],
       templateVersionId: ['', Validators.required],
-      certificateNumber: [''],
+      certificateNumber: [''], // Leave empty - will be generated on submit if not provided
       synchronous: [false], // Default to async
       recipientData: this.fb.group({})
     });
-    
+
     this.recipientDataForm = this.form.get('recipientData') as FormGroup;
+  }
+
+  /**
+   * Generate a unique 10-digit certificate number
+   */
+  private generateCertificateNumber(): string {
+    // Generate a 10-digit number (ensuring it doesn't start with 0)
+    const firstDigit = Math.floor(Math.random() * 9) + 1; // 1-9
+    const remainingDigits = Math.floor(Math.random() * 1000000000); // 0-999999999
+    return `${firstDigit}${remainingDigits.toString().padStart(9, '0')}`;
   }
 
   loadTemplates(): void {
@@ -96,7 +107,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
     this.selectedVersion.set(null);
     this.fieldSchema.set({});
     this.clearRecipientDataForm();
-    
+
     if (template) {
       this.loadTemplateVersions(template.id);
     }
@@ -110,7 +121,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
         const publishedVersions = versions.filter(v => v.status === TemplateVersionStatus.PUBLISHED);
         this.templateVersions.set(publishedVersions);
         this.isLoading.set(false);
-        
+
         if (publishedVersions.length === 0) {
           this.toastService.warning('No published versions available for this template.');
         }
@@ -126,7 +137,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   onVersionSelected(versionId: string): void {
     const version = this.templateVersions().find(v => v.id === versionId);
     this.selectedVersion.set(version || null);
-    
+
     if (version && version.fieldSchema) {
       this.fieldSchema.set(version.fieldSchema);
       this.buildRecipientDataForm(version.fieldSchema);
@@ -138,28 +149,28 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
 
   buildRecipientDataForm(schema: Record<string, FieldSchemaField>): void {
     const formControls: Record<string, AbstractControl> = {};
-    
+
     Object.entries(schema).forEach(([fieldName, fieldDef]) => {
       const validators = [];
-      
+
       if (fieldDef.required) {
         validators.push(Validators.required);
       }
-      
+
       if (fieldDef.type === FieldType.EMAIL) {
         validators.push(Validators.email);
       }
-      
+
       if (fieldDef.type === FieldType.NUMBER) {
         validators.push(Validators.pattern(/^-?\d*\.?\d+$/));
       }
-      
+
       // Add custom validators based on field schema constraints
       // (minLength, maxLength, pattern would go here if available in FieldSchemaField)
-      
+
       formControls[fieldName] = this.fb.control(fieldDef.required ? '' : null, validators);
     });
-    
+
     this.recipientDataForm = this.fb.group(formControls);
     this.form.setControl('recipientData', this.recipientDataForm);
   }
@@ -202,11 +213,22 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
 
     const formValue = this.form.value;
     const isSync = formValue.synchronous;
-    
+
+    // Generate 10-digit certificate number if not provided
+    const certificateNumber = formValue.certificateNumber?.trim() || this.generateCertificateNumber();
+
+    // Structure recipientData to match template placeholder format
+    // Templates use {{recipient.name}}, {{recipient.email}}, or {{fieldName}} format
+    // Wrap the flat recipientData in a 'recipient' object to match {{recipient.*}} placeholders
+    const recipientData = {
+      recipient: formValue.recipientData,
+      ...formValue.recipientData // Also include flat fields for {{fieldName}} format
+    };
+
     const request: GenerateCertificateRequest = {
       templateVersionId: formValue.templateVersionId,
-      certificateNumber: formValue.certificateNumber || null,
-      recipientData: formValue.recipientData,
+      certificateNumber: certificateNumber,
+      recipientData: recipientData,
       metadata: {},
       issuedAt: null,
       expiresAt: null,
@@ -222,7 +244,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
       next: (certificate) => {
         this.generatedCertificate.set(certificate);
         this.isLoading.set(false);
-        
+
         if (isSync && certificate.status === CertificateStatus.ISSUED) {
           // Synchronous: Certificate is ready immediately
           this.toastService.success('Certificate generated successfully!');
@@ -257,7 +279,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (certificate) => {
           this.generatedCertificate.set(certificate);
-          
+
           if (certificate.status === CertificateStatus.ISSUED) {
             this.toastService.success('Certificate generated successfully!');
             this.handleCertificateReady(certificate);
@@ -286,21 +308,20 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   handleCertificateReady(certificate: CertificateResponse): void {
     // Certificate is ready, can be downloaded
     console.log('Certificate ready:', certificate);
-    // Emit success after a short delay to allow user to see the status
-    setTimeout(() => {
-      this.onSuccess.emit();
-    }, 2000);
+    // Notify parent to refresh list
+    this.certificateGenerated.emit();
+    // Don't auto-close - let user download or manually close
   }
 
   downloadCertificate(): void {
     const certificate = this.generatedCertificate();
     if (!certificate?.id) return;
-    
+
     if (certificate.status !== CertificateStatus.ISSUED) {
       this.toastService.warning('Certificate is not ready for download yet.');
       return;
     }
-    
+
     this.certificateService.getDownloadUrl(certificate.id, 60).subscribe({
       next: (url) => {
         window.open(url, '_blank');
@@ -330,11 +351,22 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
     this.onCancelClick.emit();
   }
 
+  resetForNewCertificate(): void {
+    this.stopPolling();
+    this.generatedCertificate.set(null);
+    // Keep the selected template and version, just reset the recipient data
+    this.form.patchValue({
+      certificateNumber: '',
+      recipientData: {}
+    });
+    this.recipientDataForm.reset();
+  }
+
   private markFormGroupTouched(formGroup: FormGroup): void {
     Object.keys(formGroup.controls).forEach(key => {
       const control = formGroup.get(key);
       control?.markAsTouched();
-      
+
       if (control instanceof FormGroup) {
         this.markFormGroupTouched(control);
       }

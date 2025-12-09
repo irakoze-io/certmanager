@@ -301,56 +301,80 @@ export class DashboardComponent implements OnInit {
       ]
     });
 
-    // Load all templates first, then get versions for each
-    this.templateService.getAllTemplates().subscribe({
-      next: (templates) => {
-        const allVersions: any[] = [];
-        let loadedCount = 0;
+    this.isLoadingGrid.set(true);
+    this.errorMessage.set(null);
 
-        if (templates.length === 0) {
-          this.gridData.set([]);
-          this.isLoadingGrid.set(false);
-          return;
-        }
+    const customerId = this.currentUser()?.customerId;
+    if (!customerId) {
+      console.error('[Versions] No customerId available for current user');
+      this.errorMessage.set('Unable to load template versions: Customer ID not found.');
+      this.isLoadingGrid.set(false);
+      this.gridData.set([]);
+      return;
+    }
 
-        templates.forEach(template => {
-          this.templateService.getTemplateVersions(template.id).subscribe({
-            next: (versions) => {
-              versions.forEach(version => {
-                allVersions.push({
-                  id: version.id,
-                  templateName: template.name,
-                  description: template.description || '-',
-                  templateId: template.id,
-                  version: typeof version.version === 'string' && version.version.startsWith('v')
-                    ? version.version
-                    : `v${version.version}`,
-                  status: version.status,
-                  createdBy: version.createdBy || '-',
-                  createdAt: version.createdAt || '-',
-                  _original: version
-                });
+    // Load all template versions for the customer using the new endpoint
+    this.templateService.getAllTemplateVersionsByCustomer(customerId).subscribe({
+      next: (versions) => {
+        // We need to get template names, so load templates to create a map
+        this.templateService.getAllTemplates().subscribe({
+          next: (templates) => {
+            // Create a map of templateId -> template name
+            const templateMap = new Map<number, { name: string; description: string }>();
+            templates.forEach(template => {
+              templateMap.set(template.id, {
+                name: template.name,
+                description: template.description || '-'
               });
-              loadedCount++;
-              if (loadedCount === templates.length) {
-                this.gridData.set(allVersions);
-                this.isLoadingGrid.set(false);
-              }
-            },
-            error: (error) => {
-              console.error(`Error loading versions for template ${template.id}:`, error);
-              loadedCount++;
-              if (loadedCount === templates.length) {
-                this.gridData.set(allVersions);
-                this.isLoadingGrid.set(false);
-              }
-            }
-          });
+            });
+
+            // Format versions with template names
+            const formattedVersions = versions.map(version => {
+              const templateInfo = templateMap.get(version.templateId);
+              return {
+                id: version.id,
+                templateName: templateInfo?.name || '-',
+                description: templateInfo?.description || '-',
+                templateId: version.templateId,
+                version: typeof version.version === 'string' && version.version.startsWith('v')
+                  ? version.version
+                  : `v${version.version}`,
+                status: version.status,
+                createdBy: version.createdBy || '-',
+                createdByName: version.createdByName || '-',
+                createdAt: version.createdAt || '-',
+                _original: version
+              };
+            });
+
+            this.gridData.set(formattedVersions);
+            this.isLoadingGrid.set(false);
+          },
+          error: (error) => {
+            console.error('[Versions] Error loading templates:', error);
+            // Still show versions even if template names fail to load
+            const formattedVersions = versions.map(version => ({
+              id: version.id,
+              templateName: '-',
+              description: '-',
+              templateId: version.templateId,
+              version: typeof version.version === 'string' && version.version.startsWith('v')
+                ? version.version
+                : `v${version.version}`,
+              status: version.status,
+              createdBy: version.createdBy || '-',
+              createdByName: version.createdByName || '-',
+              createdAt: version.createdAt || '-',
+              _original: version
+            }));
+            this.gridData.set(formattedVersions);
+            this.isLoadingGrid.set(false);
+          }
         });
       },
       error: (error) => {
-        console.error('Error loading templates for versions:', error);
-        this.errorMessage.set(error?.message || 'Failed to load versions. Please try again.');
+        console.error('[Versions] Error loading template versions:', error);
+        this.errorMessage.set(error?.message || 'Failed to load template versions. Please try again.');
         this.isLoadingGrid.set(false);
         this.gridData.set([]);
       }
@@ -368,9 +392,9 @@ export class DashboardComponent implements OnInit {
       itemsPerPageOptions: [10, 25, 50, 100],
       defaultItemsPerPage: 10,
       columns: [
-        { key: 'certificateNumber', label: 'Certificate Number', sortable: true },
-        { key: 'recipientName', label: 'Recipient Name', sortable: true },
-        { key: 'recipientEmail', label: 'Recipient Email', sortable: true },
+        { key: 'recipientName', label: 'Recipient', sortable: true },
+        { key: 'templateName', label: 'Template', sortable: true },
+        { key: 'issuerUserId', label: 'Issuer', sortable: true },
         { key: 'status', label: 'Status', sortable: true },
         { key: 'issuedAt', label: 'Issued', sortable: true }
       ],
@@ -388,13 +412,90 @@ export class DashboardComponent implements OnInit {
       ]
     });
 
-    this.certificateService.getAllCertificates().subscribe({
+    this.isLoadingGrid.set(true);
+    this.errorMessage.set(null);
+
+    const customerId = this.currentUser()?.customerId;
+    if (!customerId) {
+      console.error('[Certificates] No customerId available for current user');
+      this.errorMessage.set('Unable to load certificates: Customer ID not found.');
+      this.isLoadingGrid.set(false);
+      this.gridData.set([]);
+      return;
+    }
+
+    this.certificateService.getAllCertificates({ customerId }).subscribe({
       next: (certificates) => {
-        this.gridData.set(this.formatCertificateData(certificates));
-        this.isLoadingGrid.set(false);
+        console.log('[Certificates] Raw response:', certificates);
+        console.log('[Certificates] Count:', certificates?.length || 0);
+        if (certificates && certificates.length > 0) {
+          console.log('[Certificates] First certificate structure:', certificates[0]);
+          console.log('[Certificates] First certificate keys:', Object.keys(certificates[0]));
+        }
+
+        if (!certificates || certificates.length === 0) {
+          console.warn('[Certificates] No certificates returned from API');
+          this.gridData.set([]);
+          this.isLoadingGrid.set(false);
+          return;
+        }
+
+        // Load templates and their versions to get template names
+        this.templateService.getAllTemplates().subscribe({
+          next: (templates) => {
+            // Load all versions for all templates
+            const templateVersionMap = new Map<string, { name: string; templateId: number }>();
+            let loadedCount = 0;
+
+            if (templates.length === 0) {
+              // No templates, format certificates without template names
+              const formatted = this.formatCertificateData(certificates, templateVersionMap);
+              this.gridData.set(formatted);
+              this.isLoadingGrid.set(false);
+              return;
+            }
+
+            templates.forEach(template => {
+              this.templateService.getTemplateVersions(template.id).subscribe({
+                next: (versions) => {
+                  versions.forEach(version => {
+                    if (version.id) {
+                      templateVersionMap.set(version.id, { name: template.name, templateId: template.id });
+                    }
+                  });
+                  loadedCount++;
+                  if (loadedCount === templates.length) {
+                    // All versions loaded, now format certificates
+                    const formatted = this.formatCertificateData(certificates, templateVersionMap);
+                    console.log('[Certificates] Formatted:', formatted);
+                    this.gridData.set(formatted);
+                    this.isLoadingGrid.set(false);
+                  }
+                },
+                error: (error) => {
+                  console.error(`[Certificates] Error loading versions for template ${template.id}:`, error);
+                  loadedCount++;
+                  if (loadedCount === templates.length) {
+                    // Format even if some versions failed to load
+                    const formatted = this.formatCertificateData(certificates, templateVersionMap);
+                    this.gridData.set(formatted);
+                    this.isLoadingGrid.set(false);
+                  }
+                }
+              });
+            });
+          },
+          error: (error) => {
+            console.error('[Certificates] Error loading templates:', error);
+            // Format without template names if template loading fails
+            const formatted = this.formatCertificateData(certificates, new Map());
+            this.gridData.set(formatted);
+            this.isLoadingGrid.set(false);
+          }
+        });
       },
       error: (error) => {
-        console.error('Error loading certificates:', error);
+        console.error('[Certificates] Error loading:', error);
         this.errorMessage.set(error?.message || 'Failed to load certificates. Please try again.');
         this.isLoadingGrid.set(false);
         this.gridData.set([]);
@@ -519,6 +620,13 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  onCertificateGenerated(): void {
+    // Reload certificates list without closing the modal
+    if (this.activeGridType() === 'certificates') {
+      this.loadCertificates();
+    }
+  }
+
   onCertificateUpdated(): void {
     // Reload certificates to reflect updates
     if (this.activeGridType() === 'certificates') {
@@ -554,7 +662,7 @@ export class DashboardComponent implements OnInit {
         this.showDeleteConfirmation.set(false);
         this.templateToDelete.set(null);
         this.onModalClose();
-        
+
         // Reload templates to reflect the change
         if (this.activeGridType() === 'templates') {
           this.loadTemplates();
@@ -563,7 +671,7 @@ export class DashboardComponent implements OnInit {
       error: (error) => {
         console.error('Error deleting template:', error);
         let errorMsg = 'Failed to delete template.';
-        
+
         if (error?.error?.message) {
           errorMsg = error.error.message;
         } else if (error?.message) {
@@ -577,7 +685,7 @@ export class DashboardComponent implements OnInit {
         } else {
           this.toastService.error(errorMsg);
         }
-        
+
         this.showDeleteConfirmation.set(false);
         this.templateToDelete.set(null);
       }
@@ -659,7 +767,7 @@ export class DashboardComponent implements OnInit {
       case 'edit':
         // Get template data
         const editTemplateData = item._original || item;
-        
+
         if (!editTemplateData || !editTemplateData.id) {
           console.error('Invalid template data:', item);
           this.toastService.error('Invalid template data. Please try again.');
@@ -735,7 +843,7 @@ export class DashboardComponent implements OnInit {
       case 'publish':
         // Get template data
         const publishTemplateData = item._original || item;
-        
+
         if (!publishTemplateData || !publishTemplateData.id) {
           console.error('Invalid template data:', item);
           this.toastService.error('Invalid template data. Please try again.');
@@ -806,7 +914,7 @@ export class DashboardComponent implements OnInit {
               error: (error) => {
                 console.error('Error publishing template version:', error);
                 let errorMsg = 'Failed to publish template version.';
-                
+
                 // Extract error message from response
                 if (error?.error?.message) {
                   errorMsg = error.error.message;
@@ -828,13 +936,13 @@ export class DashboardComponent implements OnInit {
           error: (error) => {
             console.error('Error fetching latest version:', error);
             let errorMsg = 'Failed to load template version.';
-            
+
             if (error?.error?.message) {
               errorMsg = error.error.message;
             } else if (error?.message) {
               errorMsg = error.message;
             }
-            
+
             this.toastService.error(errorMsg);
           }
         });
@@ -842,7 +950,7 @@ export class DashboardComponent implements OnInit {
       case 'publishVersion':
         // Get version data
         const publishVersionData = item._original || item;
-        
+
         if (!publishVersionData || !publishVersionData.templateId || !publishVersionData.id) {
           console.error('Invalid version data:', item);
           this.toastService.error('Invalid version data. Please try again.');
@@ -905,7 +1013,7 @@ export class DashboardComponent implements OnInit {
           error: (error) => {
             console.error('Error publishing version:', error);
             let errorMsg = 'Failed to publish template version.';
-            
+
             // Extract error message from response
             if (error?.error?.message) {
               errorMsg = error.error.message;
@@ -927,7 +1035,7 @@ export class DashboardComponent implements OnInit {
       case 'editVersion':
         // Get version data
         const versionData = item._original || item;
-        
+
         if (!versionData || !versionData.templateId || !versionData.id) {
           console.error('Invalid version data:', item);
           this.toastService.error('Invalid version data. Please try again.');
@@ -970,17 +1078,17 @@ export class DashboardComponent implements OnInit {
         break;
       case 'downloadCertificate':
         const downloadCertData = item._original || item;
-        
+
         if (!downloadCertData || !downloadCertData.id) {
           this.toastService.error('Invalid certificate data.');
           return;
         }
-        
+
         if (downloadCertData.status !== 'ISSUED') {
           this.toastService.warning('Certificate is not ready for download. Status: ' + downloadCertData.status);
           return;
         }
-        
+
         this.certificateService.getDownloadUrl(downloadCertData.id, 60).subscribe({
           next: (url) => {
             window.open(url, '_blank');
@@ -999,12 +1107,12 @@ export class DashboardComponent implements OnInit {
         break;
       case 'viewCertificate':
         const viewCertData = item._original || item;
-        
+
         if (!viewCertData || !viewCertData.id) {
           this.toastService.error('Invalid certificate data.');
           return;
         }
-        
+
         this.selectedCertificateId.set(viewCertData.id);
         this.modalTitle.set('Certificate Details');
         this.showCertificateViewModal.set(true);
@@ -1027,16 +1135,43 @@ export class DashboardComponent implements OnInit {
     }));
   }
 
-  formatCertificateData(certificates: CertificateResponse[]): any[] {
-    return certificates.map(cert => ({
-      id: cert.id,
-      certificateNumber: cert.certificateNumber,
-      recipientName: cert.recipientData?.['name'] || '-',
-      recipientEmail: cert.recipientData?.['email'] || '-',
-      status: cert.status,
-      issuedAt: cert.issuedAt || '-',
-      _original: cert
-    }));
+  formatCertificateData(
+    certificates: CertificateResponse[],
+    templateVersionMap: Map<string, { name: string; templateId: number }>
+  ): any[] {
+    if (!certificates || !Array.isArray(certificates)) {
+      console.warn('[formatCertificateData] Invalid input:', certificates);
+      return [];
+    }
+
+    return certificates.map(cert => {
+      if (!cert) {
+        console.warn('[formatCertificateData] Null certificate in array');
+        return null;
+      }
+
+      // Find template name by matching templateVersionId
+      const templateInfo = templateVersionMap.get(cert.templateVersionId);
+      const templateName = templateInfo?.name || '-';
+
+      // Use issuedBy (UUID) for issuer user ID
+      const issuerUserId = cert.issuedBy || '-';
+
+      const formatted = {
+        id: cert.id || '-',
+        certificateNumber: cert.certificateNumber || '-',
+        recipientName: cert.recipientData?.['name'] || '-',
+        recipientEmail: cert.recipientData?.['email'] || '-',
+        templateName: templateName,
+        templateVersionId: cert.templateVersionId,
+        issuerUserId: issuerUserId,
+        issuerByName: cert.issuedByName || '-',
+        status: cert.status || '-',
+        issuedAt: cert.issuedAt || '-',
+        _original: cert
+      };
+      return formatted;
+    }).filter(item => item !== null);
   }
 
   /**
@@ -1086,6 +1221,6 @@ export class DashboardComponent implements OnInit {
 
   logout(): void {
     this.authService.logout();
-    this.router.navigate(['/login']);
+    window.location.href = '/login';
   }
 }

@@ -89,6 +89,7 @@ export class CertificateService extends ApiService {
    * Get all certificates with optional filters
    */
   getAllCertificates(filters?: {
+    customerId?: number;
     status?: CertificateStatus;
     templateVersionId?: string;
     recipientEmail?: string;

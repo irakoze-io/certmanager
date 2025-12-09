@@ -25,6 +25,9 @@ export interface CertificateResponse {
   qrCodeUrl?: string; // Only when ISSUED
   issuedAt?: string;
   expiresAt?: string;
+  issuedBy?: string; // UUID of user who issued the certificate
+  issuedByName?: string; // Name of user who issued the certificate
+  customerId?: number;
   createdAt: string;
   updatedAt?: string;
 }
