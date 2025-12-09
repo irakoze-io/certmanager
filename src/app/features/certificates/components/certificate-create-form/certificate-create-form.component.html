@@ -1,0 +1,223 @@
+<div class="certificate-create-form-container">
+  @if (errorMessage()) {
+  <div class="error-notification">
+    <div class="flex items-center gap-2">
+      <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <span class="text-sm text-red-700">{{ errorMessage() }}</span>
+    </div>
+  </div>
+  }
+
+  @if (generatedCertificate() && generatedCertificate()!.status === 'ISSUED') {
+  <!-- Success View -->
+  <div class="flex flex-col items-center justify-center py-8 text-center animate-in fade-in duration-300">
+    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
+      <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+    </div>
+
+    <h3 class="text-2xl font-bold text-gray-900 mb-2">Certificate Generated!</h3>
+    <p class="text-gray-600 mb-8 max-w-sm">
+      The certificate has been successfully issued to
+      <span class="font-medium text-gray-900">{{ generatedCertificate()?.recipientData?.['name'] || 'the recipient'
+        }}</span>.
+    </p>
+
+    <div class="w-full max-w-md bg-gray-50 rounded-lg p-4 border border-gray-200 mb-8 text-left">
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <span class="block text-gray-500 mb-1">Certificate Number</span>
+          <span class="font-mono font-medium text-gray-900">{{ generatedCertificate()!.certificateNumber }}</span>
+        </div>
+        <div>
+          <span class="block text-gray-500 mb-1">Status</span>
+          <span
+            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            ISSUED
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col w-full max-w-xs gap-3">
+      <button type="button" (click)="downloadCertificate()"
+        class="w-full flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+          </path>
+        </svg>
+        Download PDF
+      </button>
+
+      <button type="button" (click)="resetForNewCertificate()"
+        class="w-full px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+        Create Another
+      </button>
+
+      <button type="button" (click)="onCancel()"
+        class="w-full px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
+        Close
+      </button>
+    </div>
+  </div>
+  } @else {
+  <!-- Form View -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <!-- Template Selection -->
+    <div class="form-section">
+      <label class="form-label">Template <span class="text-red-500">*</span></label>
+      <select formControlName="templateId" (change)="onTemplateSelected(+$any($event.target).value)" class="form-input"
+        [class.error]="form.get('templateId')?.invalid && form.get('templateId')?.touched">
+        <option value="">Select a template</option>
+        @for (template of templates(); track template.id) {
+        <option [value]="template.id">{{ template.name }}</option>
+        }
+      </select>
+      @if (form.get('templateId')?.invalid && form.get('templateId')?.touched) {
+      <p class="error-text">Template is required</p>
+      }
+    </div>
+
+    <!-- Version Selection -->
+    @if (selectedTemplate() && templateVersions().length > 0) {
+    <div class="form-section">
+      <label class="form-label">Template Version <span class="text-red-500">*</span></label>
+      <select formControlName="templateVersionId" (change)="onVersionSelected($any($event.target).value)"
+        class="form-input"
+        [class.error]="form.get('templateVersionId')?.invalid && form.get('templateVersionId')?.touched">
+        <option value="">Select a version</option>
+        @for (version of templateVersions(); track version.id) {
+        <option [value]="version.id">
+          v{{ typeof version.version === 'number' ? version.version : version.version }} - {{ version.status }}
+        </option>
+        }
+      </select>
+      @if (form.get('templateVersionId')?.invalid && form.get('templateVersionId')?.touched) {
+      <p class="error-text">Template version is required</p>
+      }
+    </div>
+    }
+
+    <!-- Certificate Number (Optional) -->
+    <div class="form-section">
+      <label class="form-label">Certificate Number (Optional)</label>
+      <input type="text" formControlName="certificateNumber" placeholder="Leave empty for auto-generation"
+        class="form-input" />
+      <p class="help-text">If left empty, a certificate number will be auto-generated</p>
+    </div>
+
+    <!-- Dynamic Recipient Data Fields -->
+    @if (selectedVersion() && Object.keys(fieldSchema()).length > 0) {
+    <div class="form-section">
+      <label class="form-label">Recipient Information</label>
+      <div formGroupName="recipientData" class="recipient-data-fields">
+        @for (fieldEntry of Object.entries(fieldSchema()); track fieldEntry[0]) {
+        @let fieldName = fieldEntry[0];
+        @let fieldDef = fieldEntry[1];
+        <div class="field-item">
+          <label [for]="fieldName" class="field-label">
+            {{ fieldDef.label || fieldName }}
+            @if (fieldDef.required) {
+            <span class="text-red-500">*</span>
+            }
+          </label>
+          @if (fieldDef.type === FieldType.TEXTAREA) {
+          <textarea [id]="fieldName" [formControlName]="fieldName" rows="4" class="form-input"
+            [class.error]="getFieldError(fieldName)"
+            [placeholder]="'Enter ' + (fieldDef.label || fieldName)"></textarea>
+          } @else if (fieldDef.type === FieldType.BINARY) {
+          <select [id]="fieldName" [formControlName]="fieldName" class="form-input"
+            [class.error]="getFieldError(fieldName)">
+            <option value="">Select</option>
+            <option [value]="true">Yes</option>
+            <option [value]="false">No</option>
+          </select>
+          } @else {
+          <input [id]="fieldName" [type]="getFieldInputType(fieldDef.type)" [formControlName]="fieldName"
+            class="form-input" [class.error]="getFieldError(fieldName)"
+            [placeholder]="'Enter ' + (fieldDef.label || fieldName)" />
+          }
+          @if (getFieldError(fieldName)) {
+          <p class="error-text">{{ getFieldError(fieldName) }}</p>
+          }
+          <p class="field-type-hint">{{ getFieldTypeLabel(fieldDef.type) }}</p>
+        </div>
+        }
+      </div>
+    </div>
+    }
+
+    <!-- Generation Options -->
+    <div class="form-section">
+      <label class="form-label">Generation Mode</label>
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="synchronous" formControlName="synchronous"
+          class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+        <label for="synchronous" class="text-sm text-gray-700 cursor-pointer">
+          Generate synchronously (immediate PDF, may take 2-5 seconds)
+        </label>
+      </div>
+      <p class="help-text">
+        Unchecked: Certificate will be generated in the background (recommended for production)
+      </p>
+    </div>
+
+    <!-- Processing/Failed Status -->
+    @if (generatedCertificate() && generatedCertificate()!.status !== 'ISSUED') {
+    <div class="form-section">
+      <div class="certificate-status-card">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-lg font-semibold text-gray-900">Status</h3>
+          <span [class]="getStatusClass(generatedCertificate()!.status)">
+            {{ generatedCertificate()!.status }}
+          </span>
+        </div>
+
+        <div class="flex items-center gap-2 text-blue-600">
+          @if (isPolling()) {
+          <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
+          <span>Processing certificate...</span>
+          }
+        </div>
+      </div>
+    </div>
+    }
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <button type="button" (click)="onCancel()" [disabled]="isLoading() || isPolling()" class="btn-cancel">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        Cancel
+      </button>
+      <button type="submit" [disabled]="isLoading() || form.invalid || isPolling()" class="btn-submit">
+        @if (isLoading()) {
+        <svg class="animate-spin h-4 w-4 inline-block mr-2" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+          </path>
+        </svg>
+        Generating...
+        } @else {
+        <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"></path>
+        </svg>
+        Generate Certificate
+        }
+      </button>
+    </div>
+  </form>
+  }
+</div>

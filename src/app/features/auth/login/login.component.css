@@ -1,0 +1,25 @@
+/* Component-specific styles */
+/* Most styling is handled by Tailwind CSS classes */
+
+/* Smooth transitions for tab switching */
+button[type="button"] {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Ensure form inputs have consistent styling */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"] {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Custom focus styles */
+input:focus {
+  outline: none;
+}
+
+/* Ensure password toggle button doesn't interfere with form submission */
+button[type="button"].absolute {
+  pointer-events: auto;
+}

@@ -1,0 +1,65 @@
+/* Data grid component styles */
+
+/* Ensure table fits viewport without horizontal scroll */
+.overflow-x-auto {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Ensure table cells truncate long content properly */
+table tbody td.max-w-0 > div.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: block;
+}
+
+/* Template name should truncate with ellipsis */
+table tbody td[class*="templateName"] .flex.flex-col > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Certificate number should not truncate - allow wrapping */
+table tbody td[class*="templateName"] .flex.items-center.gap-1\.5 span:first-child {
+  white-space: normal;
+  word-break: break-all;
+  overflow: visible;
+  text-overflow: clip;
+  min-width: 0;
+}
+
+table tbody td.max-w-0 > span.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: inline-block;
+}
+
+table thead th.max-w-0 > div.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: block;
+}
+
+/* Version column - fixed narrow width */
+table tbody td.w-24,
+table thead th.w-24 {
+  width: 6rem;
+  min-width: 6rem;
+  max-width: 6rem;
+}
+
+/* Action column - fixed narrow width */
+table tbody td.w-20,
+table thead th.w-20 {
+  width: 5rem;
+  min-width: 5rem;
+  max-width: 5rem;
+}
+

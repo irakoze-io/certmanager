@@ -1,0 +1,14 @@
+{
+  "/api": {
+    "target": "https://cant-february-pleasant-advertiser.trycloudflare.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/auth": {
+    "target": "https://cant-february-pleasant-advertiser.trycloudflare.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}

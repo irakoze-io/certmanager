@@ -59,6 +59,10 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json",
+            "port": 5050
+          },
           "configurations": {
             "production": {
               "buildTarget": "certmanager:build:production"
