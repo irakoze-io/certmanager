@@ -1,0 +1,135 @@
+/* Action Buttons - Small Square Icon Only */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  border: 1px solid;
+  background-color: transparent;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-btn-enrich {
+  border-color: #e5e7eb;
+  color: #6b7280;
+}
+
+.action-btn-enrich:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.action-btn-publish {
+  border-color: #e5e7eb;
+  color: #6b7280;
+}
+
+.action-btn-publish:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+  color: #6366f1;
+}
+
+.action-btn-delete {
+  border-color: #e5e7eb;
+  color: #6b7280;
+}
+
+.action-btn-delete:hover:not(:disabled) {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #ef4444;
+}
+
+/* Existing Fields Badges - Matching enrich modal style with smaller icons */
+.existing-fields-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.existing-field-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 9999px; /* Pill shape */
+  font-size: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
+  cursor: default;
+}
+
+.existing-field-badge:hover {
+  border-color: #9ca3af;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  background-color: #f9fafb;
+}
+
+.existing-field-badge-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.existing-field-badge-name {
+  font-weight: 500;
+  color: #111827;
+  font-size: 0.75rem;
+}
+
+.existing-field-badge-type {
+  padding: 0.125rem 0.375rem;
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-left: 0.25rem;
+}
+
+/* Modal Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fixed.inset-0.z-50 > div:last-child {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Loading States */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

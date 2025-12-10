@@ -74,13 +74,14 @@
       <div class="relative">
         <select formControlName="templateId" (change)="onTemplateSelected(+$any($event.target).value)" class="form-input"
           [class.error]="form.get('templateId')?.invalid && form.get('templateId')?.touched"
-          [class.loading]="isLoadingVersions()">
+          [class.loading]="isLoadingTemplates() || isLoadingVersions()"
+          [disabled]="isLoadingTemplates()">
           <option value="">Select a template</option>
           @for (template of templates(); track template.id) {
           <option [value]="template.id">{{ template.name }}</option>
           }
         </select>
-        @if (isLoadingVersions()) {
+        @if (isLoadingTemplates() || isLoadingVersions()) {
         <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
           <svg class="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -208,13 +209,13 @@
 
     <!-- Actions -->
     <div class="form-actions">
-      <button type="button" (click)="onCancel()" [disabled]="isLoading() || isPolling() || isLoadingVersions()" class="btn-cancel">
+      <button type="button" (click)="onCancel()" class="btn-cancel">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
         Cancel
       </button>
-      <button type="submit" [disabled]="isLoading() || form.invalid || isPolling() || isLoadingVersions()" class="btn-submit">
+      <button type="submit" [disabled]="isLoading() || form.invalid || isPolling() || isLoadingVersions() || isLoadingTemplates()" class="btn-submit">
         @if (isLoading()) {
         <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

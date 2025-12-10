@@ -29,6 +29,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
 
   form!: FormGroup;
   isLoading = signal<boolean>(false);
+  isLoadingTemplates = signal<boolean>(false);
   isLoadingVersions = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
 
@@ -87,16 +88,16 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   }
 
   loadTemplates(): void {
-    this.isLoading.set(true);
+    this.isLoadingTemplates.set(true);
     this.templateService.getAllTemplates().subscribe({
       next: (templates) => {
         this.templates.set(templates);
-        this.isLoading.set(false);
+        this.isLoadingTemplates.set(false);
       },
       error: (error) => {
         console.error('Error loading templates:', error);
         this.toastService.error('Failed to load templates. Please try again.');
-        this.isLoading.set(false);
+        this.isLoadingTemplates.set(false);
       }
     });
   }

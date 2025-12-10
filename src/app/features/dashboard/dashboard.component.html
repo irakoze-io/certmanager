@@ -174,6 +174,18 @@
   </div>
   }
 
+  <!-- Template Details Modal -->
+  @if (selectedTemplate()) {
+  <app-template-details-modal
+    [template]="selectedTemplate()!"
+    [isOpen]="showTemplateDetailsModal()"
+    (onClose)="onModalClose()"
+    (onEnrich)="onTemplateDetailsEnrich($event)"
+    (onDeleted)="onTemplateDetailsDeleted()"
+    (onPublished)="onTemplateDetailsPublished()"
+  />
+  }
+
   <!-- Enrich Template Modal -->
   @if (selectedTemplate()) {
   <app-modal [isOpen]="showEnrichModal()" [title]="modalTitle()"

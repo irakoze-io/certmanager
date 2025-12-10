@@ -15,6 +15,7 @@ import { DataGridComponent, DataGridConfig } from '../../shared/components/data-
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { TemplateCreateFormComponent } from '../templates/components/template-create-form/template-create-form.component';
 import { TemplateEnrichFormComponent } from '../templates/components/template-enrich-form/template-enrich-form.component';
+import { TemplateDetailsModalComponent } from '../templates/components/template-details-modal/template-details-modal.component';
 import { CertificateCreateFormComponent } from '../certificates/components/certificate-create-form/certificate-create-form.component';
 import { CertificateViewComponent } from '../certificates/components/certificate-view/certificate-view.component';
 
@@ -29,7 +30,8 @@ import { CertificateViewComponent } from '../certificates/components/certificate
     TemplateCreateFormComponent,
     TemplateEnrichFormComponent,
     CertificateCreateFormComponent,
-    CertificateViewComponent
+    CertificateViewComponent,
+    TemplateDetailsModalComponent
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
@@ -50,6 +52,7 @@ export class DashboardComponent implements OnInit {
 
   // Modal state
   showCreateModal = signal<boolean>(false);
+  showTemplateDetailsModal = signal<boolean>(false);
   showEnrichModal = signal<boolean>(false);
   showCertificateModal = signal<boolean>(false);
   showCertificateViewModal = signal<boolean>(false);
@@ -601,6 +604,7 @@ export class DashboardComponent implements OnInit {
 
   onModalClose(): void {
     this.showCreateModal.set(false);
+    this.showTemplateDetailsModal.set(false);
     this.showEnrichModal.set(false);
     this.showCertificateModal.set(false);
     this.showCertificateViewModal.set(false);
@@ -610,6 +614,35 @@ export class DashboardComponent implements OnInit {
     this.isEditingTemplate.set(false);
     this.showDeleteConfirmation.set(false);
     this.templateToDelete.set(null);
+  }
+
+  onTemplateDetailsEnrich(template: TemplateResponse): void {
+    // Set template first to ensure it's available
+    this.selectedTemplate.set(template);
+    this.selectedVersionId.set(undefined);
+    this.modalTitle.set('Enrich Template');
+    
+    // Close template details modal
+    this.showTemplateDetailsModal.set(false);
+    
+    // Open enrich modal - use setTimeout to ensure details modal closes first
+    setTimeout(() => {
+      this.showEnrichModal.set(true);
+    }, 10);
+  }
+
+  onTemplateDetailsDeleted(): void {
+    // Reload templates to reflect the change
+    if (this.activeGridType() === 'templates') {
+      this.loadTemplates();
+    }
+  }
+
+  onTemplateDetailsPublished(): void {
+    // Reload templates to reflect the change
+    if (this.activeGridType() === 'templates') {
+      this.loadTemplates();
+    }
   }
 
   onCertificateCreated(): void {
@@ -718,8 +751,47 @@ export class DashboardComponent implements OnInit {
   }
 
   onRowClick(item: any): void {
-    // TODO: Navigate to detail/edit page based on entity type
-    console.log('Row clicked:', item);
+    const gridType = this.activeGridType();
+    
+    // If clicking on a template row, open the template details modal
+    if (gridType === 'templates') {
+      const templateData = item._original || item;
+      
+      if (!templateData || !templateData.id) {
+        console.error('Invalid template data:', item);
+        this.toastService.error('Invalid template data. Please try again.');
+        return;
+      }
+
+      // Clear any previous error
+      this.errorMessage.set(null);
+
+      // Fetch full template details to ensure we have latest data
+      this.templateService.getTemplateById(templateData.id).subscribe({
+        next: (template) => {
+          if (!template) {
+            this.toastService.error('Template not found. Please try again.');
+            return;
+          }
+
+          this.selectedTemplate.set(template);
+          this.showTemplateDetailsModal.set(true);
+        },
+        error: (error) => {
+          console.error('Error fetching template:', error);
+          let errorMsg = 'Failed to load template details.';
+          if (error?.error?.message) {
+            errorMsg = error.error.message;
+          } else if (error?.message) {
+            errorMsg = error.message;
+          }
+          this.toastService.error(errorMsg);
+        }
+      });
+    } else {
+      // TODO: Handle other entity types (certificates, versions, etc.)
+      console.log('Row clicked:', item);
+    }
   }
 
   onActionClick(event: { action: string; item: any }): void {
