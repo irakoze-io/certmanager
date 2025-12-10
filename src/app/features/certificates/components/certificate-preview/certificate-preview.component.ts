@@ -1,5 +1,6 @@
-import { Component, OnInit, input, output, signal, effect } from '@angular/core';
+import { Component, OnInit, input, output, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CertificateService } from '../../../../core/services/certificate.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { CertificateResponse, CertificateStatus } from '../../../../core/models/certificate.model';
@@ -25,26 +26,28 @@ export class CertificatePreviewComponent implements OnInit {
 
   isLoading = signal<boolean>(false);
   previewUrl = signal<string | null>(null);
+  safePreviewUrl = signal<SafeResourceUrl | null>(null);
   errorMessage = signal<string | null>(null);
-  previewLoadAttempted = signal<boolean>(false);
+  previewLoadAttempted = signal<string | null>(null); // Track which certificate ID we attempted
+
+  private sanitizer = inject(DomSanitizer);
 
   constructor(
     private certificateService: CertificateService,
     private toastService: ToastService
-  ) {
-    // Load preview URL when certificate changes
-    effect(() => {
-      const cert = this.certificate();
-      const open = this.isOpen();
-      if (cert && open && cert.status === CertificateStatus.PENDING) {
-        this.loadPreviewUrl();
-      }
-    });
-  }
+  ) {}
 
   ngOnInit(): void {
-    if (this.certificate() && this.isOpen()) {
-      this.loadPreviewUrl();
+    // Load preview when component initializes
+    const cert = this.certificate();
+    const open = this.isOpen();
+    
+    if (cert && open && cert.id) {
+      // Only load if we haven't attempted this certificate ID yet
+      // Load for any status (ISSUED, PENDING, etc.)
+      if (this.previewLoadAttempted() !== cert.id) {
+        this.loadPreviewUrl();
+      }
     }
   }
 
@@ -54,35 +57,38 @@ export class CertificatePreviewComponent implements OnInit {
       return;
     }
 
-    // Don't reload if we already attempted
-    if (this.previewLoadAttempted()) {
+    // Don't reload if we already attempted this certificate ID
+    if (this.previewLoadAttempted() === cert.id) {
       return;
     }
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
-    this.previewLoadAttempted.set(true);
+    this.previewLoadAttempted.set(cert.id);
 
     this.certificateService.getDownloadUrl(cert.id, 10).subscribe({
       next: (url) => {
         if (url) {
           this.previewUrl.set(url);
+          // Sanitize the URL for iframe use
+          this.safePreviewUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
         } else {
           this.previewUrl.set(null);
+          this.safePreviewUrl.set(null);
         }
         this.isLoading.set(false);
       },
       error: (error) => {
-        console.error('Error loading preview URL:', error);
         this.isLoading.set(false);
 
         const status = error?.status || error?.error?.status;
         if (status === 404 || status === 400) {
-
           this.previewUrl.set(null);
+          this.safePreviewUrl.set(null);
         } else {
           // Other error - log but don't show error message
           this.previewUrl.set(null);
+          this.safePreviewUrl.set(null);
         }
       }
     });
@@ -158,7 +164,7 @@ export class CertificatePreviewComponent implements OnInit {
       if (value.name) return value.name;
       if (value.value) return value.value;
       if (value.label) return value.label;
-      
+
       return JSON.stringify(value);
     }
     return String(value);

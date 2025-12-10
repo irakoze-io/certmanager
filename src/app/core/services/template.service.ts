@@ -50,7 +50,7 @@ export class TemplateService extends ApiService {
    */
   createTemplateWithVersion(request: CreateTemplateRequest): Observable<{ template: TemplateResponse; version: TemplateVersionResponse }> {
     const currentUser = this.authService.currentUser();
-    
+
     // Step 1: Create template
     return this.createTemplate(request).pipe(
       switchMap((template) => {
@@ -92,7 +92,7 @@ export class TemplateService extends ApiService {
 </head>
 <body style="font-family: Arial, sans-serif; margin: 40px; text-align: center;">
   <div style="border: 3px solid #333; padding: 40px; max-width: 800px; margin: 0 auto;">
-    <h1 style="color: #2c3e50; margin-bottom: 20px;">Certificate of Completion</h1>
+    <h1 style="color: #2c3e50; margin-bottom: 20px;">Sec CERTIFICATE Issue</h1>
     <p style="font-size: 18px; margin: 20px 0;">This certifies that</p>
     <h2 style="color: #3498db; margin: 20px 0;">{{recipient.name}}</h2>
     <p style="font-size: 14px; color: #666; margin: 10px 0;">Email: {{recipient.email}}</p>

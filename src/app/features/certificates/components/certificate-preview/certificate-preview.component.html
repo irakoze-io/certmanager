@@ -13,22 +13,22 @@
     <div class="preview-content">
       <!-- Certificate Number Header -->
       <div class="certificate-number-header">
-        <div class="certificate-number-left">
+        <div class="certificate-number-content">
           <span [class]="getStatusCircleClass(certificate()!.status) + ' status-circle'"></span>
           <span class="certificate-number-label">Certificate Number:</span>
-        </div>
-        <div class="certificate-number-value">
-          <span>{{ certificate()!.certificateNumber }}</span>
-          <button
-            type="button"
-            (click)="copyCertificateNumber()"
-            class="copy-button"
-            [title]="'Copy certificate number'"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-            </svg>
-          </button>
+          <div class="certificate-number-value">
+            <span>{{ certificate()!.certificateNumber }}</span>
+            <button
+              type="button"
+              (click)="copyCertificateNumber()"
+              class="copy-button"
+              [title]="'Copy certificate number'"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -116,11 +116,13 @@
             <h3 class="text-sm font-medium text-gray-700">Certificate Preview</h3>
           </div>
           <div class="preview-iframe-container">
-            <iframe
-              [src]="previewUrl()!"
-              class="preview-iframe"
-              title="Certificate Preview"
-            ></iframe>
+            @if (safePreviewUrl()) {
+              <iframe
+                [src]="safePreviewUrl()!"
+                class="preview-iframe"
+                title="Certificate Preview"
+              ></iframe>
+            }
           </div>
         </div>
       } @else if (!isLoading() && !errorMessage()) {

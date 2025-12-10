@@ -9,7 +9,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { User } from '../../core/models/auth.model';
 import { CustomerResponse } from '../../core/models/customer.model';
 import { TemplateResponse, TemplateVersionResponse, TemplateVersionStatus } from '../../core/models/template.model';
-import { CertificateResponse } from '../../core/models/certificate.model';
+import { CertificateResponse, CertificateStatus } from '../../core/models/certificate.model';
 import { DashboardCardComponent, DashboardCardConfig, EntityType } from '../../shared/components/dashboard-card/dashboard-card.component';
 import { DataGridComponent, DataGridConfig } from '../../shared/components/data-grid/data-grid.component';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
@@ -923,8 +923,22 @@ export class DashboardComponent implements OnInit {
         const templateId = version.templateId;
         this.showVersionDetails(version, { id: templateId });
       }
+    } else if (gridType === 'certificates') {
+      // Certificates grid: open certificate view modal
+      const certificateData = item._original || item;
+      
+      if (!certificateData || !certificateData.id) {
+        console.error('Invalid certificate data:', item);
+        this.toastService.error('Invalid certificate data. Please try again.');
+        return;
+      }
+
+      // Open the same modal as the "View" action
+      this.selectedCertificateId.set(certificateData.id);
+      this.modalTitle.set('Certificate Details');
+      this.showCertificateViewModal.set(true);
     } else {
-      // TODO: Handle other entity types (certificates, etc.)
+      // Handle other entity types
       console.log('Row clicked:', item);
     }
   }
@@ -1438,9 +1452,57 @@ export class DashboardComponent implements OnInit {
           return;
         }
 
-        this.selectedCertificateId.set(viewCertData.id);
-        this.modalTitle.set('Certificate Details');
-        this.showCertificateViewModal.set(true);
+        // Check status first - only ISSUED certificates can be viewed
+        if (viewCertData.status !== 'ISSUED') {
+          let errorMsg = 'Certificate cannot be viewed.';
+          if (viewCertData.status === 'FAILED') {
+            errorMsg = 'Certificate generation failed. Cannot view certificate.';
+          } else if (viewCertData.status === 'REVOKED') {
+            errorMsg = 'Certificate has been revoked. Cannot view certificate.';
+          } else if (viewCertData.status === 'PENDING' || viewCertData.status === 'PROCESSING') {
+            errorMsg = 'Certificate is still being processed. Please wait for it to be issued.';
+          } else {
+            errorMsg = `Certificate status is ${viewCertData.status}. Only issued certificates can be viewed.`;
+          }
+          this.toastService.error(errorMsg);
+          return;
+        }
+
+        // Fetch full certificate details and show PDF preview modal
+        this.certificateService.getCertificateById(viewCertData.id).subscribe({
+          next: (certificate) => {
+            if (!certificate) {
+              this.toastService.error('Certificate not found.');
+              return;
+            }
+            // Double-check status after fetching
+            if (certificate.status !== CertificateStatus.ISSUED) {
+              let errorMsg = 'Certificate cannot be viewed.';
+              if (certificate.status === CertificateStatus.FAILED) {
+                errorMsg = 'Certificate generation failed. Cannot view certificate.';
+              } else if (certificate.status === CertificateStatus.REVOKED) {
+                errorMsg = 'Certificate has been revoked. Cannot view certificate.';
+              } else {
+                errorMsg = `Certificate status is ${certificate.status}. Only issued certificates can be viewed.`;
+              }
+              this.toastService.error(errorMsg);
+              return;
+            }
+            this.selectedCertificateForPreview.set(certificate);
+            this.modalTitle.set('View Certificate');
+            this.showCertificatePreviewModal.set(true);
+          },
+          error: (error) => {
+            console.error('Error fetching certificate:', error);
+            let errorMsg = 'Failed to load certificate.';
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            }
+            this.toastService.error(errorMsg);
+          }
+        });
         break;
       case 'previewCertificate':
         const previewCertData = item._original || item;
@@ -1457,8 +1519,10 @@ export class DashboardComponent implements OnInit {
         }
 
         // Fetch full certificate details
+        console.log('[Dashboard] Preview action clicked, fetching certificate:', previewCertData.id);
         this.certificateService.getCertificateById(previewCertData.id).subscribe({
           next: (certificate) => {
+            console.log('[Dashboard] Certificate fetched:', certificate);
             if (!certificate) {
               this.toastService.error('Certificate not found.');
               return;
@@ -1466,6 +1530,7 @@ export class DashboardComponent implements OnInit {
             this.selectedCertificateForPreview.set(certificate);
             this.modalTitle.set('Preview Certificate');
             this.showCertificatePreviewModal.set(true);
+            console.log('[Dashboard] Modal should be opening now');
           },
           error: (error) => {
             console.error('Error fetching certificate:', error);

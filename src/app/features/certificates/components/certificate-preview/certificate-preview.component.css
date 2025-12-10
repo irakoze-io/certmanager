@@ -10,18 +10,16 @@
 
 /* Certificate Number Header */
 .certificate-number-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.certificate-number-left {
+.certificate-number-content {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .certificate-number-label {
