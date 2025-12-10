@@ -18,6 +18,7 @@ import { TemplateEnrichFormComponent } from '../templates/components/template-en
 import { TemplateDetailsModalComponent } from '../templates/components/template-details-modal/template-details-modal.component';
 import { CertificateCreateFormComponent } from '../certificates/components/certificate-create-form/certificate-create-form.component';
 import { CertificateViewComponent } from '../certificates/components/certificate-view/certificate-view.component';
+import { CertificatePreviewComponent } from '../certificates/components/certificate-preview/certificate-preview.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -31,6 +32,7 @@ import { CertificateViewComponent } from '../certificates/components/certificate
     TemplateEnrichFormComponent,
     CertificateCreateFormComponent,
     CertificateViewComponent,
+    CertificatePreviewComponent,
     TemplateDetailsModalComponent
   ],
   templateUrl: './dashboard.component.html',
@@ -57,11 +59,13 @@ export class DashboardComponent implements OnInit {
   showCertificateModal = signal<boolean>(false);
   showCertificateViewModal = signal<boolean>(false);
   showPreviewModal = signal<boolean>(false);
+  showCertificatePreviewModal = signal<boolean>(false);
   modalTitle = signal<string>('');
   selectedTemplate = signal<TemplateResponse | null>(null);
   selectedVersionId = signal<string | undefined>(undefined);
   selectedVersionForPreview = signal<TemplateVersionResponse | null>(null);
   selectedCertificateId = signal<string | undefined>(undefined);
+  selectedCertificateForPreview = signal<CertificateResponse | null>(null);
   isEditingTemplate = signal<boolean>(false);
   showDeleteConfirmation = signal<boolean>(false);
   templateToDelete = signal<TemplateResponse | null>(null);
@@ -509,6 +513,11 @@ export class DashboardComponent implements OnInit {
           label: 'View',
           action: 'viewCertificate',
           icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>'
+        },
+        {
+          label: 'Preview',
+          action: 'previewCertificate',
+          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>'
         }
       ]
     });
@@ -707,10 +716,12 @@ export class DashboardComponent implements OnInit {
     this.showCertificateModal.set(false);
     this.showCertificateViewModal.set(false);
     this.showPreviewModal.set(false);
+    this.showCertificatePreviewModal.set(false);
     this.selectedTemplate.set(null);
     this.selectedVersionId.set(undefined);
     this.selectedVersionForPreview.set(null);
     this.selectedCertificateId.set(undefined);
+    this.selectedCertificateForPreview.set(null);
     this.isEditingTemplate.set(false);
     this.showDeleteConfirmation.set(false);
     this.templateToDelete.set(null);
@@ -1430,6 +1441,44 @@ export class DashboardComponent implements OnInit {
         this.selectedCertificateId.set(viewCertData.id);
         this.modalTitle.set('Certificate Details');
         this.showCertificateViewModal.set(true);
+        break;
+      case 'previewCertificate':
+        const previewCertData = item._original || item;
+
+        if (!previewCertData || !previewCertData.id) {
+          this.toastService.error('Invalid certificate data.');
+          return;
+        }
+
+        // Check if certificate is PENDING
+        if (previewCertData.status !== 'PENDING') {
+          this.toastService.error('Only pending certificates can be previewed.');
+          return;
+        }
+
+        // Fetch full certificate details
+        this.certificateService.getCertificateById(previewCertData.id).subscribe({
+          next: (certificate) => {
+            if (!certificate) {
+              this.toastService.error('Certificate not found.');
+              return;
+            }
+            this.selectedCertificateForPreview.set(certificate);
+            this.modalTitle.set('Preview Certificate');
+            this.showCertificatePreviewModal.set(true);
+          },
+          error: (error) => {
+            console.error('Error fetching certificate:', error);
+            let errorMsg = 'Failed to load certificate.';
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            }
+            this.toastService.error(errorMsg);
+            // Don't show modal on error - just show toast notification
+          }
+        });
         break;
       default:
         console.log('Unknown action:', action);

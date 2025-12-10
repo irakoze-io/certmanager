@@ -218,7 +218,7 @@
   </app-modal>
   }
 
-  <!-- Preview Certificate Modal -->
+  <!-- Preview Certificate Modal (for template versions) -->
   @if (selectedVersionForPreview()) {
   <app-modal [isOpen]="showPreviewModal()" [title]="modalTitle()"
     subtitle="Fill in recipient details to preview the certificate" (onClose)="onModalClose()">
@@ -228,6 +228,19 @@
       [isPreviewMode]="true"
       (onSuccess)="onPreviewGenerated()" 
       (onCancelClick)="onModalClose()" />
+    }
+  </app-modal>
+  }
+
+  <!-- Certificate Preview Modal (for pending certificates) -->
+  @if (selectedCertificateForPreview()) {
+  <app-modal [isOpen]="showCertificatePreviewModal()" [title]="modalTitle()"
+    subtitle="Preview the certificate before issuing" (onClose)="onModalClose()">
+    @if (showCertificatePreviewModal() && selectedCertificateForPreview()) {
+    <app-certificate-preview 
+      [certificate]="selectedCertificateForPreview()!" 
+      [isOpen]="showCertificatePreviewModal()"
+      (onClose)="onModalClose()" />
     }
   </app-modal>
   }
