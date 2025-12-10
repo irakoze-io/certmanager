@@ -179,6 +179,7 @@
   <app-template-details-modal
     [template]="selectedTemplate()!"
     [isOpen]="showTemplateDetailsModal()"
+    [versionId]="selectedVersionId()"
     (onClose)="onModalClose()"
     (onEnrich)="onTemplateDetailsEnrich($event)"
     (onDeleted)="onTemplateDetailsDeleted()"

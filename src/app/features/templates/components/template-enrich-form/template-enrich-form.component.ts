@@ -448,25 +448,15 @@ p {
       };
     });
 
-    // Build request
-    const request = {
-      templateId: this.template().id,
-      version: this.nextVersion(),
-      htmlContent: formValue.htmlContent,
-      fieldSchema: Object.keys(fieldSchema).length > 0 ? fieldSchema : undefined,
-      cssStyles: formValue.cssStyles || undefined,
-      settings: formValue.settings,
-      status: TemplateVersionStatus.DRAFT,
-      createdBy: currentUser?.id || undefined
-    };
-
-    const existingVersion = this.existingVersion();
+    // Check if we're editing an existing version or creating a new one
+    const versionId = this.versionId();
+    const isEditing = this.isEditMode() && versionId;
     
-    if (existingVersion && existingVersion.id) {
-      // Update existing version
+    if (isEditing) {
+      // Update existing version using PUT request
       this.templateService.updateTemplateVersion(
         this.template().id,
-        existingVersion.id,
+        versionId,
         {
           htmlContent: formValue.htmlContent,
           fieldSchema: Object.keys(fieldSchema).length > 0 ? fieldSchema : undefined,
@@ -495,7 +485,18 @@ p {
         }
       });
     } else {
-      // Create new version
+      // Create new version using POST request
+      const request = {
+        templateId: this.template().id,
+        version: this.nextVersion(),
+        htmlContent: formValue.htmlContent,
+        fieldSchema: Object.keys(fieldSchema).length > 0 ? fieldSchema : undefined,
+        cssStyles: formValue.cssStyles || undefined,
+        settings: formValue.settings,
+        status: TemplateVersionStatus.DRAFT,
+        createdBy: currentUser?.id || undefined
+      };
+      
       this.templateService.createTemplateVersion(this.template().id, request).subscribe({
         next: () => {
           this.isLoading.set(false);

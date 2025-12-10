@@ -15,6 +15,7 @@ import { formatDate, formatTime } from '../../../../core/utils/date.util';
 export class TemplateDetailsModalComponent implements OnInit {
   template = input.required<TemplateResponse>();
   isOpen = input<boolean>(false);
+  versionId = input<string | undefined>(undefined); // Optional: if provided, load this specific version
   
   onClose = output<void>();
   onEnrich = output<TemplateResponse>();
@@ -26,6 +27,7 @@ export class TemplateDetailsModalComponent implements OnInit {
   FieldType = FieldType; // Expose FieldType to template
   formatDate = formatDate; // Expose formatDate to template
   formatTime = formatTime; // Expose formatTime to template
+  parseInt = parseInt; // Expose parseInt to template
 
   isLoading = signal<boolean>(false);
   isLoadingVersion = signal<boolean>(false);
@@ -57,7 +59,14 @@ export class TemplateDetailsModalComponent implements OnInit {
     if (!templateData?.id) return;
 
     this.isLoadingVersion.set(true);
-    this.templateService.getLatestTemplateVersion(templateData.id).subscribe({
+    
+    // Load specific version if versionId is provided, otherwise load latest
+    const versionId = this.versionId();
+    const versionObservable = versionId
+      ? this.templateService.getTemplateVersionById(templateData.id, versionId)
+      : this.templateService.getLatestTemplateVersion(templateData.id);
+    
+    versionObservable.subscribe({
       next: (version) => {
         this.latestVersion.set(version);
         if (version?.fieldSchema) {

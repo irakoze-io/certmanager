@@ -142,7 +142,11 @@
             <div>
               <span class="text-gray-500">Current Version</span>
               <p class="font-medium text-gray-900 mt-1">
-                v{{ template().currentVersion || 1 }}
+                @if (latestVersion()) {
+                  v{{ typeof latestVersion()!.version === 'number' ? latestVersion()!.version : parseInt(latestVersion()!.version.toString(), 10) }}
+                } @else {
+                  v{{ template().currentVersion || 1 }}
+                }
               </p>
             </div>
             @if (latestVersion()) {

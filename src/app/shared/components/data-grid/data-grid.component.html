@@ -118,7 +118,10 @@
             </tr>
             } @else {
             @for (item of paginatedData(); track $index) {
-            <tr (click)="onRowClickHandler(item)" class="hover:bg-gray-50 cursor-pointer transition-colors group">
+            <tr (click)="onRowClickHandler(item)" 
+                [class]="getNestedValue(item, '_isVersionRow') 
+                  ? 'hover:bg-blue-50 cursor-pointer transition-colors group bg-blue-50/30' 
+                  : 'hover:bg-gray-50 cursor-pointer transition-colors group'">
               @if (config().showCheckbox) {
               <td class="pl-6 py-3 whitespace-nowrap w-10" (click)="$event.stopPropagation()">
                 <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
@@ -127,7 +130,17 @@
               @for (column of config().columns; track column.key) {
               <td [class]="getColumnCellClass(column.key)">
                 @if (['name', 'recipientName', 'templateName'].includes(column.key)) {
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3" [class.pl-8]="getNestedValue(item, '_isVersionRow')">
+                  @if (getNestedValue(item, '_isVersionRow')) {
+                  <!-- Version row - no chevron, just indentation -->
+                  } @else if (getNestedValue(item, '_original')?._isTemplateRow && getNestedValue(item, '_original')?.versionCount > 1) {
+                  <!-- Parent template row with multiple versions - show chevron (rotate when expanded) -->
+                  <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform" 
+                       [class.rotate-90]="getNestedValue(item, '_isExpanded')" 
+                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                  }
                   <div
                     class="h-10 w-10 flex-shrink-0 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-medium text-sm overflow-hidden">
                     <!-- Placeholder for avatar -->
