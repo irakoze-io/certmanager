@@ -111,6 +111,33 @@ export class DataGridComponent<T = any> {
     return itemObj[key] ?? null;
   }
 
+  shouldShowPreviewAction(action: string, item: T): boolean {
+    if (action !== 'previewVersion') {
+      return true; // Show all other actions
+    }
+
+    // For preview action, only show if version is published
+    const status = this.getNestedValue(item, 'status');
+    if (status === 'PUBLISHED') {
+      return true;
+    }
+
+    // Check if it's a template row with published versions
+    const original = this.getNestedValue(item, '_original');
+    if (original?._isTemplateRow && original?.versions) {
+      const versions = original.versions as any[];
+      return versions.some((v: any) => v.status === 'PUBLISHED');
+    }
+
+    // Check if it's a version row with published status
+    if (this.getNestedValue(item, '_isVersionRow')) {
+      const versionStatus = original?.status;
+      return versionStatus === 'PUBLISHED';
+    }
+
+    return false;
+  }
+
   copyToClipboard(text: string, event: Event): void {
     event.stopPropagation(); // Prevent row click
     

@@ -56,9 +56,11 @@ export class DashboardComponent implements OnInit {
   showEnrichModal = signal<boolean>(false);
   showCertificateModal = signal<boolean>(false);
   showCertificateViewModal = signal<boolean>(false);
+  showPreviewModal = signal<boolean>(false);
   modalTitle = signal<string>('');
   selectedTemplate = signal<TemplateResponse | null>(null);
   selectedVersionId = signal<string | undefined>(undefined);
+  selectedVersionForPreview = signal<TemplateVersionResponse | null>(null);
   selectedCertificateId = signal<string | undefined>(undefined);
   isEditingTemplate = signal<boolean>(false);
   showDeleteConfirmation = signal<boolean>(false);
@@ -349,6 +351,11 @@ export class DashboardComponent implements OnInit {
           label: 'Edit',
           action: 'editVersion',
           icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>'
+        },
+        {
+          label: 'Preview',
+          action: 'previewVersion',
+          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>'
         }
       ]
     });
@@ -699,8 +706,10 @@ export class DashboardComponent implements OnInit {
     this.showEnrichModal.set(false);
     this.showCertificateModal.set(false);
     this.showCertificateViewModal.set(false);
+    this.showPreviewModal.set(false);
     this.selectedTemplate.set(null);
     this.selectedVersionId.set(undefined);
+    this.selectedVersionForPreview.set(null);
     this.selectedCertificateId.set(undefined);
     this.isEditingTemplate.set(false);
     this.showDeleteConfirmation.set(false);
@@ -756,6 +765,15 @@ export class DashboardComponent implements OnInit {
     // Reload certificates to reflect updates
     if (this.activeGridType() === 'certificates') {
       this.loadCertificates();
+    }
+  }
+
+  onPreviewGenerated(): void {
+    this.showPreviewModal.set(false);
+    this.selectedVersionForPreview.set(null);
+    // Optionally reload versions if needed
+    if (this.activeGridType() === 'versions') {
+      this.loadVersions();
     }
   }
 
@@ -1174,6 +1192,71 @@ export class DashboardComponent implements OnInit {
               errorMsg = error.message;
             }
 
+            this.toastService.error(errorMsg);
+          }
+        });
+        break;
+      case 'previewVersion':
+        // Get version data
+        const previewVersionData = item._original || item;
+        
+        // Check if this is a version row from expanded drawer
+        let versionToPreview: any;
+        if (previewVersionData._isTemplateRow) {
+          // This is a parent template row - get the latest published version
+          if (previewVersionData.versions && previewVersionData.versions.length > 0) {
+            const publishedVersions = previewVersionData.versions.filter((v: any) => v.status === TemplateVersionStatus.PUBLISHED);
+            if (publishedVersions.length > 0) {
+              // Get the latest published version
+              versionToPreview = publishedVersions.sort((a: any, b: any) => {
+                const versionA = typeof a.version === 'number' ? a.version : parseInt(a.version.toString(), 10);
+                const versionB = typeof b.version === 'number' ? b.version : parseInt(b.version.toString(), 10);
+                return versionB - versionA;
+              })[0];
+            }
+          }
+        } else if (item._isVersionRow) {
+          // This is a version row from expanded drawer
+          versionToPreview = previewVersionData;
+        } else {
+          // This is a regular version row
+          versionToPreview = previewVersionData;
+        }
+
+        if (!versionToPreview || !versionToPreview.id) {
+          this.toastService.error('Invalid version data. Please try again.');
+          return;
+        }
+
+        // Check if version is published
+        if (versionToPreview.status !== TemplateVersionStatus.PUBLISHED) {
+          this.toastService.error('Only published versions can be previewed.');
+          return;
+        }
+
+        // Clear any previous error
+        this.errorMessage.set(null);
+
+        // Fetch the full version details to get field schema
+        this.templateService.getTemplateVersionById(versionToPreview.templateId, versionToPreview.id).subscribe({
+          next: (version) => {
+            if (!version) {
+              this.toastService.error('Version not found. Please try again.');
+              return;
+            }
+
+            this.selectedVersionForPreview.set(version);
+            this.modalTitle.set('Preview Certificate');
+            this.showPreviewModal.set(true);
+          },
+          error: (error) => {
+            console.error('Error fetching version:', error);
+            let errorMsg = 'Failed to load version details.';
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            }
             this.toastService.error(errorMsg);
           }
         });
