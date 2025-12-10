@@ -15,7 +15,7 @@ import { formatDate, formatTime } from '../../../../core/utils/date.util';
 export class CertificatePreviewComponent implements OnInit {
   certificate = input.required<CertificateResponse>();
   isOpen = input<boolean>(false);
-  
+
   onClose = output<void>();
 
   CertificateStatus = CertificateStatus;
@@ -26,6 +26,7 @@ export class CertificatePreviewComponent implements OnInit {
   isLoading = signal<boolean>(false);
   previewUrl = signal<string | null>(null);
   errorMessage = signal<string | null>(null);
+  previewLoadAttempted = signal<boolean>(false);
 
   constructor(
     private certificateService: CertificateService,
@@ -53,24 +54,57 @@ export class CertificatePreviewComponent implements OnInit {
       return;
     }
 
+    // Don't reload if we already attempted
+    if (this.previewLoadAttempted()) {
+      return;
+    }
+
     this.isLoading.set(true);
     this.errorMessage.set(null);
+    this.previewLoadAttempted.set(true);
 
-    // Try to get download URL for preview (10 minute expiration)
-    // Note: PENDING certificates might not have a download URL yet
     this.certificateService.getDownloadUrl(cert.id, 10).subscribe({
       next: (url) => {
-        this.previewUrl.set(url);
+        if (url) {
+          this.previewUrl.set(url);
+        } else {
+          this.previewUrl.set(null);
+        }
         this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Error loading preview URL:', error);
         this.isLoading.set(false);
-        // Don't set error message - just don't show preview
-        // PENDING certificates might not have a download URL yet, which is expected
-        this.previewUrl.set(null);
+
+        const status = error?.status || error?.error?.status;
+        if (status === 404 || status === 400) {
+
+          this.previewUrl.set(null);
+        } else {
+          // Other error - log but don't show error message
+          this.previewUrl.set(null);
+        }
       }
     });
+  }
+
+  isCertificateCleanedUp(): boolean {
+    const cert = this.certificate();
+    if (!cert) {
+      return false;
+    }
+
+    // Check if storagePath is null/undefined and certificate is PENDING
+    if (!cert.storagePath && cert.status === CertificateStatus.PENDING) {
+      // Check if certificate was created more than 15 minutes ago
+      if (cert.createdAt) {
+        const createdAt = new Date(cert.createdAt);
+        const now = new Date();
+        const minutesDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+        return minutesDiff > 15;
+      }
+    }
+    return false;
   }
 
   copyCertificateNumber(): void {
@@ -91,18 +125,42 @@ export class CertificatePreviewComponent implements OnInit {
     this.onClose.emit();
   }
 
-  getStatusClass(status: CertificateStatus): string {
+  getStatusCircleClass(status: CertificateStatus): string {
     switch (status) {
       case CertificateStatus.ISSUED:
-        return 'bg-green-50 text-green-700 border-green-100';
+        return 'status-circle-green';
       case CertificateStatus.PENDING:
-        return 'bg-yellow-50 text-yellow-700 border-yellow-100';
+        return 'status-circle-yellow';
       case CertificateStatus.FAILED:
-        return 'bg-red-50 text-red-700 border-red-100';
+        return 'status-circle-red';
       case CertificateStatus.REVOKED:
-        return 'bg-red-50 text-red-700 border-red-100';
+        return 'status-circle-red';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'status-circle-gray';
     }
+  }
+
+  formatFieldValue(value: any): string {
+    if (value === null || value === undefined) {
+      return '-';
+    }
+    if (typeof value === 'object') {
+      // If it's an object, try to stringify it nicely or extract meaningful data
+      if (Array.isArray(value)) {
+        return value.join(', ');
+      }
+      // For objects, try to get a meaningful string representation
+      const keys = Object.keys(value);
+      if (keys.length === 0) {
+        return '-';
+      }
+      // If it has common properties, show them
+      if (value.name) return value.name;
+      if (value.value) return value.value;
+      if (value.label) return value.label;
+      
+      return JSON.stringify(value);
+    }
+    return String(value);
   }
 }

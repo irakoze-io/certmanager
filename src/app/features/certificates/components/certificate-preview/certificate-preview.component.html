@@ -13,7 +13,10 @@
     <div class="preview-content">
       <!-- Certificate Number Header -->
       <div class="certificate-number-header">
-        <span class="certificate-number-label">Certificate Number:</span>
+        <div class="certificate-number-left">
+          <span [class]="getStatusCircleClass(certificate()!.status) + ' status-circle'"></span>
+          <span class="certificate-number-label">Certificate Number:</span>
+        </div>
         <div class="certificate-number-value">
           <span>{{ certificate()!.certificateNumber }}</span>
           <button
@@ -35,14 +38,6 @@
         <div class="details-grid">
           <!-- Left Column -->
           <div class="details-column">
-            <!-- Status -->
-            <div class="detail-item">
-              <label class="detail-label">Certificate Status</label>
-              <span [class]="getStatusClass(certificate()!.status) + ' status-badge'">
-                {{ certificate()!.status }}
-              </span>
-            </div>
-
             <!-- Created At -->
             <div class="detail-item">
               <label class="detail-label">Created</label>
@@ -91,7 +86,7 @@
                 @let fieldValue = fieldEntry[1];
                 <div class="field-item">
                   <label class="field-label">{{ fieldName }}</label>
-                  <span class="field-value">{{ fieldValue || '-' }}</span>
+                  <span class="field-value">{{ formatFieldValue(fieldValue) }}</span>
                 </div>
               }
             </div>
@@ -134,7 +129,11 @@
             <h3 class="text-sm font-medium text-gray-700">Certificate Preview</h3>
           </div>
           <div class="preview-unavailable-message">
-            <p class="text-sm text-gray-500">Preview not available for pending certificates</p>
+            @if (isCertificateCleanedUp()) {
+              <p class="text-sm text-gray-500">This certificate may have been removed as it was pending for preview for more than 15 minutes.</p>
+            } @else {
+              <p class="text-sm text-gray-500">Preview not available for pending certificates</p>
+            }
           </div>
         </div>
       }
