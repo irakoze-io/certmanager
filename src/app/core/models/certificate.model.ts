@@ -11,6 +11,7 @@ export interface GenerateCertificateRequest {
   expiresAt?: string | null; // ISO datetime
   issuedBy?: string | null; // UUID
   synchronous?: boolean; // Default: false (async)
+  preview?: boolean; // Default: false - Generate as preview (PENDING status)
 }
 
 export interface CertificateResponse {

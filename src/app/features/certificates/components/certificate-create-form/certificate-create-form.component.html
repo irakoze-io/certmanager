@@ -11,7 +11,7 @@
   </div>
   }
 
-  @if (generatedCertificate() && generatedCertificate()!.status === 'ISSUED') {
+  @if (generatedCertificate() && (generatedCertificate()!.status === 'ISSUED' || (isPreviewMode() && generatedCertificate()!.status === 'PENDING'))) {
   <!-- Success View -->
   <div class="flex flex-col items-center justify-center py-8 text-center animate-in fade-in duration-300">
     <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
@@ -20,11 +20,14 @@
       </svg>
     </div>
 
-    <h3 class="text-2xl font-bold text-gray-900 mb-2">Certificate Generated!</h3>
+    <h3 class="text-2xl font-bold text-gray-900 mb-2">@if (isPreviewMode()) { Certificate Preview Generated! } @else { Certificate Generated! }</h3>
     <p class="text-gray-600 mb-8 max-w-sm">
-      The certificate has been successfully issued to
-      <span class="font-medium text-gray-900">{{ generatedCertificate()?.recipientData?.['name'] || 'the recipient'
-        }}</span>.
+      @if (isPreviewMode()) {
+        The certificate preview has been generated successfully. Review it below before issuing.
+      } @else {
+        The certificate has been successfully issued to
+        <span class="font-medium text-gray-900">{{ generatedCertificate()?.recipientData?.['name'] || 'the recipient' }}</span>.
+      }
     </p>
 
     <div class="w-full max-w-md bg-gray-50 rounded-lg p-4 border border-gray-200 mb-8 text-left">
@@ -36,8 +39,10 @@
         <div>
           <span class="block text-gray-500 mb-1">Status</span>
           <span
-            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            ISSUED
+            [class]="generatedCertificate()!.status === 'PENDING' 
+              ? 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800'
+              : 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'">
+            {{ generatedCertificate()!.status }}
           </span>
         </div>
       </div>
@@ -68,7 +73,8 @@
   } @else {
   <!-- Form View -->
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
-    <!-- Template Selection -->
+    <!-- Template Selection (hidden in preview mode) -->
+    @if (!isPreviewMode()) {
     <div class="form-section">
       <label class="form-label">Template <span class="text-red-500">*</span></label>
       <div class="relative">
@@ -96,9 +102,10 @@
       <p class="error-text">Template is required</p>
       }
     </div>
+    }
 
-    <!-- Version Selection -->
-    @if (selectedTemplate() && templateVersions().length > 0) {
+    <!-- Version Selection (hidden in preview mode) -->
+    @if (!isPreviewMode() && selectedTemplate() && templateVersions().length > 0) {
     <div class="form-section">
       <label class="form-label">Template Version <span class="text-red-500">*</span></label>
       <select formControlName="templateVersionId" (change)="onVersionSelected($any($event.target).value)"
@@ -223,12 +230,12 @@
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
           </path>
         </svg>
-        <span>Generating...</span>
+        <span>@if (isPreviewMode()) { Generating Preview... } @else { Generating... }</span>
         } @else {
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
         </svg>
-        <span>Generate Certificate</span>
+        <span>@if (isPreviewMode()) { Continue } @else { Generate Certificate }</span>
         }
       </button>
     </div>

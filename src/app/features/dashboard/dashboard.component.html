@@ -179,6 +179,7 @@
   <app-template-details-modal
     [template]="selectedTemplate()!"
     [isOpen]="showTemplateDetailsModal()"
+    [versionId]="selectedVersionId()"
     (onClose)="onModalClose()"
     (onEnrich)="onTemplateDetailsEnrich($event)"
     (onDeleted)="onTemplateDetailsDeleted()"
@@ -213,6 +214,20 @@
     @if (showCertificateViewModal() && selectedCertificateId()) {
     <app-certificate-view [certificateId]="selectedCertificateId()!" (onClose)="onModalClose()"
       (onUpdated)="onCertificateUpdated()" />
+    }
+  </app-modal>
+  }
+
+  <!-- Preview Certificate Modal -->
+  @if (selectedVersionForPreview()) {
+  <app-modal [isOpen]="showPreviewModal()" [title]="modalTitle()"
+    subtitle="Fill in recipient details to preview the certificate" (onClose)="onModalClose()">
+    @if (showPreviewModal() && selectedVersionForPreview()) {
+    <app-certificate-create-form 
+      [versionId]="selectedVersionForPreview()!.id" 
+      [isPreviewMode]="true"
+      (onSuccess)="onPreviewGenerated()" 
+      (onCancelClick)="onModalClose()" />
     }
   </app-modal>
   }

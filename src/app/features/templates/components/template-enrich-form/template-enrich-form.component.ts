@@ -28,6 +28,9 @@ export class TemplateEnrichFormComponent implements OnInit {
   existingFields = signal<Array<{ name: string; type: FieldType; label: string }>>([]);
   addedFields = signal<Array<{ name: string; type: FieldType; label: string }>>([]);
   editingField = signal<{ name: string; type: FieldType; label: string } | null>(null);
+  
+  // Computed signal to determine if we're editing or creating
+  isEditMode = signal<boolean>(false);
 
   // User-friendly field types
   fieldTypes = [
@@ -98,9 +101,22 @@ export class TemplateEnrichFormComponent implements OnInit {
     
     versionObservable.subscribe({
       next: (version) => {
+        const versionId = this.versionId();
+        const isEditing = !!versionId;
+        this.isEditMode.set(isEditing);
+        
         if (version) {
           this.existingVersion.set(version);
-          this.nextVersion.set(typeof version.version === 'number' ? version.version : parseInt(version.version.toString(), 10));
+          const currentVersionNum = typeof version.version === 'number' ? version.version : parseInt(version.version.toString(), 10);
+          
+          // If versionId is provided, we're editing - use the existing version number
+          // If no versionId, we're creating new - increment from latest
+          if (isEditing) {
+            this.nextVersion.set(currentVersionNum);
+          } else {
+            // Creating new version - increment from latest
+            this.nextVersion.set(currentVersionNum + 1);
+          }
           
           // Extract existing fields from fieldSchema
           if (version.fieldSchema) {
@@ -116,16 +132,39 @@ export class TemplateEnrichFormComponent implements OnInit {
             this.existingFields.set(fields);
           }
           
-          // Load existing HTML content and CSS
-          if (version.htmlContent) {
+          // Load existing HTML content and CSS (only when editing)
+          if (isEditing && version.htmlContent) {
             this.enrichForm.patchValue({
               htmlContent: version.htmlContent,
               cssStyles: version.cssStyles || ''
             });
+          } else if (!isEditing) {
+            // Creating new version - use default HTML/CSS
+            this.enrichForm.patchValue({
+              htmlContent: this.getDefaultHtml(),
+              cssStyles: this.getDefaultCss()
+            });
+          }
+          
+          // Load existing settings (only when editing)
+          if (isEditing && version.settings) {
+            this.enrichForm.patchValue({
+              settings: {
+                orientation: version.settings['orientation'] || 'portrait'
+              }
+            });
           }
         } else {
-          // No existing version, will create new one
+          // No existing version, will create new one starting at version 1
+          this.existingVersion.set(null);
           this.nextVersion.set(1);
+          this.existingFields.set([]);
+          
+          // Use default HTML and CSS
+          this.enrichForm.patchValue({
+            htmlContent: this.getDefaultHtml(),
+            cssStyles: this.getDefaultCss()
+          });
         }
       },
       error: (error) => {
@@ -135,8 +174,34 @@ export class TemplateEnrichFormComponent implements OnInit {
       }
     });
 
-    // Initialize HTML content with a basic template
-    const defaultHtml = `<html>
+    // Initialize HTML content with a basic template (fallback if not set above)
+    if (!this.enrichForm.get('htmlContent')?.value) {
+      this.enrichForm.patchValue({
+        htmlContent: this.getDefaultHtml(),
+        cssStyles: this.getDefaultCss(),
+        settings: {
+          pageSize: 'A4',
+          orientation: 'portrait'
+        }
+      });
+    }
+  }
+
+  private initializeForm(): void {
+    this.enrichForm = this.fb.group({
+      templateId: [{ value: '', disabled: true }, Validators.required],
+      htmlContent: ['', Validators.required],
+      cssStyles: [''],
+      settings: this.fb.group({
+        pageSize: ['A4'], // Always A4, not shown to user
+        orientation: ['portrait']
+      }),
+      fields: this.fb.array([])
+    });
+  }
+
+  private getDefaultHtml(): string {
+    return `<html>
 <head>
   <meta charset="UTF-8"/>
   <title>Certificate</title>
@@ -149,8 +214,10 @@ export class TemplateEnrichFormComponent implements OnInit {
   </div>
 </body>
 </html>`;
+  }
 
-    const defaultCss = `body {
+  private getDefaultCss(): string {
+    return `body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 20px;
@@ -173,28 +240,6 @@ p {
   font-size: 16px;
   line-height: 1.6;
 }`;
-
-    this.enrichForm.patchValue({
-      htmlContent: defaultHtml,
-      cssStyles: defaultCss, // Keep CSS in form but hidden from user
-      settings: {
-        pageSize: 'A4',
-        orientation: 'portrait'
-      }
-    });
-  }
-
-  private initializeForm(): void {
-    this.enrichForm = this.fb.group({
-      templateId: [{ value: '', disabled: true }, Validators.required],
-      htmlContent: ['', Validators.required],
-      cssStyles: [''],
-      settings: this.fb.group({
-        pageSize: ['A4'], // Always A4, not shown to user
-        orientation: ['portrait']
-      }),
-      fields: this.fb.array([])
-    });
   }
 
   get fieldsArray(): FormArray {
@@ -403,25 +448,15 @@ p {
       };
     });
 
-    // Build request
-    const request = {
-      templateId: this.template().id,
-      version: this.nextVersion(),
-      htmlContent: formValue.htmlContent,
-      fieldSchema: Object.keys(fieldSchema).length > 0 ? fieldSchema : undefined,
-      cssStyles: formValue.cssStyles || undefined,
-      settings: formValue.settings,
-      status: TemplateVersionStatus.DRAFT,
-      createdBy: currentUser?.id || undefined
-    };
-
-    const existingVersion = this.existingVersion();
+    // Check if we're editing an existing version or creating a new one
+    const versionId = this.versionId();
+    const isEditing = this.isEditMode() && versionId;
     
-    if (existingVersion && existingVersion.id) {
-      // Update existing version
+    if (isEditing) {
+      // Update existing version using PUT request
       this.templateService.updateTemplateVersion(
         this.template().id,
-        existingVersion.id,
+        versionId,
         {
           htmlContent: formValue.htmlContent,
           fieldSchema: Object.keys(fieldSchema).length > 0 ? fieldSchema : undefined,
@@ -450,7 +485,18 @@ p {
         }
       });
     } else {
-      // Create new version
+      // Create new version using POST request
+      const request = {
+        templateId: this.template().id,
+        version: this.nextVersion(),
+        htmlContent: formValue.htmlContent,
+        fieldSchema: Object.keys(fieldSchema).length > 0 ? fieldSchema : undefined,
+        cssStyles: formValue.cssStyles || undefined,
+        settings: formValue.settings,
+        status: TemplateVersionStatus.DRAFT,
+        createdBy: currentUser?.id || undefined
+      };
+      
       this.templateService.createTemplateVersion(this.template().id, request).subscribe({
         next: () => {
           this.isLoading.set(false);
