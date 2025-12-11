@@ -352,7 +352,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   startPolling(certificateId: string): void {
     this.isPolling.set(true);
     this.pollingSubscription = this.certificateService
-      .pollCertificateStatus(certificateId, 2000, 30)
+      .pollCertificateStatus(certificateId, 1000, 30)
       .subscribe({
         next: (certificate) => {
           this.generatedCertificate.set(certificate);
