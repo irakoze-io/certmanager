@@ -118,9 +118,9 @@
             </tr>
             } @else {
             @for (item of paginatedData(); track $index) {
-            <tr (click)="onRowClickHandler(item)" 
-                [class]="getNestedValue(item, '_isVersionRow') 
-                  ? 'hover:bg-blue-50 cursor-pointer transition-colors group bg-blue-50/30' 
+            <tr (click)="onRowClickHandler(item)"
+                [class]="getNestedValue(item, '_isVersionRow')
+                  ? 'hover:bg-blue-50 cursor-pointer transition-colors group bg-blue-50/30'
                   : 'hover:bg-gray-50 cursor-pointer transition-colors group'">
               @if (config().showCheckbox) {
               <td class="pl-6 py-3 whitespace-nowrap w-10" (click)="$event.stopPropagation()">
@@ -135,8 +135,8 @@
                   <!-- Version row - no chevron, just indentation -->
                   } @else if (getNestedValue(item, '_original')?._isTemplateRow && getNestedValue(item, '_original')?.versionCount > 1) {
                   <!-- Parent template row with multiple versions - show chevron (rotate when expanded) -->
-                  <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform" 
-                       [class.rotate-90]="getNestedValue(item, '_isExpanded')" 
+                  <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform"
+                       [class.rotate-90]="getNestedValue(item, '_isExpanded')"
                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                   </svg>
