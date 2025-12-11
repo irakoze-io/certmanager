@@ -60,6 +60,7 @@ export class DashboardComponent implements OnInit {
   showCertificateViewModal = signal<boolean>(false);
   showPreviewModal = signal<boolean>(false);
   showCertificatePreviewModal = signal<boolean>(false);
+  isLoadingModal = signal<boolean>(false);
   modalTitle = signal<string>('');
   selectedTemplate = signal<TemplateResponse | null>(null);
   selectedVersionId = signal<string | undefined>(undefined);
@@ -704,6 +705,7 @@ export class DashboardComponent implements OnInit {
     this.showCertificateViewModal.set(false);
     this.showPreviewModal.set(false);
     this.showCertificatePreviewModal.set(false);
+    this.isLoadingModal.set(false);
     this.selectedTemplate.set(null);
     this.selectedVersionId.set(undefined);
     this.selectedVersionForPreview.set(null);
@@ -945,13 +947,16 @@ export class DashboardComponent implements OnInit {
 
   private showTemplateDetails(templateData: any): void {
     this.errorMessage.set(null);
+    this.isLoadingModal.set(true);
     this.templateService.getTemplateById(templateData.id).subscribe({
       next: (template) => {
         if (!template) {
           this.toastService.error('Template not found. Please try again.');
+          this.isLoadingModal.set(false);
           return;
         }
         this.selectedTemplate.set(template);
+        this.isLoadingModal.set(false);
         this.showTemplateDetailsModal.set(true);
       },
       error: (error) => {
@@ -963,6 +968,7 @@ export class DashboardComponent implements OnInit {
           errorMsg = error.message;
         }
         this.toastService.error(errorMsg);
+        this.isLoadingModal.set(false);
       }
     });
   }
@@ -970,16 +976,19 @@ export class DashboardComponent implements OnInit {
   private showVersionDetails(version: any, templateData: any): void {
     // Fetch template to show version details modal
     this.errorMessage.set(null);
+    this.isLoadingModal.set(true);
     this.templateService.getTemplateById(templateData.id).subscribe({
       next: (template) => {
         if (!template) {
           this.toastService.error('Template not found. Please try again.');
+          this.isLoadingModal.set(false);
           return;
         }
         // Set the selected version ID and open template details modal
         // The template details modal should show version-specific info
         this.selectedTemplate.set(template);
         this.selectedVersionId.set(version.id);
+        this.isLoadingModal.set(false);
         this.showTemplateDetailsModal.set(true);
       },
       error: (error) => {
@@ -991,6 +1000,7 @@ export class DashboardComponent implements OnInit {
           errorMsg = error.message;
         }
         this.toastService.error(errorMsg);
+        this.isLoadingModal.set(false);
       }
     });
   }
@@ -1012,18 +1022,21 @@ export class DashboardComponent implements OnInit {
 
         // Clear any previous error
         this.errorMessage.set(null);
+        this.isLoadingModal.set(true);
 
         // Fetch full template details to ensure we have latest data
         this.templateService.getTemplateById(templateData.id).subscribe({
           next: (template) => {
             if (!template) {
               this.toastService.error('Template not found. Please try again.');
+              this.isLoadingModal.set(false);
               return;
             }
 
             this.selectedTemplate.set(template);
             this.selectedVersionId.set(undefined);
             this.modalTitle.set('Enrich Template');
+            this.isLoadingModal.set(false);
             this.showEnrichModal.set(true);
           },
           error: (error) => {
@@ -1035,6 +1048,7 @@ export class DashboardComponent implements OnInit {
               errorMsg = error.message;
             }
             this.toastService.error(errorMsg);
+            this.isLoadingModal.set(false);
           }
         });
         break;
@@ -1058,18 +1072,21 @@ export class DashboardComponent implements OnInit {
 
             // Clear any previous error
             this.errorMessage.set(null);
+            this.isLoadingModal.set(true);
 
             // Fetch full template details to ensure we have latest data
             this.templateService.getTemplateById(editTemplateData.id).subscribe({
               next: (template) => {
                 if (!template) {
                   this.toastService.error('Template not found. Please try again.');
+                  this.isLoadingModal.set(false);
                   return;
                 }
 
                 this.selectedTemplate.set(template);
                 this.isEditingTemplate.set(true);
                 this.modalTitle.set('Edit Template');
+                this.isLoadingModal.set(false);
                 this.showCreateModal.set(true);
               },
               error: (error) => {
@@ -1081,6 +1098,7 @@ export class DashboardComponent implements OnInit {
                   errorMsg = error.message;
                 }
                 this.toastService.error(errorMsg);
+                this.isLoadingModal.set(false);
               }
             });
           },
@@ -1088,16 +1106,19 @@ export class DashboardComponent implements OnInit {
             // If version fetch fails, still allow editing (might be a new template)
             console.error('Error fetching version:', error);
             // Continue with edit flow
+            this.isLoadingModal.set(true);
             this.templateService.getTemplateById(editTemplateData.id).subscribe({
               next: (template) => {
                 if (!template) {
                   this.toastService.error('Template not found. Please try again.');
+                  this.isLoadingModal.set(false);
                   return;
                 }
 
                 this.selectedTemplate.set(template);
                 this.isEditingTemplate.set(true);
                 this.modalTitle.set('Edit Template');
+                this.isLoadingModal.set(false);
                 this.showCreateModal.set(true);
               },
               error: (error) => {
@@ -1109,6 +1130,7 @@ export class DashboardComponent implements OnInit {
                   errorMsg = error.message;
                 }
                 this.toastService.error(errorMsg);
+                this.isLoadingModal.set(false);
               }
             });
           }
@@ -1261,17 +1283,20 @@ export class DashboardComponent implements OnInit {
 
         // Clear any previous error
         this.errorMessage.set(null);
+        this.isLoadingModal.set(true);
 
         // Fetch the full version details to get field schema
         this.templateService.getTemplateVersionById(versionToPreview.templateId, versionToPreview.id).subscribe({
           next: (version) => {
             if (!version) {
               this.toastService.error('Version not found. Please try again.');
+              this.isLoadingModal.set(false);
               return;
             }
 
             this.selectedVersionForPreview.set(version);
             this.modalTitle.set('Preview Certificate');
+            this.isLoadingModal.set(false);
             this.showPreviewModal.set(true);
           },
           error: (error) => {
@@ -1283,6 +1308,7 @@ export class DashboardComponent implements OnInit {
               errorMsg = error.message;
             }
             this.toastService.error(errorMsg);
+            this.isLoadingModal.set(false);
           }
         });
         break;
@@ -1389,18 +1415,21 @@ export class DashboardComponent implements OnInit {
 
         // Clear any previous error
         this.errorMessage.set(null);
+        this.isLoadingModal.set(true);
 
         // Fetch template details
         this.templateService.getTemplateById(versionData.templateId).subscribe({
           next: (template) => {
             if (!template) {
               this.toastService.error('Template not found. Please try again.');
+              this.isLoadingModal.set(false);
               return;
             }
 
             this.selectedTemplate.set(template);
             this.selectedVersionId.set(versionData.id);
             this.modalTitle.set('Edit Template Version');
+            this.isLoadingModal.set(false);
             this.showEnrichModal.set(true);
           },
           error: (error) => {
@@ -1412,6 +1441,7 @@ export class DashboardComponent implements OnInit {
               errorMsg = error.message;
             }
             this.toastService.error(errorMsg);
+            this.isLoadingModal.set(false);
           }
         });
         break;
