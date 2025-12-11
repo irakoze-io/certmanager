@@ -1,0 +1,144 @@
+<div class="certificate-preview-container">
+  @if (isLoading()) {
+    <div class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <svg class="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-sm text-gray-600">Loading preview...</p>
+      </div>
+    </div>
+  } @else if (certificate()) {
+    <div class="preview-content">
+      <!-- Certificate Number Header -->
+      <div class="certificate-number-header">
+        <div class="certificate-number-content">
+          <span [class]="getStatusCircleClass(certificate()!.status) + ' status-circle'"></span>
+          <span class="certificate-number-label">Certificate Number:</span>
+          <div class="certificate-number-value">
+            <span>{{ certificate()!.certificateNumber }}</span>
+            <button
+              type="button"
+              (click)="copyCertificateNumber()"
+              class="copy-button"
+              [title]="'Copy certificate number'"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certificate Details Section -->
+      <div class="certificate-details-section">
+        <!-- Certificate Information - Two Column Layout -->
+        <div class="details-grid">
+          <!-- Left Column -->
+          <div class="details-column">
+            <!-- Created At -->
+            <div class="detail-item">
+              <label class="detail-label">Created</label>
+              <div class="detail-value">
+                <span class="detail-date">{{ certificate()!.createdAt ? formatDate(certificate()!.createdAt) : '-' }}</span>
+                @if (certificate()!.createdAt) {
+                  <span class="detail-time">{{ formatTime(certificate()!.createdAt) }}</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="details-column">
+            <!-- Issued At -->
+            <div class="detail-item">
+              <label class="detail-label">Issued At</label>
+              <div class="detail-value">
+                <span class="detail-date">{{ certificate()!.issuedAt ? formatDate(certificate()!.issuedAt) : '-' }}</span>
+                @if (certificate()!.issuedAt) {
+                  <span class="detail-time">{{ formatTime(certificate()!.issuedAt) }}</span>
+                }
+              </div>
+            </div>
+
+            <!-- Updated At -->
+            <div class="detail-item">
+              <label class="detail-label">Last Updated</label>
+              <div class="detail-value">
+                <span class="detail-date">{{ certificate()!.updatedAt ? formatDate(certificate()!.updatedAt) : '-' }}</span>
+                @if (certificate()!.updatedAt) {
+                  <span class="detail-time">{{ formatTime(certificate()!.updatedAt) }}</span>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recipient Data -->
+        @if (certificate()!.recipientData && Object.keys(certificate()!.recipientData).length > 0) {
+          <div class="recipient-section">
+            <label class="section-label">Recipient Information</label>
+            <div class="recipient-data-fields">
+              @for (fieldEntry of Object.entries(certificate()!.recipientData); track fieldEntry[0]) {
+                @let fieldName = fieldEntry[0];
+                @let fieldValue = fieldEntry[1];
+                <div class="field-item">
+                  <label class="field-label">{{ fieldName }}</label>
+                  <span class="field-value">{{ formatFieldValue(fieldValue) }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Metadata -->
+        @if (certificate()!.metadata && Object.keys(certificate()!.metadata || {}).length > 0) {
+          <div class="metadata-section">
+            <label class="section-label">Metadata</label>
+            <div class="metadata-display">
+              @for (metaEntry of Object.entries(certificate()!.metadata || {}); track metaEntry[0]) {
+                <div class="metadata-item">
+                  <span class="metadata-key">{{ metaEntry[0] }}:</span>
+                  <span class="metadata-value">{{ metaEntry[1] }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- PDF Preview Section (Right Bottom Corner) -->
+      @if (previewUrl()) {
+        <div class="preview-pdf-section">
+          <div class="preview-header">
+            <h3 class="text-sm font-medium text-gray-700">Certificate Preview</h3>
+          </div>
+          <div class="preview-iframe-container">
+            @if (safePreviewUrl()) {
+              <iframe
+                [src]="safePreviewUrl()!"
+                class="preview-iframe"
+                title="Certificate Preview"
+              ></iframe>
+            }
+          </div>
+        </div>
+      } @else if (!isLoading() && !errorMessage()) {
+        <div class="preview-pdf-section preview-unavailable">
+          <div class="preview-header">
+            <h3 class="text-sm font-medium text-gray-700">Certificate Preview</h3>
+          </div>
+          <div class="preview-unavailable-message">
+            @if (isCertificateCleanedUp()) {
+              <p class="text-sm text-gray-500">This certificate may have been removed as it was pending for preview for more than 15 minutes.</p>
+            } @else {
+              <p class="text-sm text-gray-500">Preview not available for pending certificates</p>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

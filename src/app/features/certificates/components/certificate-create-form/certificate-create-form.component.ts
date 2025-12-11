@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, output } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, output, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CertificateService } from '../../../../core/services/certificate.service';
@@ -23,12 +23,18 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   FieldType = FieldType; // Expose to template
   Object = Object; // Expose Object to template
 
+  // Optional inputs for preview mode
+  versionId = input<string | undefined>(undefined); // If provided, pre-select this version
+  isPreviewMode = input<boolean>(false); // If true, generate preview certificate
+
   onSuccess = output<void>();
   onCancelClick = output<void>();
   certificateGenerated = output<void>();
 
   form!: FormGroup;
   isLoading = signal<boolean>(false);
+  isLoadingTemplates = signal<boolean>(false);
+  isLoadingVersions = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
 
   // Template and version selection
@@ -56,7 +62,71 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadTemplates();
+    const versionId = this.versionId();
+    if (versionId) {
+      // If versionId is provided, load that specific version and its template
+      this.loadVersionForPreview(versionId);
+    } else {
+      this.loadTemplates();
+    }
+  }
+
+  private loadVersionForPreview(versionId: string): void {
+    // First, we need to find which template this version belongs to
+    // We'll load all templates and search for the one containing this version
+    this.isLoadingVersions.set(true);
+    this.templateService.getAllTemplates().subscribe({
+      next: (templates) => {
+        // Search for the template that contains this version
+        let foundTemplate: TemplateResponse | null = null;
+        let foundVersion: TemplateVersionResponse | null = null;
+        let searchCount = 0;
+
+        templates.forEach(template => {
+          this.templateService.getTemplateVersions(template.id).subscribe({
+            next: (versions) => {
+              const version = versions?.find(v => v.id === versionId);
+              if (version) {
+                foundTemplate = template;
+                foundVersion = version;
+              }
+              searchCount++;
+              if (searchCount === templates.length) {
+                if (foundTemplate && foundVersion) {
+                  this.selectedTemplate.set(foundTemplate);
+                  this.templateVersions.set([foundVersion]);
+                  this.selectedVersion.set(foundVersion);
+                  if (foundVersion.fieldSchema) {
+                    this.fieldSchema.set(foundVersion.fieldSchema);
+                    this.buildRecipientDataForm(foundVersion.fieldSchema);
+                  }
+                  this.form.patchValue({
+                    templateId: foundTemplate.id,
+                    templateVersionId: foundVersion.id
+                  });
+                  this.isLoadingVersions.set(false);
+                } else {
+                  this.isLoadingVersions.set(false);
+                  this.errorMessage.set('Version not found. Please try again.');
+                }
+              }
+            },
+            error: () => {
+              searchCount++;
+              if (searchCount === templates.length && !foundVersion) {
+                this.isLoadingVersions.set(false);
+                this.errorMessage.set('Version not found. Please try again.');
+              }
+            }
+          });
+        });
+      },
+      error: (error) => {
+        console.error('Error loading templates for preview:', error);
+        this.isLoadingVersions.set(false);
+        this.errorMessage.set('Failed to load version. Please try again.');
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -86,16 +156,16 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   }
 
   loadTemplates(): void {
-    this.isLoading.set(true);
+    this.isLoadingTemplates.set(true);
     this.templateService.getAllTemplates().subscribe({
       next: (templates) => {
         this.templates.set(templates);
-        this.isLoading.set(false);
+        this.isLoadingTemplates.set(false);
       },
       error: (error) => {
         console.error('Error loading templates:', error);
         this.toastService.error('Failed to load templates. Please try again.');
-        this.isLoading.set(false);
+        this.isLoadingTemplates.set(false);
       }
     });
   }
@@ -114,13 +184,13 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   }
 
   loadTemplateVersions(templateId: number): void {
-    this.isLoading.set(true);
+    this.isLoadingVersions.set(true);
     this.templateService.getTemplateVersions(templateId).subscribe({
       next: (versions) => {
         // Filter to only PUBLISHED versions
         const publishedVersions = versions.filter(v => v.status === TemplateVersionStatus.PUBLISHED);
         this.templateVersions.set(publishedVersions);
-        this.isLoading.set(false);
+        this.isLoadingVersions.set(false);
 
         if (publishedVersions.length === 0) {
           this.toastService.warning('No published versions available for this template.');
@@ -129,7 +199,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error loading template versions:', error);
         this.toastService.error('Failed to load template versions.');
-        this.isLoading.set(false);
+        this.isLoadingVersions.set(false);
       }
     });
   }
@@ -225,6 +295,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
       ...formValue.recipientData // Also include flat fields for {{fieldName}} format
     };
 
+    const isPreview = this.isPreviewMode();
     const request: GenerateCertificateRequest = {
       templateVersionId: formValue.templateVersionId,
       certificateNumber: certificateNumber,
@@ -233,7 +304,8 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
       issuedAt: null,
       expiresAt: null,
       issuedBy: null,
-      synchronous: isSync
+      synchronous: isPreview ? true : isSync, // Preview mode always uses synchronous
+      preview: isPreview // Add preview parameter
     };
 
     this.isLoading.set(true);
@@ -245,7 +317,12 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
         this.generatedCertificate.set(certificate);
         this.isLoading.set(false);
 
-        if (isSync && certificate.status === CertificateStatus.ISSUED) {
+        const isPreview = this.isPreviewMode();
+        if (isPreview && certificate.status === CertificateStatus.PENDING) {
+          // Preview certificate generated successfully
+          this.toastService.success('Certificate preview generated successfully!');
+          this.handleCertificateReady(certificate);
+        } else if (isSync && certificate.status === CertificateStatus.ISSUED) {
           // Synchronous: Certificate is ready immediately
           this.toastService.success('Certificate generated successfully!');
           this.handleCertificateReady(certificate);
@@ -275,7 +352,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   startPolling(certificateId: string): void {
     this.isPolling.set(true);
     this.pollingSubscription = this.certificateService
-      .pollCertificateStatus(certificateId, 2000, 30)
+      .pollCertificateStatus(certificateId, 1000, 30)
       .subscribe({
         next: (certificate) => {
           this.generatedCertificate.set(certificate);

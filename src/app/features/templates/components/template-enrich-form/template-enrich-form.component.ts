@@ -16,7 +16,7 @@ import { FieldType, FieldSchemaField } from '../../../../core/models/template.mo
 export class TemplateEnrichFormComponent implements OnInit {
   template = input.required<TemplateResponse>();
   versionId = input<string | undefined>(undefined); // Optional: if provided, load this specific version instead of latest
-  
+
   onSubmit = output<void>();
   onCancel = output<void>();
 
@@ -28,6 +28,9 @@ export class TemplateEnrichFormComponent implements OnInit {
   existingFields = signal<Array<{ name: string; type: FieldType; label: string }>>([]);
   addedFields = signal<Array<{ name: string; type: FieldType; label: string }>>([]);
   editingField = signal<{ name: string; type: FieldType; label: string } | null>(null);
+
+  // Computed signal to determine if we're editing or creating
+  isEditMode = signal<boolean>(false);
 
   // User-friendly field types
   fieldTypes = [
@@ -41,7 +44,7 @@ export class TemplateEnrichFormComponent implements OnInit {
 
   // Page size options
   pageSizes = ['A4', 'Letter', 'Legal', 'A3', 'A5'];
-  
+
   // Orientation options
   orientations = [
     { value: 'portrait', label: 'Portrait' },
@@ -54,7 +57,7 @@ export class TemplateEnrichFormComponent implements OnInit {
     private authService: AuthService
   ) {
     this.initializeForm();
-    
+
     // Re-initialize form data when template input changes
     effect(() => {
       const templateData = this.template();
@@ -70,38 +73,51 @@ export class TemplateEnrichFormComponent implements OnInit {
 
   private initializeFormData(): void {
     const templateData = this.template();
-    
+
     if (!templateData || !templateData.id) {
       console.error('Invalid template data:', templateData);
       this.errorMessage.set('Invalid template data. Please close and try again.');
       return;
     }
-    
+
     // Reset form to ensure clean state
     this.enrichForm.reset();
     this.addedFields.set([]); // Clear added fields list
     this.editingField.set(null); // Clear editing state
-    
+
     // Set template ID in form
     this.enrichForm.patchValue({
       templateId: templateData.id
     });
-    
+
     // Clear any previous error
     this.errorMessage.set(null);
-    
+
     // Load existing template version (specific version if versionId provided, otherwise latest)
     const versionId = this.versionId();
     const versionObservable = versionId && templateData.id
       ? this.templateService.getTemplateVersionById(templateData.id, versionId)
       : this.templateService.getLatestTemplateVersion(templateData.id);
-    
+
     versionObservable.subscribe({
       next: (version) => {
+        const versionId = this.versionId();
+        const isEditing = !!versionId;
+        this.isEditMode.set(isEditing);
+
         if (version) {
           this.existingVersion.set(version);
-          this.nextVersion.set(typeof version.version === 'number' ? version.version : parseInt(version.version.toString(), 10));
-          
+          const currentVersionNum = typeof version.version === 'number' ? version.version : parseInt(version.version.toString(), 10);
+
+          // If versionId is provided, we're editing - use the existing version number
+          // If no versionId, we're creating new - increment from latest
+          if (isEditing) {
+            this.nextVersion.set(currentVersionNum);
+          } else {
+            // Creating new version - increment from latest
+            this.nextVersion.set(currentVersionNum + 1);
+          }
+
           // Extract existing fields from fieldSchema
           if (version.fieldSchema) {
             const fields: Array<{ name: string; type: FieldType; label: string }> = [];
@@ -115,17 +131,40 @@ export class TemplateEnrichFormComponent implements OnInit {
             });
             this.existingFields.set(fields);
           }
-          
-          // Load existing HTML content and CSS
-          if (version.htmlContent) {
+
+          // Load existing HTML content and CSS (only when editing)
+          if (isEditing && version.htmlContent) {
             this.enrichForm.patchValue({
               htmlContent: version.htmlContent,
               cssStyles: version.cssStyles || ''
             });
+          } else if (!isEditing) {
+            // Creating new version - use default HTML/CSS
+            this.enrichForm.patchValue({
+              htmlContent: this.getDefaultHtml(),
+              cssStyles: this.getDefaultCss()
+            });
+          }
+
+          // Load existing settings (only when editing)
+          if (isEditing && version.settings) {
+            this.enrichForm.patchValue({
+              settings: {
+                orientation: version.settings['orientation'] || 'portrait'
+              }
+            });
           }
         } else {
-          // No existing version, will create new one
+          // No existing version, will create new one starting at version 1
+          this.existingVersion.set(null);
           this.nextVersion.set(1);
+          this.existingFields.set([]);
+
+          // Use default HTML and CSS
+          this.enrichForm.patchValue({
+            htmlContent: this.getDefaultHtml(),
+            cssStyles: this.getDefaultCss()
+          });
         }
       },
       error: (error) => {
@@ -135,22 +174,50 @@ export class TemplateEnrichFormComponent implements OnInit {
       }
     });
 
-    // Initialize HTML content with a basic template
-    const defaultHtml = `<html>
+    // Initialize HTML content with a basic template (fallback if not set above)
+    if (!this.enrichForm.get('htmlContent')?.value) {
+      this.enrichForm.patchValue({
+        htmlContent: this.getDefaultHtml(),
+        cssStyles: this.getDefaultCss(),
+        settings: {
+          pageSize: 'A4',
+          orientation: 'portrait'
+        }
+      });
+    }
+  }
+
+  private initializeForm(): void {
+    this.enrichForm = this.fb.group({
+      templateId: [{ value: '', disabled: true }, Validators.required],
+      htmlContent: ['', Validators.required],
+      cssStyles: [''],
+      settings: this.fb.group({
+        pageSize: ['A4'], // Always A4, not shown to user
+        orientation: ['portrait']
+      }),
+      fields: this.fb.array([])
+    });
+  }
+
+  private getDefaultHtml(): string {
+    return `<html>
 <head>
   <meta charset="UTF-8"/>
   <title>Certificate</title>
 </head>
 <body>
   <div class="certificate-container">
-    <h1>Certificate of Completion</h1>
+    <h1>Sec CERTIFICATE Issue</h1>
     <p>This certifies that <strong>{{name}}</strong> has successfully completed the course.</p>
     <!-- Add more fields using {{fieldName}} syntax -->
   </div>
 </body>
 </html>`;
+  }
 
-    const defaultCss = `body {
+  private getDefaultCss(): string {
+    return `body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 20px;
@@ -173,28 +240,6 @@ p {
   font-size: 16px;
   line-height: 1.6;
 }`;
-
-    this.enrichForm.patchValue({
-      htmlContent: defaultHtml,
-      cssStyles: defaultCss, // Keep CSS in form but hidden from user
-      settings: {
-        pageSize: 'A4',
-        orientation: 'portrait'
-      }
-    });
-  }
-
-  private initializeForm(): void {
-    this.enrichForm = this.fb.group({
-      templateId: [{ value: '', disabled: true }, Validators.required],
-      htmlContent: ['', Validators.required],
-      cssStyles: [''],
-      settings: this.fb.group({
-        pageSize: ['A4'], // Always A4, not shown to user
-        orientation: ['portrait']
-      }),
-      fields: this.fb.array([])
-    });
   }
 
   get fieldsArray(): FormArray {
@@ -246,7 +291,7 @@ p {
     // Convert user input to camelCase field name
     const fieldName = this.convertToFieldName(fieldValue.name);
     const label = fieldValue.name.trim(); // Use original input as label
-    
+
     // Add to added fields list for badge display
     const currentAddedFields = this.addedFields();
     const newField = {
@@ -254,16 +299,16 @@ p {
       type: fieldValue.type,
       label: label
     };
-    
+
     // Check if field name already exists (avoid duplicates)
     const exists = currentAddedFields.some(f => f.name === fieldName);
     if (!exists) {
       this.addedFields.set([...currentAddedFields, newField]);
     }
-    
+
     // Remove the field from the form array
     this.fieldsArray.removeAt(index);
-    
+
     // Update HTML content with all added fields
     this.updateHtmlContent();
   }
@@ -271,12 +316,12 @@ p {
   isFieldAdded(index: number): boolean {
     const field = this.fieldsArray.at(index);
     if (!field) return false;
-    
+
     const fieldValue = field.value;
     if (!fieldValue.name || fieldValue.name.trim() === '') {
       return false;
     }
-    
+
     const fieldName = this.convertToFieldName(fieldValue.name);
     return this.addedFields().some(f => f.name === fieldName);
   }
@@ -289,7 +334,7 @@ p {
     // Remove from added fields list by field name
     const currentAddedFields = this.addedFields();
     this.addedFields.set(currentAddedFields.filter(f => f.name !== fieldName));
-    
+
     // Update HTML content
     this.updateHtmlContent();
   }
@@ -318,7 +363,7 @@ p {
 
     // Update the existing field in the existingFields array
     const currentFields = this.existingFields();
-    const updatedFields = currentFields.map(field => 
+    const updatedFields = currentFields.map(field =>
       field.name === editing.name ? { ...editing } : field
     );
     this.existingFields.set(updatedFields);
@@ -338,7 +383,7 @@ p {
     // Remove from existing fields list
     const currentFields = this.existingFields();
     this.existingFields.set(currentFields.filter(f => f.name !== fieldName));
-    
+
     // Update HTML content
     this.updateHtmlContent();
   }
@@ -382,7 +427,7 @@ p {
 
     // Build field schema from added fields
     const fieldSchema: Record<string, FieldSchemaField> = {};
-    
+
     // Add existing fields
     this.existingFields().forEach(field => {
       fieldSchema[field.name] = {
@@ -392,7 +437,7 @@ p {
         label: field.label
       };
     });
-    
+
     // Add newly added fields
     this.addedFields().forEach(field => {
       fieldSchema[field.name] = {
@@ -403,25 +448,15 @@ p {
       };
     });
 
-    // Build request
-    const request = {
-      templateId: this.template().id,
-      version: this.nextVersion(),
-      htmlContent: formValue.htmlContent,
-      fieldSchema: Object.keys(fieldSchema).length > 0 ? fieldSchema : undefined,
-      cssStyles: formValue.cssStyles || undefined,
-      settings: formValue.settings,
-      status: TemplateVersionStatus.DRAFT,
-      createdBy: currentUser?.id || undefined
-    };
+    // Check if we're editing an existing version or creating a new one
+    const versionId = this.versionId();
+    const isEditing = this.isEditMode() && versionId;
 
-    const existingVersion = this.existingVersion();
-    
-    if (existingVersion && existingVersion.id) {
-      // Update existing version
+    if (isEditing) {
+      // Update existing version using PUT request
       this.templateService.updateTemplateVersion(
         this.template().id,
-        existingVersion.id,
+        versionId,
         {
           htmlContent: formValue.htmlContent,
           fieldSchema: Object.keys(fieldSchema).length > 0 ? fieldSchema : undefined,
@@ -437,7 +472,7 @@ p {
         error: (error) => {
           console.error('Error updating template version:', error);
           this.isLoading.set(false);
-          
+
           // Extract meaningful error message
           let errorMsg = 'Failed to update template version.';
           if (error?.error?.message) {
@@ -445,12 +480,23 @@ p {
           } else if (error?.message) {
             errorMsg = error.message;
           }
-          
+
           this.errorMessage.set(errorMsg);
         }
       });
     } else {
-      // Create new version
+      // Create new version using POST request
+      const request = {
+        templateId: this.template().id,
+        version: this.nextVersion(),
+        htmlContent: formValue.htmlContent,
+        fieldSchema: Object.keys(fieldSchema).length > 0 ? fieldSchema : undefined,
+        cssStyles: formValue.cssStyles || undefined,
+        settings: formValue.settings,
+        status: TemplateVersionStatus.DRAFT,
+        createdBy: currentUser?.id || undefined
+      };
+
       this.templateService.createTemplateVersion(this.template().id, request).subscribe({
         next: () => {
           this.isLoading.set(false);
@@ -459,7 +505,7 @@ p {
         error: (error) => {
           console.error('Error creating template version:', error);
           this.isLoading.set(false);
-          
+
           // Extract meaningful error message
           let errorMsg = 'Failed to create template version.';
           if (error?.error?.message) {
@@ -467,7 +513,7 @@ p {
           } else if (error?.message) {
             errorMsg = error.message;
           }
-          
+
           this.errorMessage.set(errorMsg);
         }
       });
@@ -506,11 +552,11 @@ p {
   updateHtmlContent(): void {
     // Build HTML content with only fields that have been added
     let htmlBody = '  <div class="certificate-container">\n';
-    htmlBody += '    <h1>Certificate of Completion</h1>\n';
-    
+    htmlBody += '    <h1>Sec CERTIFICATE Issue</h1>\n';
+
     // Combine existing fields and added fields
     const allFields = [...this.existingFields(), ...this.addedFields()];
-    
+
     if (allFields.length > 0) {
       allFields.forEach((field) => {
         htmlBody += `    <p><strong>${field.label}:</strong> {{${field.name}}}</p>\n`;
@@ -518,7 +564,7 @@ p {
     } else {
       htmlBody += '    <p>This certifies that the recipient has successfully completed the course.</p>\n';
     }
-    
+
     htmlBody += '  </div>';
 
     const htmlContent = `<html>

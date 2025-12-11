@@ -15,6 +15,10 @@
   margin-bottom: 1.5rem;
 }
 
+.form-section .relative {
+  position: relative;
+}
+
 .form-label {
   display: block;
   font-size: 0.875rem;
@@ -64,6 +68,19 @@ select.form-input:focus {
 
 select.form-input:hover:not(:disabled) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23374151'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+}
+
+select.form-input.loading {
+  background-image: none !important;
+  padding-right: 2.5rem;
+}
+
+select.form-input.loading:focus {
+  background-image: none !important;
+}
+
+select.form-input.loading:hover {
+  background-image: none !important;
 }
 
 select.form-input:disabled {
@@ -120,10 +137,12 @@ select.form-input:disabled {
 .form-actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 0.75rem;
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid #e5e7eb;
+  flex-wrap: nowrap;
 }
 
 .btn-cancel {
@@ -139,6 +158,8 @@ select.form-input:disabled {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-cancel:hover:not(:disabled) {
@@ -162,7 +183,11 @@ select.form-input:disabled {
   transition: all 0.2s;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 180px;
 }
 
 .btn-submit:hover:not(:disabled) {

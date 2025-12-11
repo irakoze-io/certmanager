@@ -1,0 +1,254 @@
+.certificate-preview-container {
+  position: relative;
+  min-height: 400px;
+}
+
+.preview-content {
+  position: relative;
+  min-height: 500px;
+}
+
+/* Certificate Number Header */
+.certificate-number-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.certificate-number-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.certificate-number-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.certificate-number-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.copy-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem;
+  color: #6b7280;
+  background: transparent;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.copy-button:hover {
+  color: #374151;
+  background-color: #f3f4f6;
+}
+
+/* Certificate Details Section */
+.certificate-details-section {
+  max-width: calc(50% - 0.75rem);
+  padding-right: 1.5rem;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.details-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-value {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-date {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.detail-time {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.status-circle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-circle-green {
+  background-color: #10b981; /* green-500 */
+}
+
+.status-circle-yellow {
+  background-color: #eab308; /* yellow-500 */
+}
+
+.status-circle-red {
+  background-color: #ef4444; /* red-500 */
+}
+
+.status-circle-gray {
+  background-color: #6b7280; /* gray-500 */
+}
+
+.status-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Recipient and Metadata Sections */
+.recipient-section,
+.metadata-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.section-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 1rem;
+}
+
+.recipient-data-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.field-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.field-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.metadata-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+}
+
+.metadata-item {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.metadata-key {
+  font-weight: 500;
+  color: #374151;
+  min-width: 120px;
+  font-size: 0.875rem;
+}
+
+.metadata-value {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* PDF Preview Section - Right Bottom Corner */
+.preview-pdf-section {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: calc(50% - 0.75rem);
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  max-height: 60vh;
+  z-index: 10;
+}
+
+.preview-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.preview-iframe-container {
+  flex: 1;
+  overflow: hidden;
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+.preview-iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  border: none;
+  display: block;
+}
+
+.preview-unavailable {
+  min-height: 200px;
+}
+
+.preview-unavailable-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  min-height: 200px;
+}

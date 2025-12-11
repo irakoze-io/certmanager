@@ -1,0 +1,186 @@
+@if (isOpen()) {
+<div class="fixed inset-0 z-50 overflow-y-auto" (click)="close()" role="dialog" aria-modal="true">
+  <!-- Backdrop -->
+  <div class="fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity"></div>
+
+  <!-- Modal Container -->
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div
+      class="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col transition-all"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Header -->
+      <div class="px-6 pt-6 pb-4 border-b border-gray-200">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <h2 class="text-2xl font-bold text-gray-900">{{ template().name }}</h2>
+            <div class="flex items-center gap-4 mt-3">
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-500">Code:</span>
+                <span class="text-sm font-medium text-gray-900 font-mono">{{ template().code }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-500">Category:</span>
+                <span class="text-sm font-medium text-gray-900">{{ category() }}</span>
+              </div>
+            </div>
+            <div class="mt-2">
+              <span class="text-sm text-gray-500">Description:</span>
+              <p class="text-sm font-medium text-gray-900 mt-1">{{ template().description || 'No description' }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 ml-4">
+            <!-- Action Buttons - Small Square Icon Only -->
+            <button
+              type="button"
+              (click)="onEnrichClick()"
+              [disabled]="isLoading()"
+              class="action-btn action-btn-enrich"
+              title="Enrich Template"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              (click)="onPublishClick()"
+              [disabled]="isLoading() || isLoadingVersion() || latestVersion()?.status === TemplateVersionStatus.PUBLISHED"
+              class="action-btn action-btn-publish"
+              title="Publish Template Version"
+            >
+              @if (isLoading()) {
+              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              } @else {
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+              }
+            </button>
+            <button
+              type="button"
+              (click)="onDeleteClick()"
+              [disabled]="isLoading()"
+              class="action-btn action-btn-delete"
+              title="Delete Template"
+            >
+              @if (isLoading()) {
+              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              } @else {
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+              }
+            </button>
+            <button
+              type="button"
+              (click)="close()"
+              class="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1.5 transition-colors"
+              aria-label="Close modal"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="flex-1 overflow-y-auto px-6 pb-6">
+        <!-- Available Fields Section -->
+        <div class="mt-6">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-gray-900">Available Fields</h3>
+            @if (isLoadingVersion()) {
+            <div class="flex items-center gap-2 text-sm text-gray-500">
+              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Loading fields...</span>
+            </div>
+            }
+          </div>
+
+          @if (isLoadingVersion()) {
+          <div class="flex items-center justify-center py-8">
+            <div class="text-gray-400">Loading template fields...</div>
+          </div>
+          } @else if (Object.keys(fieldSchema()).length === 0) {
+          <div class="text-sm text-gray-500 py-4">
+            No fields defined yet. Click "Enrich" to add fields to this template.
+          </div>
+          } @else {
+          <div class="existing-fields-container">
+            @for (fieldEntry of Object.entries(fieldSchema()); track fieldEntry[0]) {
+            @let fieldName = fieldEntry[0];
+            @let fieldDef = fieldEntry[1];
+            <div class="existing-field-badge">
+              <svg class="existing-field-badge-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="getFieldTypeIcon(fieldDef.type)"></path>
+              </svg>
+              <span class="existing-field-badge-name">{{ fieldDef.label || fieldName }}</span>
+              @if (fieldDef.required) {
+              <span class="text-red-500 ml-0.5">*</span>
+              }
+            </div>
+            }
+          </div>
+          }
+        </div>
+
+        <!-- Template Info Section -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span class="text-gray-500">Current Version</span>
+              <p class="font-medium text-gray-900 mt-1">
+                @if (latestVersion()) {
+                  v{{ typeof latestVersion()!.version === 'number' ? latestVersion()!.version : parseInt(latestVersion()!.version.toString(), 10) }}
+                } @else {
+                  v{{ template().currentVersion || 1 }}
+                }
+              </p>
+            </div>
+            @if (latestVersion()) {
+            <div>
+              <span class="text-gray-500">Version Status</span>
+              <p class="font-medium text-gray-900 mt-1">
+                <span [class]="getStatusBadgeClass(latestVersion()!.status)">
+                  {{ latestVersion()!.status }}
+                </span>
+              </p>
+            </div>
+            }
+            @if (template().createdAt) {
+            <div>
+              <span class="text-gray-500">Created</span>
+              <div class="flex flex-col mt-1">
+                <span class="font-medium text-gray-900">{{ formatDate(template().createdAt!) }}</span>
+                <span class="text-xs text-gray-500">{{ formatTime(template().createdAt!) }}</span>
+              </div>
+            </div>
+            }
+            @if (template().updatedAt) {
+            <div>
+              <span class="text-gray-500">Last Updated</span>
+              <div class="flex flex-col mt-1">
+                <span class="font-medium text-gray-900">{{ formatDate(template().updatedAt!) }}</span>
+                <span class="text-xs text-gray-500">{{ formatTime(template().updatedAt!) }}</span>
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+}

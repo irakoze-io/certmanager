@@ -9,14 +9,16 @@ import { ToastService } from '../../core/services/toast.service';
 import { User } from '../../core/models/auth.model';
 import { CustomerResponse } from '../../core/models/customer.model';
 import { TemplateResponse, TemplateVersionResponse, TemplateVersionStatus } from '../../core/models/template.model';
-import { CertificateResponse } from '../../core/models/certificate.model';
+import { CertificateResponse, CertificateStatus } from '../../core/models/certificate.model';
 import { DashboardCardComponent, DashboardCardConfig, EntityType } from '../../shared/components/dashboard-card/dashboard-card.component';
 import { DataGridComponent, DataGridConfig } from '../../shared/components/data-grid/data-grid.component';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { TemplateCreateFormComponent } from '../templates/components/template-create-form/template-create-form.component';
 import { TemplateEnrichFormComponent } from '../templates/components/template-enrich-form/template-enrich-form.component';
+import { TemplateDetailsModalComponent } from '../templates/components/template-details-modal/template-details-modal.component';
 import { CertificateCreateFormComponent } from '../certificates/components/certificate-create-form/certificate-create-form.component';
 import { CertificateViewComponent } from '../certificates/components/certificate-view/certificate-view.component';
+import { CertificatePreviewComponent } from '../certificates/components/certificate-preview/certificate-preview.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -29,7 +31,9 @@ import { CertificateViewComponent } from '../certificates/components/certificate
     TemplateCreateFormComponent,
     TemplateEnrichFormComponent,
     CertificateCreateFormComponent,
-    CertificateViewComponent
+    CertificateViewComponent,
+    CertificatePreviewComponent,
+    TemplateDetailsModalComponent
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
@@ -50,13 +54,18 @@ export class DashboardComponent implements OnInit {
 
   // Modal state
   showCreateModal = signal<boolean>(false);
+  showTemplateDetailsModal = signal<boolean>(false);
   showEnrichModal = signal<boolean>(false);
   showCertificateModal = signal<boolean>(false);
   showCertificateViewModal = signal<boolean>(false);
+  showPreviewModal = signal<boolean>(false);
+  showCertificatePreviewModal = signal<boolean>(false);
   modalTitle = signal<string>('');
   selectedTemplate = signal<TemplateResponse | null>(null);
   selectedVersionId = signal<string | undefined>(undefined);
+  selectedVersionForPreview = signal<TemplateVersionResponse | null>(null);
   selectedCertificateId = signal<string | undefined>(undefined);
+  selectedCertificateForPreview = signal<CertificateResponse | null>(null);
   isEditingTemplate = signal<boolean>(false);
   showDeleteConfirmation = signal<boolean>(false);
   templateToDelete = signal<TemplateResponse | null>(null);
@@ -64,6 +73,9 @@ export class DashboardComponent implements OnInit {
   // Template dropdown for version creation
   showTemplateDropdown = signal<boolean>(false);
   availableTemplates = signal<TemplateResponse[]>([]);
+
+  // Expanded templates state for drawer functionality (for versions grid only)
+  expandedTemplateId = signal<number | null>(null);
 
   // Dashboard card configurations
   templatesConfig: DashboardCardConfig = {
@@ -104,9 +116,53 @@ export class DashboardComponent implements OnInit {
     private toastService: ToastService,
     private router: Router
   ) {
-    // Update filtered data when grid data changes
+    // Update filtered data when grid data or expansion state changes
     effect(() => {
-      this.filteredGridData.set(this.gridData());
+      const currentData = this.gridData();
+      const expandedId = this.expandedTemplateId();
+      const gridType = this.activeGridType();
+
+      // Transform data for versions grid (always add _isExpanded property)
+      const transformedData: any[] = [];
+      
+      currentData.forEach(item => {
+        const itemData = item._original || item;
+        const isExpanded = gridType === 'versions' && expandedId && itemData._isTemplateRow && itemData.templateId === expandedId;
+        
+        // Add the parent row with expanded state
+        transformedData.push({
+          ...item,
+          _isExpanded: isExpanded
+        });
+        
+        // If this is a template row with multiple versions and it's expanded, add version rows
+        if (isExpanded && itemData.versions && itemData.versions.length > 1) {
+          // Add each version as a row
+          itemData.versions.forEach((version: any) => {
+            const versionNum = typeof version.version === 'number' 
+              ? version.version 
+              : parseInt(version.version.toString(), 10);
+            
+            transformedData.push({
+              id: version.id,
+              templateName: item.templateName || '-',
+              description: item.description || '-',
+              templateId: version.templateId,
+              version: typeof version.version === 'string' && version.version.startsWith('v')
+                ? version.version
+                : `v${versionNum}`,
+              status: version.status,
+              createdBy: version.createdBy || '-',
+              createdByName: version.createdByName || '-',
+              createdAt: version.createdAt || '-',
+              _original: version,
+              _isVersionRow: true
+            });
+          });
+        }
+      });
+
+      this.filteredGridData.set(transformedData);
     });
   }
 
@@ -199,6 +255,7 @@ export class DashboardComponent implements OnInit {
       columns: [
         { key: 'name', label: 'Template name', sortable: true },
         { key: 'description', label: 'Description', sortable: false },
+        { key: 'version', label: 'Version', sortable: true },
         { key: 'versionStatus', label: 'Status', sortable: true },
         { key: 'createdAt', label: 'Created', sortable: true }
       ],
@@ -223,7 +280,7 @@ export class DashboardComponent implements OnInit {
 
     this.templateService.getAllTemplates().subscribe({
       next: (templates) => {
-        // Load version status for each template
+        // Load only latest version status for each template (no drawer on templates grid)
         if (templates.length === 0) {
           this.gridData.set(this.formatTemplateData(templates));
           this.isLoadingGrid.set(false);
@@ -234,6 +291,7 @@ export class DashboardComponent implements OnInit {
         let loadedCount = 0;
 
         templates.forEach(template => {
+          // Fetch only latest version for status display
           this.templateService.getLatestTemplateVersion(template.id).subscribe({
             next: (version) => {
               templatesWithStatus.push({
@@ -297,6 +355,11 @@ export class DashboardComponent implements OnInit {
           label: 'Edit',
           action: 'editVersion',
           icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>'
+        },
+        {
+          label: 'Preview',
+          action: 'previewVersion',
+          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>'
         }
       ]
     });
@@ -319,7 +382,7 @@ export class DashboardComponent implements OnInit {
         // We need to get template names, so load templates to create a map
         this.templateService.getAllTemplates().subscribe({
           next: (templates) => {
-            // Create a map of templateId -> template name
+            // Create a map of templateId -> template info
             const templateMap = new Map<number, { name: string; description: string }>();
             templates.forEach(template => {
               templateMap.set(template.id, {
@@ -328,23 +391,65 @@ export class DashboardComponent implements OnInit {
               });
             });
 
-            // Format versions with template names
-            const formattedVersions = versions.map(version => {
-              const templateInfo = templateMap.get(version.templateId);
-              return {
-                id: version.id,
-                templateName: templateInfo?.name || '-',
-                description: templateInfo?.description || '-',
-                templateId: version.templateId,
-                version: typeof version.version === 'string' && version.version.startsWith('v')
-                  ? version.version
-                  : `v${version.version}`,
-                status: version.status,
-                createdBy: version.createdBy || '-',
-                createdByName: version.createdByName || '-',
-                createdAt: version.createdAt || '-',
-                _original: version
-              };
+            // Group versions by templateId
+            const versionsByTemplate = new Map<number, any[]>();
+            versions.forEach(version => {
+              if (!versionsByTemplate.has(version.templateId)) {
+                versionsByTemplate.set(version.templateId, []);
+              }
+              versionsByTemplate.get(version.templateId)!.push(version);
+            });
+
+            // Format grouped versions - create parent rows for templates with multiple versions
+            const formattedVersions: any[] = [];
+            versionsByTemplate.forEach((templateVersions, templateId) => {
+              const templateInfo = templateMap.get(templateId);
+              const versionCount = templateVersions.length;
+              
+              // Sort versions by version number (descending)
+              const sortedVersions = [...templateVersions].sort((a, b) => {
+                const versionA = typeof a.version === 'number' ? a.version : parseInt(a.version.toString(), 10);
+                const versionB = typeof b.version === 'number' ? b.version : parseInt(b.version.toString(), 10);
+                return versionB - versionA;
+              });
+
+              if (versionCount > 1) {
+                // Create parent row showing version count
+                formattedVersions.push({
+                  id: `template-${templateId}`,
+                  templateName: templateInfo?.name || '-',
+                  description: templateInfo?.description || '-',
+                  templateId: templateId,
+                  version: `${versionCount} versions`,
+                  status: sortedVersions[0].status, // Show latest version status
+                  createdBy: sortedVersions[0].createdBy || '-',
+                  createdByName: sortedVersions[0].createdByName || '-',
+                  createdAt: sortedVersions[0].createdAt || '-',
+                  _original: {
+                    templateId: templateId,
+                    versions: sortedVersions,
+                    versionCount: versionCount,
+                    _isTemplateRow: true
+                  }
+                });
+              } else {
+                // Single version - show as regular row
+                const version = sortedVersions[0];
+                formattedVersions.push({
+                  id: version.id,
+                  templateName: templateInfo?.name || '-',
+                  description: templateInfo?.description || '-',
+                  templateId: version.templateId,
+                  version: typeof version.version === 'string' && version.version.startsWith('v')
+                    ? version.version
+                    : `v${version.version}`,
+                  status: version.status,
+                  createdBy: version.createdBy || '-',
+                  createdByName: version.createdByName || '-',
+                  createdAt: version.createdAt || '-',
+                  _original: version
+                });
+              }
             });
 
             this.gridData.set(formattedVersions);
@@ -407,6 +512,11 @@ export class DashboardComponent implements OnInit {
         {
           label: 'View',
           action: 'viewCertificate',
+          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>'
+        },
+        {
+          label: 'Preview',
+          action: 'previewCertificate',
           icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>'
         }
       ]
@@ -601,15 +711,56 @@ export class DashboardComponent implements OnInit {
 
   onModalClose(): void {
     this.showCreateModal.set(false);
+    this.showTemplateDetailsModal.set(false);
     this.showEnrichModal.set(false);
     this.showCertificateModal.set(false);
     this.showCertificateViewModal.set(false);
+    this.showPreviewModal.set(false);
+    this.showCertificatePreviewModal.set(false);
     this.selectedTemplate.set(null);
     this.selectedVersionId.set(undefined);
+    this.selectedVersionForPreview.set(null);
     this.selectedCertificateId.set(undefined);
+    this.selectedCertificateForPreview.set(null);
     this.isEditingTemplate.set(false);
     this.showDeleteConfirmation.set(false);
     this.templateToDelete.set(null);
+    this.expandedTemplateId.set(null); // Collapse any expanded templates
+  }
+
+  onTemplateDetailsEnrich(template: TemplateResponse): void {
+    // Set template first to ensure it's available
+    this.selectedTemplate.set(template);
+    this.selectedVersionId.set(undefined);
+    this.modalTitle.set('Enrich Template');
+    
+    // Close template details modal
+    this.showTemplateDetailsModal.set(false);
+    
+    // Open enrich modal - use setTimeout to ensure details modal closes first
+    setTimeout(() => {
+      this.showEnrichModal.set(true);
+    }, 10);
+  }
+
+  onTemplateDetailsDeleted(): void {
+    // Reload templates and versions to reflect the change
+    if (this.activeGridType() === 'templates') {
+      this.loadTemplates();
+    }
+    if (this.activeGridType() === 'versions') {
+      this.loadVersions();
+    }
+  }
+
+  onTemplateDetailsPublished(): void {
+    // Reload templates and versions to reflect the change
+    if (this.activeGridType() === 'templates') {
+      this.loadTemplates();
+    }
+    if (this.activeGridType() === 'versions') {
+      this.loadVersions();
+    }
   }
 
   onCertificateCreated(): void {
@@ -629,8 +780,24 @@ export class DashboardComponent implements OnInit {
 
   onCertificateUpdated(): void {
     // Reload certificates to reflect updates
+    // Always reload if we're viewing certificates, regardless of current grid type
     if (this.activeGridType() === 'certificates') {
       this.loadCertificates();
+    }
+    // Note: Certificate updates are handled via onUpdated event from CertificateViewComponent
+    // which is wired in the template: (onUpdated)="onCertificateUpdated()"
+  }
+
+  onPreviewGenerated(): void {
+    this.showPreviewModal.set(false);
+    this.selectedVersionForPreview.set(null);
+    // Reload certificates to show the new preview certificate
+    if (this.activeGridType() === 'certificates') {
+      this.loadCertificates();
+    }
+    // Optionally reload versions if needed
+    if (this.activeGridType() === 'versions') {
+      this.loadVersions();
     }
   }
 
@@ -718,9 +885,129 @@ export class DashboardComponent implements OnInit {
   }
 
   onRowClick(item: any): void {
-    // TODO: Navigate to detail/edit page based on entity type
-    console.log('Row clicked:', item);
+    const gridType = this.activeGridType();
+    
+    // If clicking on a template row
+    if (gridType === 'templates') {
+      const templateData = item._original || item;
+      
+      if (!templateData || !templateData.id) {
+        console.error('Invalid template data:', item);
+        this.toastService.error('Invalid template data. Please try again.');
+        return;
+      }
+
+      // Templates grid: always show template details modal (no drawer)
+      this.showTemplateDetails(templateData);
+    } else if (gridType === 'versions') {
+      // Versions grid: handle drawer expansion and version clicks
+      const itemData = item._original || item;
+      
+      if (!itemData) {
+        console.error('Invalid version data:', item);
+        this.toastService.error('Invalid version data. Please try again.');
+        return;
+      }
+
+      // Check if this is a version row (from expanded drawer)
+      if (item._isVersionRow) {
+        // Clicked on a version in the drawer - show version details
+        const version = itemData;
+        const templateId = version.templateId;
+        this.showVersionDetails(version, { id: templateId });
+        return;
+      }
+
+      // Check if this is a template row with multiple versions
+      if (itemData._isTemplateRow && itemData.versionCount > 1) {
+        // Toggle expansion for templates with multiple versions
+        const currentExpanded = this.expandedTemplateId();
+        if (currentExpanded === itemData.templateId) {
+          // Collapse
+          this.expandedTemplateId.set(null);
+        } else {
+          // Expand
+          this.expandedTemplateId.set(itemData.templateId);
+        }
+        // The effect will automatically update filteredGridData when expandedTemplateId changes
+      } else {
+        // Single version row - show version details directly
+        const version = itemData;
+        const templateId = version.templateId;
+        this.showVersionDetails(version, { id: templateId });
+      }
+    } else if (gridType === 'certificates') {
+      // Certificates grid: open certificate view modal
+      const certificateData = item._original || item;
+      
+      if (!certificateData || !certificateData.id) {
+        console.error('Invalid certificate data:', item);
+        this.toastService.error('Invalid certificate data. Please try again.');
+        return;
+      }
+
+      // Open the same modal as the "View" action
+      this.selectedCertificateId.set(certificateData.id);
+      this.modalTitle.set('Certificate Details');
+      this.showCertificateViewModal.set(true);
+    } else {
+      // Handle other entity types
+      console.log('Row clicked:', item);
+    }
   }
+
+  private showTemplateDetails(templateData: any): void {
+    this.errorMessage.set(null);
+    this.templateService.getTemplateById(templateData.id).subscribe({
+      next: (template) => {
+        if (!template) {
+          this.toastService.error('Template not found. Please try again.');
+          return;
+        }
+        this.selectedTemplate.set(template);
+        this.showTemplateDetailsModal.set(true);
+      },
+      error: (error) => {
+        console.error('Error fetching template:', error);
+        let errorMsg = 'Failed to load template details.';
+        if (error?.error?.message) {
+          errorMsg = error.error.message;
+        } else if (error?.message) {
+          errorMsg = error.message;
+        }
+        this.toastService.error(errorMsg);
+      }
+    });
+  }
+
+  private showVersionDetails(version: any, templateData: any): void {
+    // Fetch template to show version details modal
+    this.errorMessage.set(null);
+    this.templateService.getTemplateById(templateData.id).subscribe({
+      next: (template) => {
+        if (!template) {
+          this.toastService.error('Template not found. Please try again.');
+          return;
+        }
+        // Set the selected version ID and open template details modal
+        // The template details modal should show version-specific info
+        this.selectedTemplate.set(template);
+        this.selectedVersionId.set(version.id);
+        this.showTemplateDetailsModal.set(true);
+      },
+      error: (error) => {
+        console.error('Error fetching template:', error);
+        let errorMsg = 'Failed to load template details.';
+        if (error?.error?.message) {
+          errorMsg = error.error.message;
+        } else if (error?.message) {
+          errorMsg = error.message;
+        }
+        this.toastService.error(errorMsg);
+      }
+    });
+  }
+
 
   onActionClick(event: { action: string; item: any }): void {
     const { action, item } = event;
@@ -947,6 +1234,71 @@ export class DashboardComponent implements OnInit {
           }
         });
         break;
+      case 'previewVersion':
+        // Get version data
+        const previewVersionData = item._original || item;
+        
+        // Check if this is a version row from expanded drawer
+        let versionToPreview: any;
+        if (previewVersionData._isTemplateRow) {
+          // This is a parent template row - get the latest published version
+          if (previewVersionData.versions && previewVersionData.versions.length > 0) {
+            const publishedVersions = previewVersionData.versions.filter((v: any) => v.status === TemplateVersionStatus.PUBLISHED);
+            if (publishedVersions.length > 0) {
+              // Get the latest published version
+              versionToPreview = publishedVersions.sort((a: any, b: any) => {
+                const versionA = typeof a.version === 'number' ? a.version : parseInt(a.version.toString(), 10);
+                const versionB = typeof b.version === 'number' ? b.version : parseInt(b.version.toString(), 10);
+                return versionB - versionA;
+              })[0];
+            }
+          }
+        } else if (item._isVersionRow) {
+          // This is a version row from expanded drawer
+          versionToPreview = previewVersionData;
+        } else {
+          // This is a regular version row
+          versionToPreview = previewVersionData;
+        }
+
+        if (!versionToPreview || !versionToPreview.id) {
+          this.toastService.error('Invalid version data. Please try again.');
+          return;
+        }
+
+        // Check if version is published
+        if (versionToPreview.status !== TemplateVersionStatus.PUBLISHED) {
+          this.toastService.error('Only published versions can be previewed.');
+          return;
+        }
+
+        // Clear any previous error
+        this.errorMessage.set(null);
+
+        // Fetch the full version details to get field schema
+        this.templateService.getTemplateVersionById(versionToPreview.templateId, versionToPreview.id).subscribe({
+          next: (version) => {
+            if (!version) {
+              this.toastService.error('Version not found. Please try again.');
+              return;
+            }
+
+            this.selectedVersionForPreview.set(version);
+            this.modalTitle.set('Preview Certificate');
+            this.showPreviewModal.set(true);
+          },
+          error: (error) => {
+            console.error('Error fetching version:', error);
+            let errorMsg = 'Failed to load version details.';
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            }
+            this.toastService.error(errorMsg);
+          }
+        });
+        break;
       case 'publishVersion':
         // Get version data
         const publishVersionData = item._original || item;
@@ -1113,9 +1465,98 @@ export class DashboardComponent implements OnInit {
           return;
         }
 
-        this.selectedCertificateId.set(viewCertData.id);
-        this.modalTitle.set('Certificate Details');
-        this.showCertificateViewModal.set(true);
+        // Check status first - only ISSUED certificates can be viewed
+        if (viewCertData.status !== 'ISSUED') {
+          let errorMsg = 'Certificate cannot be viewed.';
+          if (viewCertData.status === 'FAILED') {
+            errorMsg = 'Certificate generation failed. Cannot view certificate.';
+          } else if (viewCertData.status === 'REVOKED') {
+            errorMsg = 'Certificate has been revoked. Cannot view certificate.';
+          } else if (viewCertData.status === 'PENDING' || viewCertData.status === 'PROCESSING') {
+            errorMsg = 'Certificate is still being processed. Please wait for it to be issued.';
+          } else {
+            errorMsg = `Certificate status is ${viewCertData.status}. Only issued certificates can be viewed.`;
+          }
+          this.toastService.error(errorMsg);
+          return;
+        }
+
+        // Fetch full certificate details and show PDF preview modal
+        this.certificateService.getCertificateById(viewCertData.id).subscribe({
+          next: (certificate) => {
+            if (!certificate) {
+              this.toastService.error('Certificate not found.');
+              return;
+            }
+            // Double-check status after fetching
+            if (certificate.status !== CertificateStatus.ISSUED) {
+              let errorMsg = 'Certificate cannot be viewed.';
+              if (certificate.status === CertificateStatus.FAILED) {
+                errorMsg = 'Certificate generation failed. Cannot view certificate.';
+              } else if (certificate.status === CertificateStatus.REVOKED) {
+                errorMsg = 'Certificate has been revoked. Cannot view certificate.';
+              } else {
+                errorMsg = `Certificate status is ${certificate.status}. Only issued certificates can be viewed.`;
+              }
+              this.toastService.error(errorMsg);
+              return;
+            }
+            this.selectedCertificateForPreview.set(certificate);
+            this.modalTitle.set('View Certificate');
+            this.showCertificatePreviewModal.set(true);
+          },
+          error: (error) => {
+            console.error('Error fetching certificate:', error);
+            let errorMsg = 'Failed to load certificate.';
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            }
+            this.toastService.error(errorMsg);
+          }
+        });
+        break;
+      case 'previewCertificate':
+        const previewCertData = item._original || item;
+
+        if (!previewCertData || !previewCertData.id) {
+          this.toastService.error('Invalid certificate data.');
+          return;
+        }
+
+        // Check if certificate is PENDING
+        if (previewCertData.status !== 'PENDING') {
+          this.toastService.error('Only pending certificates can be previewed.');
+          return;
+        }
+
+        // Fetch full certificate details
+        console.log('[Dashboard] Preview action clicked, fetching certificate:', previewCertData.id);
+        this.certificateService.getCertificateById(previewCertData.id).subscribe({
+          next: (certificate) => {
+            console.log('[Dashboard] Certificate fetched:', certificate);
+            if (!certificate) {
+              this.toastService.error('Certificate not found.');
+              return;
+            }
+            this.selectedCertificateForPreview.set(certificate);
+            this.modalTitle.set('Preview Certificate');
+            this.showCertificatePreviewModal.set(true);
+            console.log('[Dashboard] Modal should be opening now');
+          },
+          error: (error) => {
+            console.error('Error fetching certificate:', error);
+            let errorMsg = 'Failed to load certificate.';
+            if (error?.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            }
+            this.toastService.error(errorMsg);
+            // Don't show modal on error - just show toast notification
+          }
+        });
         break;
       default:
         console.log('Unknown action:', action);
@@ -1128,7 +1569,7 @@ export class DashboardComponent implements OnInit {
       name: template.name,
       code: template.code || '-',
       description: template.description || '-',
-      currentVersion: template.currentVersion ? `v${template.currentVersion}` : 'v1',
+      version: template.currentVersion ? `v${template.currentVersion}` : 'v1',
       versionStatus: template.versionStatus || '-',
       createdAt: template.createdAt || '-',
       _original: template

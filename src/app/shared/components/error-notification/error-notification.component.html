@@ -1,0 +1,55 @@
+<div class="error-notification-container">
+  @for (notification of notifications(); track notification.id) {
+    <div class="error-notification">
+      <div class="error-notification-header">
+        <div class="error-notification-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <div class="error-notification-content">
+          <p class="error-notification-message">{{ notification.message }}</p>
+          @if (notification.statusCode) {
+            <span class="error-notification-status">{{ notification.statusCode }}</span>
+          }
+        </div>
+        <div class="error-notification-actions">
+          @if (notification.details) {
+            <button
+              type="button"
+              (click)="toggleExpand(notification.id)"
+              class="error-notification-toggle"
+              [attr.aria-expanded]="isExpanded(notification.id)"
+              aria-label="Toggle details"
+            >
+              <svg 
+                class="chevron-icon" 
+                [class.expanded]="isExpanded(notification.id)"
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+          }
+          <button
+            type="button"
+            (click)="removeNotification(notification.id)"
+            class="error-notification-close"
+            aria-label="Close"
+          >
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      @if (notification.details && isExpanded(notification.id)) {
+        <div class="error-notification-details">
+          <pre class="error-notification-details-text">{{ formatDetails(notification.details) }}</pre>
+        </div>
+      }
+    </div>
+  }
+</div>
