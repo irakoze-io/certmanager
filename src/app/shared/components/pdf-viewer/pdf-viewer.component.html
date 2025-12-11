@@ -1,0 +1,81 @@
+<div class="pdf-viewer-container">
+  @if (isLoading()) {
+    <div class="pdf-loading">
+      <div class="loading-spinner">
+        <svg class="animate-spin h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+      <p class="loading-text">Loading PDF...</p>
+    </div>
+  } @else if (error()) {
+    <div class="pdf-error">
+      <div class="error-icon">
+        <svg class="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <p class="error-text">{{ error() }}</p>
+      <p class="error-hint">Check the browser console for more details.</p>
+    </div>
+  } @else {
+    <div class="pdf-controls">
+      <div class="controls-left">
+        <button 
+          type="button" 
+          (click)="previousPage()" 
+          [disabled]="currentPage() <= 1"
+          class="control-button"
+          title="Previous page"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        <span class="page-info">
+          Page {{ currentPage() }} of {{ totalPages() }}
+        </span>
+        <button 
+          type="button" 
+          (click)="nextPage()" 
+          [disabled]="currentPage() >= totalPages()"
+          class="control-button"
+          title="Next page"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="controls-right">
+        <button 
+          type="button" 
+          (click)="zoomOut()" 
+          [disabled]="currentScale() <= 0.5"
+          class="control-button"
+          title="Zoom out"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path>
+          </svg>
+        </button>
+        <span class="zoom-info">{{ Math.round(currentScale() * 100) }}%</span>
+        <button 
+          type="button" 
+          (click)="zoomIn()" 
+          [disabled]="currentScale() >= 3.0"
+          class="control-button"
+          title="Zoom in"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="pdf-content">
+      <div #canvasContainer class="canvas-container"></div>
+    </div>
+  }
+</div>

@@ -1,15 +1,15 @@
 import { Component, OnInit, input, output, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CertificateService } from '../../../../core/services/certificate.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { CertificateResponse, CertificateStatus } from '../../../../core/models/certificate.model';
 import { formatDate, formatTime } from '../../../../core/utils/date.util';
+import { PdfViewerComponent } from '../../../../shared/components/pdf-viewer/pdf-viewer.component';
 
 @Component({
   selector: 'app-certificate-preview',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, PdfViewerComponent],
   templateUrl: './certificate-preview.component.html',
   styleUrl: './certificate-preview.component.css'
 })
@@ -26,11 +26,8 @@ export class CertificatePreviewComponent implements OnInit {
 
   isLoading = signal<boolean>(false);
   previewUrl = signal<string | null>(null);
-  safePreviewUrl = signal<SafeResourceUrl | null>(null);
   errorMessage = signal<string | null>(null);
   previewLoadAttempted = signal<string | null>(null); // Track which certificate ID we attempted
-
-  private sanitizer = inject(DomSanitizer);
 
   constructor(
     private certificateService: CertificateService,
@@ -68,27 +65,28 @@ export class CertificatePreviewComponent implements OnInit {
 
     this.certificateService.getDownloadUrl(cert.id, 10).subscribe({
       next: (url) => {
+        console.log('[Certificate Preview] Download URL received:', url);
         if (url) {
           this.previewUrl.set(url);
-          // Sanitize the URL for iframe use
-          this.safePreviewUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
+          console.log('[Certificate Preview] Preview URL set, PDF viewer should load now');
         } else {
+          console.warn('[Certificate Preview] Download URL is empty');
           this.previewUrl.set(null);
-          this.safePreviewUrl.set(null);
         }
         this.isLoading.set(false);
       },
       error: (error) => {
+        console.error('[Certificate Preview] Error fetching download URL:', error);
         this.isLoading.set(false);
 
         const status = error?.status || error?.error?.status;
         if (status === 404 || status === 400) {
+          console.warn('[Certificate Preview] Certificate not found or invalid (status:', status, ')');
           this.previewUrl.set(null);
-          this.safePreviewUrl.set(null);
         } else {
           // Other error - log but don't show error message
+          console.error('[Certificate Preview] Failed to get download URL (status:', status, ')');
           this.previewUrl.set(null);
-          this.safePreviewUrl.set(null);
         }
       }
     });
