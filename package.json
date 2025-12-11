@@ -8,7 +8,8 @@
     "build:static": "ng build --configuration production-static",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:certmanager": "node dist/certmanager/server/server.mjs"
+    "serve:ssr:certmanager": "node dist/certmanager/server/server.mjs",
+    "postinstall": "node -e \"try { require('fs').mkdirSync('public', { recursive: true }); require('fs').copyFileSync('node_modules/pdfjs-dist/build/pdf.worker.min.mjs', 'public/pdf.worker.min.mjs'); console.log('PDF worker copied successfully'); } catch(e) { console.warn('PDF worker copy skipped:', e.message); }\""
   },
   "prettier": {
     "printWidth": 100,
@@ -34,6 +35,7 @@
     "@angular/router": "^21.0.0",
     "@angular/ssr": "^21.0.1",
     "express": "^5.1.0",
+    "pdfjs-dist": "^5.4.449",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
