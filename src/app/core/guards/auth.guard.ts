@@ -4,9 +4,6 @@ import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ErrorNotificationService } from '../services/error-notification.service';
 
-/**
- * Auth guard to protect routes requiring authentication
- */
 export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
@@ -17,7 +14,6 @@ export const authGuard: CanActivateFn = (route, state) => {
     return false; // Block SSR access, will be re-evaluated on client
   }
 
-  // Only re-initialize if signals are empty (won't overwrite fresh login data)
   authService.reinitializeFromStorage();
 
   const isAuth = authService.isAuthenticated();

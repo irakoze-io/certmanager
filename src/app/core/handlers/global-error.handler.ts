@@ -8,7 +8,6 @@ export class GlobalErrorHandler implements ErrorHandler {
   handleError(error: any): void {
     console.error('Global error handler:', error);
 
-    // Extract error message
     let message = 'An unexpected error occurred';
     let details: string | undefined;
 
@@ -16,36 +15,32 @@ export class GlobalErrorHandler implements ErrorHandler {
       message = error.message;
     }
 
-    // Build details
     const detailParts: string[] = [];
-    
+
     if (error?.name) {
       detailParts.push(`Error Type: ${error.name}`);
     }
-    
+
     if (error?.stack) {
       detailParts.push(`Stack Trace:\n${error.stack}`);
     }
-    
+
     if (error?.error) {
       detailParts.push(`Error Object: ${JSON.stringify(error.error, null, 2)}`);
     }
-    
+
     if (error?.message && error.message !== message) {
       detailParts.push(`Message: ${error.message}`);
     }
 
-    // Add full error object as JSON if available
     try {
       detailParts.push(`\nFull Error:\n${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`);
     } catch (e) {
-      // Ignore circular reference errors
       detailParts.push(`\nFull Error: [Unable to stringify - circular reference]`);
     }
 
     details = detailParts.length > 0 ? detailParts.join('\n\n') : undefined;
 
-    // Show error notification
     this.errorNotificationService.show(message, details);
   }
 }

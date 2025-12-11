@@ -124,25 +124,25 @@ export class DashboardComponent implements OnInit {
 
       // Transform data for versions grid (always add _isExpanded property)
       const transformedData: any[] = [];
-      
+
       currentData.forEach(item => {
         const itemData = item._original || item;
         const isExpanded = gridType === 'versions' && expandedId && itemData._isTemplateRow && itemData.templateId === expandedId;
-        
+
         // Add the parent row with expanded state
         transformedData.push({
           ...item,
           _isExpanded: isExpanded
         });
-        
+
         // If this is a template row with multiple versions and it's expanded, add version rows
         if (isExpanded && itemData.versions && itemData.versions.length > 1) {
           // Add each version as a row
           itemData.versions.forEach((version: any) => {
-            const versionNum = typeof version.version === 'number' 
-              ? version.version 
+            const versionNum = typeof version.version === 'number'
+              ? version.version
               : parseInt(version.version.toString(), 10);
-            
+
             transformedData.push({
               id: version.id,
               templateName: item.templateName || '-',
@@ -173,12 +173,10 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    // Get current user info - ensure we're using fresh data
     const user = this.authService.currentUser();
     const tenantId = this.authService.currentTenantId();
     const tenantSchema = this.authService.currentTenantSchema();
 
-    // Validate we have all required data
     if (!user || !tenantId) {
       console.error('Missing auth data:', { user, tenantId, tenantSchema });
       this.router.navigate(['/login']);
@@ -189,20 +187,9 @@ export class DashboardComponent implements OnInit {
     this.tenantId.set(tenantId);
     this.tenantSchema.set(tenantSchema);
 
-    // Fetch customer information using the current user's customerId
-    // Log for debugging
-    console.log('Dashboard: Fetching customer data', {
-      userId: user.id,
-      customerId: user.customerId,
-      tenantId: tenantId,
-      tenantSchema: tenantSchema,
-      email: user.email
-    });
-
-    if (user.customerId) {
+    /*if (user.customerId) {
       this.customerService.getCustomerById(user.customerId).subscribe({
         next: (customer) => {
-          console.log('Dashboard: Customer data loaded', customer);
           this.customer.set(customer);
         },
         error: (error) => {
@@ -217,7 +204,7 @@ export class DashboardComponent implements OnInit {
       });
     } else {
       console.error('User has no customerId:', user);
-    }
+    }*/
   }
 
   onCardLinkClick(entityType: EntityType): void {
@@ -405,7 +392,7 @@ export class DashboardComponent implements OnInit {
             versionsByTemplate.forEach((templateVersions, templateId) => {
               const templateInfo = templateMap.get(templateId);
               const versionCount = templateVersions.length;
-              
+
               // Sort versions by version number (descending)
               const sortedVersions = [...templateVersions].sort((a, b) => {
                 const versionA = typeof a.version === 'number' ? a.version : parseInt(a.version.toString(), 10);
@@ -733,10 +720,10 @@ export class DashboardComponent implements OnInit {
     this.selectedTemplate.set(template);
     this.selectedVersionId.set(undefined);
     this.modalTitle.set('Enrich Template');
-    
+
     // Close template details modal
     this.showTemplateDetailsModal.set(false);
-    
+
     // Open enrich modal - use setTimeout to ensure details modal closes first
     setTimeout(() => {
       this.showEnrichModal.set(true);
@@ -886,11 +873,11 @@ export class DashboardComponent implements OnInit {
 
   onRowClick(item: any): void {
     const gridType = this.activeGridType();
-    
+
     // If clicking on a template row
     if (gridType === 'templates') {
       const templateData = item._original || item;
-      
+
       if (!templateData || !templateData.id) {
         console.error('Invalid template data:', item);
         this.toastService.error('Invalid template data. Please try again.');
@@ -902,7 +889,7 @@ export class DashboardComponent implements OnInit {
     } else if (gridType === 'versions') {
       // Versions grid: handle drawer expansion and version clicks
       const itemData = item._original || item;
-      
+
       if (!itemData) {
         console.error('Invalid version data:', item);
         this.toastService.error('Invalid version data. Please try again.');
@@ -939,7 +926,7 @@ export class DashboardComponent implements OnInit {
     } else if (gridType === 'certificates') {
       // Certificates grid: open certificate view modal
       const certificateData = item._original || item;
-      
+
       if (!certificateData || !certificateData.id) {
         console.error('Invalid certificate data:', item);
         this.toastService.error('Invalid certificate data. Please try again.');
@@ -1237,7 +1224,7 @@ export class DashboardComponent implements OnInit {
       case 'previewVersion':
         // Get version data
         const previewVersionData = item._original || item;
-        
+
         // Check if this is a version row from expanded drawer
         let versionToPreview: any;
         if (previewVersionData._isTemplateRow) {

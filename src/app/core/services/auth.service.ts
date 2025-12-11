@@ -142,7 +142,7 @@ export class AuthService {
    */
   reinitializeFromStorage(): void {
     if (this.isBrowser) {
-      // Only initialize if we don't already have auth state
+      // If no auth state, reinitialize from storage
       if (!this.tokenSignal() || !this.userSignal()) {
         this.initializeFromStorage();
       }
@@ -213,14 +213,14 @@ export class AuthService {
 
     // Clear all cached data (only in browser)
     if (this.isBrowser) {
-      // Clear specific auth-related localStorage items
+
       localStorage.removeItem(this.tokenKey);
       localStorage.removeItem(this.userKey);
       localStorage.removeItem(this.tenantIdKey);
       localStorage.removeItem(this.tenantSchemaKey);
 
       // Clear all localStorage items that start with app prefix (certmgmt_)
-      // This ensures we don't leave any tenant-specific or user-specific data
+      // Don't leave any tenant-specific or user-specific data
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -230,7 +230,6 @@ export class AuthService {
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
 
-      // Clear all sessionStorage items that start with app prefix
       const sessionKeysToRemove: string[] = [];
       for (let i = 0; i < sessionStorage.length; i++) {
         const key = sessionStorage.key(i);
@@ -247,7 +246,6 @@ export class AuthService {
    * Only loads if signals are not already set (to prevent overwriting fresh data)
    */
   private initializeFromStorage(): void {
-    // Don't overwrite if signals are already set (fresh login data)
     if (this.tokenSignal() && this.userSignal()) {
       return;
     }
