@@ -43,3 +43,7 @@ __screenshots__/
 Thumbs.db
 
 /INTEGRATION_SETUP.md
+/CLOUDFLARE_DEPLOYMENT.md
+/LOCAL_BACKEND_SETUP.md
+/git-flow-release.sh
+/ERROR_HANDLING_GUIDE.md

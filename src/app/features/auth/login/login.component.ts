@@ -17,7 +17,6 @@ import { UserFormComponent } from './components/user-form/user-form.component';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    RouterLink,
     NotificationComponent,
     LoginFormComponent,
     CustomerFormComponent,

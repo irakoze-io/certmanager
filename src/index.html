@@ -6,6 +6,44 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" href="/certmanager-logo.png">
+  <script>
+    // Detect 404 errors before Angular loads
+    // This handles the case where the server returns 404 for a route
+    (function() {
+      // Check if we're on a 404 page
+      function checkFor404() {
+        // Wait a bit for the page to load
+        setTimeout(function() {
+          const bodyText = document.body ? document.body.textContent || document.body.innerText : '';
+          const is404Page = bodyText.includes('Cannot GET') || 
+                           bodyText.includes('404') || 
+                           bodyText.includes('Not Found');
+          
+          if (is404Page && window.location.pathname !== '/login') {
+            console.error('404 page detected, redirecting to login');
+            // Clear any auth data
+            try {
+              localStorage.removeItem('certmgmt_token');
+              localStorage.removeItem('certmgmt_user');
+              localStorage.removeItem('certmgmt_tenant_id');
+              localStorage.removeItem('certmgmt_tenant_schema');
+            } catch (e) {
+              console.error('Failed to clear auth data:', e);
+            }
+            // Redirect to login
+            window.location.href = '/login';
+          }
+        }, 500);
+      }
+      
+      // Run check when DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', checkFor404);
+      } else {
+        checkFor404();
+      }
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

@@ -28,6 +28,7 @@ export class CertificateViewComponent implements OnInit {
   certificate = signal<CertificateResponse | null>(null);
   templateVersion = signal<TemplateVersionResponse | null>(null);
   isLoading = signal<boolean>(false);
+  isLoadingTemplateVersion = signal<boolean>(false);
   isEditing = signal<boolean>(false);
   isSaving = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
@@ -106,13 +107,23 @@ export class CertificateViewComponent implements OnInit {
   }
 
   loadTemplateVersionForCertificate(versionId: string): void {
+    this.isLoadingTemplateVersion.set(true);
     // Try to find the template version by loading all templates
     this.templateService.getAllTemplates().subscribe({
       next: (templates) => {
         let found = false;
+        let completedRequests = 0;
+        const totalRequests = templates.length;
+        
+        if (totalRequests === 0) {
+          this.isLoadingTemplateVersion.set(false);
+          return;
+        }
+        
         for (const template of templates) {
           this.templateService.getTemplateVersions(template.id).subscribe({
             next: (versions) => {
+              completedRequests++;
               if (!found) {
                 const version = versions.find(v => v.id === versionId);
                 if (version) {
@@ -125,11 +136,26 @@ export class CertificateViewComponent implements OnInit {
                       this.buildRecipientDataForm(version.fieldSchema, cert.recipientData);
                     }
                   }
+                  this.isLoadingTemplateVersion.set(false);
+                } else if (completedRequests === totalRequests) {
+                  // All requests completed but version not found
+                  this.isLoadingTemplateVersion.set(false);
                 }
+              } else if (completedRequests === totalRequests) {
+                this.isLoadingTemplateVersion.set(false);
+              }
+            },
+            error: () => {
+              completedRequests++;
+              if (completedRequests === totalRequests) {
+                this.isLoadingTemplateVersion.set(false);
               }
             }
           });
         }
+      },
+      error: () => {
+        this.isLoadingTemplateVersion.set(false);
       }
     });
   }
@@ -324,6 +350,55 @@ export class CertificateViewComponent implements OnInit {
       }
     }
     return null;
+  }
+
+  copyToClipboard(text: string, event: Event): void {
+    event.stopPropagation();
+    
+    if (!text || text === '-') {
+      return;
+    }
+    
+    navigator.clipboard.writeText(text).then(() => {
+      this.toastService.success('Certificate number copied to clipboard');
+    }).catch((err) => {
+      console.error('Failed to copy:', err);
+      this.toastService.error('Failed to copy certificate number');
+    });
+  }
+
+  getDisplayValue(value: any): string | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    
+    // If it's an object or array (and not empty string), return null to show skeleton
+    if (typeof value === 'object') {
+      // Empty arrays are okay
+      if (Array.isArray(value) && value.length === 0) {
+        return '-';
+      }
+      // Objects or non-empty arrays are not ready yet
+      return null;
+    }
+    
+    // Primitive values are ready
+    return String(value);
+  }
+
+  hasObjectValues(recipientData: Record<string, any> | undefined): boolean {
+    if (!recipientData) return false;
+    
+    return Object.values(recipientData).some(value => {
+      if (value === null || value === undefined) return false;
+      if (typeof value === 'object') {
+        // Empty arrays are fine
+        if (Array.isArray(value) && value.length === 0) return false;
+        // Objects or non-empty arrays mean data is not ready
+        return true;
+      }
+      return false;
+    });
   }
 
   private markFormGroupTouched(formGroup: FormGroup): void {
