@@ -1,12 +1,42 @@
 <div class="certificate-view-container">
   @if (isLoading()) {
-    <div class="flex items-center justify-center py-12">
-      <div class="text-center">
-        <svg class="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <p class="text-sm text-gray-600">Loading certificate...</p>
+    <div class="certificate-details">
+      <!-- Certificate Number & Status Skeleton -->
+      <div class="mb-6">
+        <div class="flex items-center gap-4 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-500">Certificate Number:</span>
+            <div class="h-5 w-32 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div class="h-6 w-20 bg-gray-200 rounded-full animate-pulse"></div>
+        </div>
+      </div>
+
+      <!-- Recipient Information Skeleton -->
+      <div class="mt-6 pt-6 border-t border-gray-200">
+        <div class="h-5 w-40 bg-gray-200 rounded animate-pulse mb-4"></div>
+        <div class="grid grid-cols-2 gap-4">
+          @for (i of [1,2,3,4]; track i) {
+            <div>
+              <div class="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div class="h-5 w-32 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Certificate Info Section Skeleton -->
+      <div class="mt-6 pt-6 border-t border-gray-200">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <div class="h-4 w-20 bg-gray-200 rounded animate-pulse mb-2"></div>
+            <div class="h-5 w-28 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div>
+            <div class="h-4 w-20 bg-gray-200 rounded animate-pulse mb-2"></div>
+            <div class="h-5 w-28 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
       </div>
     </div>
   } @else if (errorMessage()) {
@@ -20,220 +50,105 @@
     </div>
   } @else if (certificate()) {
     <div class="certificate-details">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h2 class="text-2xl font-semibold text-gray-900">Certificate Details</h2>
-          <p class="text-sm text-gray-600 mt-1">Certificate Number: {{ certificate()!.certificateNumber }}</p>
-        </div>
-        <div class="flex items-center gap-3">
+      <!-- Certificate Number & Status -->
+      <div class="mb-6">
+        <div class="flex items-center gap-4 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-500">Certificate Number:</span>
+            <span class="text-sm font-medium text-gray-900 font-mono">{{ certificate()!.certificateNumber }}</span>
+            @if (certificate()!.certificateNumber && certificate()!.certificateNumber !== '-') {
+              <button
+                type="button"
+                (click)="copyToClipboard(certificate()!.certificateNumber!, $event)"
+                class="inline-flex items-center text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                [title]="'Copy certificate number'"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+              </button>
+            }
+          </div>
           <span [class]="getStatusClass(certificate()!.status)">
             {{ certificate()!.status }}
           </span>
-          @if (certificate()!.status === 'ISSUED') {
-            <button
-              type="button"
-              (click)="downloadCertificate()"
-              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
-              Download PDF
-            </button>
+        </div>
+        @if (certificate()!.status === 'ISSUED') {
+          <button
+            type="button"
+            (click)="downloadCertificate()"
+            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Download PDF
+          </button>
+        }
+      </div>
+
+      <!-- Recipient Information -->
+      @if (Object.keys(fieldSchema() || {}).length > 0 || Object.keys(certificate()!.recipientData || {}).length > 0) {
+        <div class="mt-6 pt-6 border-t border-gray-200">
+          <h3 class="text-sm font-semibold text-gray-900 mb-4">Recipient Information</h3>
+          <div class="grid grid-cols-2 gap-4">
+            @if (templateVersion() && Object.keys(fieldSchema()).length > 0) {
+              @for (fieldEntry of Object.entries(fieldSchema()); track fieldEntry[0]) {
+                @let fieldName = fieldEntry[0];
+                @let fieldDef = fieldEntry[1];
+                <div>
+                  <span class="text-sm text-gray-500">{{ fieldDef.label || fieldName }}</span>
+                  <p class="text-sm font-medium text-gray-900 mt-1">
+                    {{ certificate()!.recipientData[fieldName] || '-' }}
+                  </p>
+                </div>
+              }
+            } @else {
+              @for (fieldEntry of Object.entries(certificate()!.recipientData || {}); track fieldEntry[0]) {
+                @let fieldName = fieldEntry[0];
+                @let fieldValue = fieldEntry[1];
+                <div>
+                  <span class="text-sm text-gray-500">{{ fieldName }}</span>
+                  <p class="text-sm font-medium text-gray-900 mt-1">{{ fieldValue || '-' }}</p>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Certificate Info Section -->
+      <div class="mt-6 pt-6 border-t border-gray-200">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          @if (certificate()!.issuedAt) {
+            <div>
+              <span class="text-gray-500">Issued At</span>
+              <p class="font-medium text-gray-900 mt-1">{{ formatDate(certificate()!.issuedAt!) }}</p>
+            </div>
           }
-          @if (!isEditing() && certificate()!.status !== 'ISSUED') {
-            <button
-              type="button"
-              (click)="enableEdit()"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-              </svg>
-              Edit
-            </button>
+          @if (certificate()!.createdAt) {
+            <div>
+              <span class="text-gray-500">Created At</span>
+              <p class="font-medium text-gray-900 mt-1">{{ formatDate(certificate()!.createdAt!) }}</p>
+            </div>
           }
         </div>
       </div>
 
-      <!-- Certificate Information Form -->
-      <form [formGroup]="form" (ngSubmit)="saveChanges()">
-        <!-- Certificate Number -->
-        <div class="form-section">
-          <label class="form-label">Certificate Number</label>
-          @if (isEditing()) {
-            <input
-              type="text"
-              formControlName="certificateNumber"
-              class="form-input"
-              [class.error]="form.get('certificateNumber')?.invalid && form.get('certificateNumber')?.touched"
-            />
-            @if (form.get('certificateNumber')?.invalid && form.get('certificateNumber')?.touched) {
-              <p class="error-text">Certificate number is required</p>
+      <!-- Metadata -->
+      @if (certificate()!.metadata && Object.keys(certificate()!.metadata || {}).length > 0) {
+        <div class="mt-6 pt-6 border-t border-gray-200">
+          <h3 class="text-sm font-semibold text-gray-900 mb-4">Metadata</h3>
+          <div class="grid grid-cols-2 gap-4">
+            @for (metaEntry of Object.entries(certificate()!.metadata || {}); track metaEntry[0]) {
+              <div>
+                <span class="text-sm text-gray-500">{{ metaEntry[0] }}</span>
+                <p class="text-sm font-medium text-gray-900 mt-1">{{ metaEntry[1] }}</p>
+              </div>
             }
-          } @else {
-            <input
-              type="text"
-              [value]="certificate()!.certificateNumber"
-              readonly
-              class="form-input readonly-input"
-            />
-          }
-        </div>
-
-        <!-- Recipient Data -->
-        @if (Object.keys(fieldSchema() || {}).length > 0 || Object.keys(certificate()!.recipientData || {}).length > 0) {
-          <div class="form-section">
-            <label class="form-label">Recipient Information</label>
-            <div formGroupName="recipientData" class="recipient-data-fields">
-              @if (templateVersion() && Object.keys(fieldSchema()).length > 0) {
-                @for (fieldEntry of Object.entries(fieldSchema()); track fieldEntry[0]) {
-                  @let fieldName = fieldEntry[0];
-                  @let fieldDef = fieldEntry[1];
-                  <div class="field-item">
-                    <label [for]="fieldName" class="field-label">
-                      {{ fieldDef.label || fieldName }}
-                      @if (fieldDef.required) {
-                        <span class="text-red-500">*</span>
-                      }
-                    </label>
-                    @if (isEditing()) {
-                      @if (fieldDef.type === FieldType.TEXTAREA) {
-                        <textarea
-                          [id]="fieldName"
-                          [formControlName]="fieldName"
-                          rows="4"
-                          class="form-input"
-                          [class.error]="getFieldError(fieldName)"
-                        ></textarea>
-                      } @else if (fieldDef.type === FieldType.BINARY) {
-                        <select
-                          [id]="fieldName"
-                          [formControlName]="fieldName"
-                          class="form-input"
-                          [class.error]="getFieldError(fieldName)"
-                        >
-                          <option value="">Select</option>
-                          <option [value]="true">Yes</option>
-                          <option [value]="false">No</option>
-                        </select>
-                      } @else {
-                        <input
-                          [id]="fieldName"
-                          [type]="getFieldInputType(fieldDef.type)"
-                          [formControlName]="fieldName"
-                          class="form-input"
-                          [class.error]="getFieldError(fieldName)"
-                        />
-                      }
-                      @if (getFieldError(fieldName)) {
-                        <p class="error-text">{{ getFieldError(fieldName) }}</p>
-                      }
-                    } @else {
-                      <input
-                        type="text"
-                        [value]="certificate()!.recipientData[fieldName] || '-'"
-                        readonly
-                        class="form-input readonly-input"
-                      />
-                    }
-                    <p class="field-type-hint">{{ getFieldTypeLabel(fieldDef.type) }}</p>
-                  </div>
-                }
-              } @else {
-                @for (fieldEntry of Object.entries(certificate()!.recipientData || {}); track fieldEntry[0]) {
-                  @let fieldName = fieldEntry[0];
-                  @let fieldValue = fieldEntry[1];
-                  <div class="field-item">
-                    <label class="field-label">{{ fieldName }}</label>
-                    @if (isEditing()) {
-                      <input
-                        type="text"
-                        [formControlName]="fieldName"
-                        class="form-input"
-                      />
-                    } @else {
-                      <input
-                        type="text"
-                        [value]="fieldValue || '-'"
-                        readonly
-                        class="form-input readonly-input"
-                      />
-                    }
-                  </div>
-                }
-              }
-            </div>
-          </div>
-        }
-
-        <!-- Metadata -->
-        @if (certificate()!.metadata && Object.keys(certificate()!.metadata || {}).length > 0) {
-          <div class="form-section">
-            <label class="form-label">Metadata</label>
-            <div class="metadata-display">
-              @for (metaEntry of Object.entries(certificate()!.metadata || {}); track metaEntry[0]) {
-                <div class="metadata-item">
-                  <span class="metadata-key">{{ metaEntry[0] }}:</span>
-                  <span class="metadata-value">{{ metaEntry[1] }}</span>
-                </div>
-              }
-            </div>
-          </div>
-        }
-
-        <!-- Dates -->
-        <div class="form-section grid grid-cols-2 gap-4">
-          <div>
-            <label class="form-label">Issued At</label>
-            <input
-              type="text"
-              [value]="certificate()!.issuedAt ? formatDate(certificate()!.issuedAt) : '-'"
-              readonly
-              class="form-input readonly-input"
-            />
-          </div>
-          <div>
-            <label class="form-label">Created At</label>
-            <input
-              type="text"
-              [value]="certificate()!.createdAt ? formatDate(certificate()!.createdAt) : '-'"
-              readonly
-              class="form-input readonly-input"
-            />
           </div>
         </div>
-
-        <!-- Actions -->
-        @if (isEditing()) {
-          <div class="form-actions">
-            <button
-              type="button"
-              (click)="cancelEdit()"
-              [disabled]="isSaving()"
-              class="btn-cancel"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              [disabled]="isSaving() || form.invalid"
-              class="btn-submit"
-            >
-              @if (isSaving()) {
-                <svg class="animate-spin h-4 w-4 inline-block mr-2" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving...
-              } @else {
-                Save Changes
-              }
-            </button>
-          </div>
-        }
-      </form>
+      }
     </div>
   }
 </div>

@@ -110,8 +110,13 @@
           </div>
 
           @if (isLoadingVersion()) {
-          <div class="flex items-center justify-center py-8">
-            <div class="text-gray-400">Loading template fields...</div>
+          <div class="existing-fields-container">
+            @for (i of [1,2,3,4,5]; track i) {
+              <div class="existing-field-badge">
+                <div class="w-3.5 h-3.5 bg-gray-200 rounded animate-pulse"></div>
+                <div class="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            }
           </div>
           } @else if (Object.keys(fieldSchema()).length === 0) {
           <div class="text-sm text-gray-500 py-4">
@@ -142,14 +147,23 @@
             <div>
               <span class="text-gray-500">Current Version</span>
               <p class="font-medium text-gray-900 mt-1">
-                @if (latestVersion()) {
+                @if (isLoadingVersion()) {
+                  <div class="h-5 w-12 bg-gray-200 rounded animate-pulse"></div>
+                } @else if (latestVersion()) {
                   v{{ typeof latestVersion()!.version === 'number' ? latestVersion()!.version : parseInt(latestVersion()!.version.toString(), 10) }}
                 } @else {
                   v{{ template().currentVersion || 1 }}
                 }
               </p>
             </div>
-            @if (latestVersion()) {
+            @if (isLoadingVersion()) {
+            <div>
+              <span class="text-gray-500">Version Status</span>
+              <div class="font-medium text-gray-900 mt-1">
+                <div class="h-6 w-20 bg-gray-200 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            } @else if (latestVersion()) {
             <div>
               <span class="text-gray-500">Version Status</span>
               <p class="font-medium text-gray-900 mt-1">

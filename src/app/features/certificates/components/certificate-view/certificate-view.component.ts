@@ -326,6 +326,21 @@ export class CertificateViewComponent implements OnInit {
     return null;
   }
 
+  copyToClipboard(text: string, event: Event): void {
+    event.stopPropagation();
+    
+    if (!text || text === '-') {
+      return;
+    }
+    
+    navigator.clipboard.writeText(text).then(() => {
+      this.toastService.success('Certificate number copied to clipboard');
+    }).catch((err) => {
+      console.error('Failed to copy:', err);
+      this.toastService.error('Failed to copy certificate number');
+    });
+  }
+
   private markFormGroupTouched(formGroup: FormGroup): void {
     Object.keys(formGroup.controls).forEach(key => {
       const control = formGroup.get(key);
