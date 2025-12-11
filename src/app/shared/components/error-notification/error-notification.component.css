@@ -1,0 +1,145 @@
+.error-notification-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10000; /* Higher than toast container */
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+.error-notification {
+  pointer-events: auto;
+  background-color: rgb(254 242 242); /* bg-red-50 */
+  border: 1px solid rgb(254 202 202); /* border-red-300 */
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  min-width: 300px;
+  max-width: 500px;
+  animation: slideIn 0.3s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.error-notification-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.error-notification-icon {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: rgb(239 68 68); /* text-red-500 */
+  margin-top: 0.125rem;
+}
+
+.error-notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-notification-message {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(153 27 27); /* text-red-900 */
+  margin: 0;
+  line-height: 1.5;
+}
+
+.error-notification-status {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(153 27 27);
+  background-color: rgb(254 202 202);
+  border-radius: 0.25rem;
+}
+
+.error-notification-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.error-notification-toggle,
+.error-notification-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: rgb(153 27 27);
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+  border-radius: 0.25rem;
+}
+
+.error-notification-toggle:hover,
+.error-notification-close:hover {
+  color: rgb(127 29 29); /* darker red */
+  background-color: rgb(254 202 202);
+}
+
+.error-notification-toggle:active,
+.error-notification-close:active {
+  transform: scale(0.95);
+}
+
+.chevron-icon {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.chevron-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.error-notification-details {
+  border-top: 1px solid rgb(254 202 202);
+  padding: 0.75rem 1rem;
+  background-color: rgb(255 255 255);
+  animation: expandDown 0.2s ease-out;
+}
+
+@keyframes expandDown {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 500px;
+    opacity: 1;
+  }
+}
+
+.error-notification-details-text {
+  margin: 0;
+  font-size: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  color: rgb(75 85 99); /* text-gray-600 */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.5;
+}
