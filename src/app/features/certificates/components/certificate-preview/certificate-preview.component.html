@@ -115,14 +115,8 @@
           <div class="preview-header">
             <h3 class="text-sm font-medium text-gray-700">Certificate Preview</h3>
           </div>
-          <div class="preview-iframe-container">
-            @if (safePreviewUrl()) {
-              <iframe
-                [src]="safePreviewUrl()!"
-                class="preview-iframe"
-                title="Certificate Preview"
-              ></iframe>
-            }
+          <div class="preview-pdf-container">
+            <app-pdf-viewer [pdfUrl]="previewUrl()!" [scale]="0.8" />
           </div>
         </div>
       } @else if (!isLoading() && !errorMessage()) {
