@@ -91,29 +91,54 @@
       @if (Object.keys(fieldSchema() || {}).length > 0 || Object.keys(certificate()!.recipientData || {}).length > 0) {
         <div class="mt-6 pt-6 border-t border-gray-200">
           <h3 class="text-sm font-semibold text-gray-900 mb-4">Recipient Information</h3>
-          <div class="grid grid-cols-2 gap-4">
-            @if (templateVersion() && Object.keys(fieldSchema()).length > 0) {
-              @for (fieldEntry of Object.entries(fieldSchema()); track fieldEntry[0]) {
-                @let fieldName = fieldEntry[0];
-                @let fieldDef = fieldEntry[1];
+          @if (isLoadingTemplateVersion() && Object.keys(fieldSchema()).length === 0) {
+            <!-- Skeleton while loading template version for field schema -->
+            <div class="grid grid-cols-2 gap-4">
+              @for (i of [1,2,3,4]; track i) {
                 <div>
-                  <span class="text-sm text-gray-500">{{ fieldDef.label || fieldName }}</span>
-                  <p class="text-sm font-medium text-gray-900 mt-1">
-                    {{ certificate()!.recipientData[fieldName] || '-' }}
-                  </p>
+                  <div class="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2"></div>
+                  <div class="h-5 w-32 bg-gray-200 rounded animate-pulse"></div>
                 </div>
               }
-            } @else {
-              @for (fieldEntry of Object.entries(certificate()!.recipientData || {}); track fieldEntry[0]) {
-                @let fieldName = fieldEntry[0];
-                @let fieldValue = fieldEntry[1];
-                <div>
-                  <span class="text-sm text-gray-500">{{ fieldName }}</span>
-                  <p class="text-sm font-medium text-gray-900 mt-1">{{ fieldValue || '-' }}</p>
-                </div>
+            </div>
+          } @else {
+            <div class="grid grid-cols-2 gap-4">
+              @if (templateVersion() && Object.keys(fieldSchema()).length > 0) {
+                @for (fieldEntry of Object.entries(fieldSchema()); track fieldEntry[0]) {
+                  @let fieldName = fieldEntry[0];
+                  @let fieldDef = fieldEntry[1];
+                  @let fieldValue = certificate()!.recipientData[fieldName];
+                  @let displayValue = getDisplayValue(fieldValue);
+                  <div>
+                    <span class="text-sm text-gray-500">{{ fieldDef.label || fieldName }}</span>
+                    <p class="text-sm font-medium text-gray-900 mt-1">
+                      @if (displayValue === null) {
+                        <span class="inline-block h-5 w-32 bg-gray-200 rounded animate-pulse"></span>
+                      } @else {
+                        {{ displayValue }}
+                      }
+                    </p>
+                  </div>
+                }
+              } @else {
+                @for (fieldEntry of Object.entries(certificate()!.recipientData || {}); track fieldEntry[0]) {
+                  @let fieldName = fieldEntry[0];
+                  @let fieldValue = fieldEntry[1];
+                  @let displayValue = getDisplayValue(fieldValue);
+                  <div>
+                    <span class="text-sm text-gray-500">{{ fieldName }}</span>
+                    <p class="text-sm font-medium text-gray-900 mt-1">
+                      @if (displayValue === null) {
+                        <span class="inline-block h-5 w-32 bg-gray-200 rounded animate-pulse"></span>
+                      } @else {
+                        {{ displayValue }}
+                      }
+                    </p>
+                  </div>
+                }
               }
-            }
-          </div>
+            </div>
+          }
         </div>
       }
 
