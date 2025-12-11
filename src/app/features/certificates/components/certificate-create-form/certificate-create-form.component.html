@@ -81,7 +81,7 @@
         <select formControlName="templateId" (change)="onTemplateSelected(+$any($event.target).value)" class="form-input"
           [class.error]="form.get('templateId')?.invalid && form.get('templateId')?.touched"
           [class.loading]="isLoadingTemplates() || isLoadingVersions()"
-          [disabled]="isLoadingTemplates()">
+          [disabled]="isLoadingTemplates() || isLoadingVersions()">
           <option value="">Select a template</option>
           @for (template of templates(); track template.id) {
           <option [value]="template.id">{{ template.name }}</option>
@@ -108,16 +108,30 @@
     @if (!isPreviewMode() && selectedTemplate() && templateVersions().length > 0) {
     <div class="form-section">
       <label class="form-label">Template Version <span class="text-red-500">*</span></label>
-      <select formControlName="templateVersionId" (change)="onVersionSelected($any($event.target).value)"
-        class="form-input"
-        [class.error]="form.get('templateVersionId')?.invalid && form.get('templateVersionId')?.touched">
-        <option value="">Select a version</option>
-        @for (version of templateVersions(); track version.id) {
-        <option [value]="version.id">
-          v{{ typeof version.version === 'number' ? version.version : version.version }} - {{ version.status }}
-        </option>
+      <div class="relative">
+        <select formControlName="templateVersionId" (change)="onVersionSelected($any($event.target).value)"
+          class="form-input"
+          [class.error]="form.get('templateVersionId')?.invalid && form.get('templateVersionId')?.touched"
+          [class.loading]="isLoadingVersions()"
+          [disabled]="isLoadingVersions() || isLoadingTemplates()">
+          <option value="">Select a version</option>
+          @for (version of templateVersions(); track version.id) {
+          <option [value]="version.id">
+            v{{ typeof version.version === 'number' ? version.version : version.version }} - {{ version.status }}
+          </option>
+          }
+        </select>
+        @if (isLoadingVersions()) {
+        <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+          <svg class="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
+        </div>
         }
-      </select>
+      </div>
       @if (form.get('templateVersionId')?.invalid && form.get('templateVersionId')?.touched) {
       <p class="error-text">Template version is required</p>
       }

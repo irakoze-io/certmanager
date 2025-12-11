@@ -744,16 +744,22 @@ export class DashboardComponent implements OnInit {
   }
 
   onTemplateDetailsDeleted(): void {
-    // Reload templates to reflect the change
+    // Reload templates and versions to reflect the change
     if (this.activeGridType() === 'templates') {
       this.loadTemplates();
+    }
+    if (this.activeGridType() === 'versions') {
+      this.loadVersions();
     }
   }
 
   onTemplateDetailsPublished(): void {
-    // Reload templates to reflect the change
+    // Reload templates and versions to reflect the change
     if (this.activeGridType() === 'templates') {
       this.loadTemplates();
+    }
+    if (this.activeGridType() === 'versions') {
+      this.loadVersions();
     }
   }
 
@@ -774,14 +780,21 @@ export class DashboardComponent implements OnInit {
 
   onCertificateUpdated(): void {
     // Reload certificates to reflect updates
+    // Always reload if we're viewing certificates, regardless of current grid type
     if (this.activeGridType() === 'certificates') {
       this.loadCertificates();
     }
+    // Note: Certificate updates are handled via onUpdated event from CertificateViewComponent
+    // which is wired in the template: (onUpdated)="onCertificateUpdated()"
   }
 
   onPreviewGenerated(): void {
     this.showPreviewModal.set(false);
     this.selectedVersionForPreview.set(null);
+    // Reload certificates to show the new preview certificate
+    if (this.activeGridType() === 'certificates') {
+      this.loadCertificates();
+    }
     // Optionally reload versions if needed
     if (this.activeGridType() === 'versions') {
       this.loadVersions();
