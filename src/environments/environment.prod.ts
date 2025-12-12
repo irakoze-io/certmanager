@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
-  // Same-origin (relative) URLs so HTTPS pages don't get blocked by mixed-content when the upstream is HTTP.
-  // The SSR/Node server proxies /api and /auth to the upstream backend.
+  // Production typically points to an HTTPS API domain.
+  // (If you serve the app over HTTPS, browsers will block direct calls to an HTTP-only API due to mixed content.)
   apiUrl: '',
   apiBasePath: '/api',
   authBasePath: '/auth'
