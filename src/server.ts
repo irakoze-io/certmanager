@@ -5,6 +5,8 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
+import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
 import { join } from 'node:path';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
@@ -23,6 +25,66 @@ const angularApp = new AngularNodeAppEngine();
  * });
  * ```
  */
+
+/**
+ * Proxy /api and /auth to the upstream backend (HTTP).
+ *
+ * Why: when the app is served over HTTPS, browsers block XHR/fetch calls to insecure HTTP origins.
+ * By keeping the browser requests same-origin (/api, /auth) and proxying server-side, we avoid mixed-content.
+ */
+const upstreamBaseUrl = process.env['UPSTREAM_API_URL'] ?? 'http://34.31.118.246:8080';
+const upstream = new URL(upstreamBaseUrl);
+
+app.use(['/api', '/auth'], (req, res) => {
+  const forward = upstream.protocol === 'https:' ? httpsRequest : httpRequest;
+
+  const headers: Record<string, string | string[] | undefined> = { ...req.headers };
+
+  // Ensure upstream sees the correct host and forwarding metadata.
+  headers['host'] = upstream.host;
+  headers['x-forwarded-host'] = req.headers.host;
+  headers['x-forwarded-proto'] = req.protocol;
+  headers['x-forwarded-for'] =
+    typeof req.headers['x-forwarded-for'] === 'string' && req.headers['x-forwarded-for'].length > 0
+      ? `${req.headers['x-forwarded-for']},${req.socket.remoteAddress ?? ''}`
+      : req.socket.remoteAddress;
+
+  const proxyReq = forward(
+    {
+      protocol: upstream.protocol,
+      hostname: upstream.hostname,
+      port: upstream.port || (upstream.protocol === 'https:' ? 443 : 80),
+      method: req.method,
+      path: req.originalUrl, // includes query string
+      headers,
+    },
+    (proxyRes) => {
+      if (proxyRes.statusCode) {
+        res.status(proxyRes.statusCode);
+      }
+
+      // Copy upstream headers through.
+      for (const [key, value] of Object.entries(proxyRes.headers)) {
+        if (value !== undefined) {
+          res.setHeader(key, value as string | string[]);
+        }
+      }
+
+      proxyRes.pipe(res, { end: true });
+    },
+  );
+
+  proxyReq.on('error', (err) => {
+    console.error(`API proxy error (upstream=${upstreamBaseUrl}):`, err);
+    if (!res.headersSent) {
+      res.status(502).json({ success: false, message: 'Upstream API unreachable' });
+    } else {
+      res.end();
+    }
+  });
+
+  req.pipe(proxyReq, { end: true });
+});
 
 /**
  * Serve static files from /browser
