@@ -32,7 +32,7 @@ const angularApp = new AngularNodeAppEngine();
  * Why: when the app is served over HTTPS, browsers block XHR/fetch calls to insecure HTTP origins.
  * By keeping the browser requests same-origin (/api, /auth) and proxying server-side, we avoid mixed-content.
  */
-const upstreamBaseUrl = process.env['UPSTREAM_API_URL'] ?? 'http://34.31.118.246:8080';
+/*const upstreamBaseUrl = process.env['UPSTREAM_API_URL'] ?? 'http://34.31.118.246:8080';
 const upstream = new URL(upstreamBaseUrl);
 
 app.use(['/api', '/auth'], (req, res) => {
@@ -84,7 +84,7 @@ app.use(['/api', '/auth'], (req, res) => {
   });
 
   req.pipe(proxyReq, { end: true });
-});
+});*/
 
 /**
  * Serve static files from /browser
