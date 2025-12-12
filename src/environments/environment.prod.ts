@@ -2,7 +2,7 @@ export const environment = {
   production: true,
   // Production typically points to an HTTPS API domain.
   // (If you serve the app over HTTPS, browsers will block direct calls to an HTTP-only API due to mixed content.)
-  apiUrl: '',
+  apiUrl: 'https://identifies-necessarily-ambien-casa.trycloudflare.com',
   apiBasePath: '/api',
   authBasePath: '/auth'
 };
