@@ -29,64 +29,96 @@
       <!-- Card Container -->
       <div class="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden">
         <!-- Tabs -->
-        <div class="flex border-b border-gray-200">
-          <button type="button" (click)="setActiveTab('login')" [class]="activeTab() === 'login'
-              ? 'flex-1 py-4 px-6 text-sm font-medium text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 transition-colors'
-              : 'flex-1 py-4 px-6 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors'">
-            Login
-          </button>
-          <button type="button" (click)="setActiveTab('customer')" [disabled]="isLoading()"
-            [class]="activeTab() === 'customer'
-              ? 'flex-1 py-4 px-6 text-sm font-medium text-blue-600 border-b-2 border-blue-600 bg-blue-50/50 transition-colors disabled:opacity-75'
-              : 'flex-1 py-4 px-6 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-75'">
-            @if (isLoading() && loadingStatus()) {
-            <span class="flex items-center justify-center gap-2">
-              <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <!-- Tabs -->
+        <!-- Tabs -->
+        <div class="flex justify-center pt-6 px-6 pb-2">
+          <nav class="flex p-1 space-x-1 bg-gray-50 rounded-lg" aria-label="Tabs">
+            <button type="button" (click)="setActiveTab('login')"
+              [class]="activeTab() === 'login'
+                ? 'w-32 py-2.5 text-sm font-medium leading-5 text-blue-600 bg-white rounded-md shadow ring-1 ring-black/5 transition-all'
+                : 'w-32 py-2.5 text-sm font-medium leading-5 text-gray-500 rounded-md hover:text-gray-700 hover:bg-gray-100/50 transition-all'">
+              Login
+            </button>
+            <button type="button" (click)="setActiveTab('customer')" [disabled]="isLoading()"
+              [class]="activeTab() === 'customer'
+                ? 'w-32 py-2.5 text-sm font-medium leading-5 text-blue-600 bg-white rounded-md shadow ring-1 ring-black/5 transition-all disabled:opacity-75'
+                : 'w-32 py-2.5 text-sm font-medium leading-5 text-gray-500 rounded-md hover:text-gray-700 hover:bg-gray-100/50 transition-all disabled:opacity-75'">
+              <div class="flex items-center justify-center gap-2">
+                @if (isLoading() && activeTab() === 'customer') {
+                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                  </path>
+                </svg>
+                }
+                Register
+              </div>
+            </button>
+          </nav>
+        </div>
+
+        <!-- Content Area -->
+        <div class="p-8 relative min-h-[400px]">
+          <!-- Loading Overlay -->
+          @if (isLoading() && loadingStatus()) {
+          <div [@fadeAnimation]
+            class="absolute inset-0 z-50 bg-white/90 backdrop-blur-[2px] flex flex-col items-center justify-center rounded-b-lg">
+            <div class="p-4 rounded-full bg-blue-50 mb-4">
+              <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor"
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                 </path>
               </svg>
-              {{ loadingStatus() }}
-            </span>
-            } @else {
-            Create Customer
-            }
-          </button>
-        </div>
+            </div>
+            <p class="text-gray-900 font-medium text-lg animate-pulse">{{ loadingStatus() }}</p>
+          </div>
+          }
 
-        <!-- Content Area -->
-        <div class="p-8">
           <!-- Notifications -->
           @if (errorMessage()) {
-          <app-notification type="error" [message]="errorMessage()!" />
+          <div [@fadeAnimation]>
+            <app-notification type="error" [message]="errorMessage()!" />
+          </div>
           }
           @if (warningMessage()) {
-          <app-notification type="warning" [message]="warningMessage()!" />
+          <div [@fadeAnimation]>
+            <app-notification type="warning" [message]="warningMessage()!" />
+          </div>
           }
           @if (successMessage()) {
-          <app-notification type="success" [message]="successMessage()!" />
+          <div [@fadeAnimation]>
+            <app-notification type="success" [message]="successMessage()!" />
+          </div>
           }
 
           <!-- Login Tab Content -->
           @if (activeTab() === 'login') {
-          <app-login-form [form]="loginForm" [isLoading]="isLoading()" (onSubmit)="onLoginSubmit()" />
+          <div [@fadeAnimation]>
+            <app-login-form [form]="loginForm" [isLoading]="isLoading()" (onSubmit)="onLoginSubmit()" />
+          </div>
           }
 
           <!-- Customer Creation Tab Content -->
           @if (activeTab() === 'customer' && !showUserForm()) {
-          <app-customer-form [form]="customerForm" [isLoading]="isLoading()" (onSubmit)="onCustomerSubmit()" />
+          <div [@fadeAnimation]>
+            <app-customer-form [form]="customerForm" [isLoading]="isLoading()" (onSubmit)="onCustomerSubmit()" />
+          </div>
           }
 
           <!-- User Creation Form (shown after customer creation) -->
           @if (showUserForm()) {
-          <app-user-form [form]="userForm" [isLoading]="isLoading()" [showTenantField]="!createdCustomerId()"
-            (onSubmit)="onUserSubmit()" (onSkip)="skipUserCreation()" />
+          <div [@fadeAnimation]>
+            <app-user-form [form]="userForm" [isLoading]="isLoading()" [showTenantField]="!createdCustomerId()"
+              [fixedDomain]="createdCustomerDomain()" (onSubmit)="onUserSubmit()" (onSkip)="skipUserCreation()" />
+          </div>
           }
 
           <!-- Footer Link -->
           @if (activeTab() === 'login') {
-          <div class="mt-6 text-center text-sm text-gray-600">
+          <div [@fadeAnimation] class="mt-6 text-center text-sm text-gray-600">
             <p>
               Don't have an account?
               <button type="button" (click)="onCreateNewLogin()"
@@ -95,7 +127,8 @@
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+                    d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3">
+                  </path>
                 </svg>
               </button>
             </p>

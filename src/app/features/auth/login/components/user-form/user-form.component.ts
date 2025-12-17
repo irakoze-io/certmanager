@@ -13,6 +13,7 @@ export class UserFormComponent {
   form = input.required<FormGroup>();
   isLoading = input.required<boolean>();
   showTenantField = input<boolean>(false);
+  fixedDomain = input<string | null>(null);
   showPassword = signal(false);
 
   onSubmit = output<void>();
@@ -28,6 +29,16 @@ export class UserFormComponent {
 
   onSkipClick(): void {
     this.onSkip.emit();
+  }
+
+  updateEmailWithDomain(event: Event): void {
+    const username = (event.target as HTMLInputElement).value;
+    const domain = this.fixedDomain();
+    if (domain) {
+      const fullEmail = `${username}@${domain}`;
+      this.form().get('email')?.setValue(fullEmail);
+      this.form().get('email')?.markAsTouched();
+    }
   }
 
   hasFieldError(fieldName: string): boolean {
