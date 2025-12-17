@@ -69,7 +69,17 @@ export class DataGridComponent<T = any> {
   openMenuIndex = signal<number | null>(null);
   menuStyles = signal<{ [key: string]: string }>({});
 
+  // Selection state
+  selectedItems = signal<Set<T>>(new Set());
+
   // Computed values
+  allSelected = computed(() => {
+    const data = this.paginatedData();
+    if (data.length === 0) return false;
+    const selected = this.selectedItems();
+    return data.every(item => selected.has(item));
+  });
+
   totalPages = computed(() => {
     const total = Math.ceil(this.data().length / this.itemsPerPage());
     return total === 0 ? 1 : total; // At least 1 page even if empty
@@ -228,6 +238,37 @@ export class DataGridComponent<T = any> {
     event.stopPropagation();
     this.onActionClick.emit({ action, item });
     this.openMenuIndex.set(null); // Close menu after action
+  }
+
+  toggleSelectAll(event: Event): void {
+    const isChecked = (event.target as HTMLInputElement).checked;
+    const currentData = this.paginatedData();
+    const newSelected = new Set(this.selectedItems());
+
+    if (isChecked) {
+      currentData.forEach(item => newSelected.add(item));
+    } else {
+      currentData.forEach(item => newSelected.delete(item));
+    }
+
+    this.selectedItems.set(newSelected);
+  }
+
+  toggleSelection(item: T, event: Event): void {
+    const isChecked = (event.target as HTMLInputElement).checked;
+    const newSelected = new Set(this.selectedItems());
+
+    if (isChecked) {
+      newSelected.add(item);
+    } else {
+      newSelected.delete(item);
+    }
+
+    this.selectedItems.set(newSelected);
+  }
+
+  isItemSelected(item: T): boolean {
+    return this.selectedItems().has(item);
   }
 
   toggleMenu(index: number, event: Event): void {
