@@ -50,6 +50,7 @@ export class DataGridComponent<T = any> {
   onItemsPerPageChange = output<number>();
   onRowClick = output<T>();
   onActionClick = output<{ action: string; item: T }>();
+  onDelete = output<T[]>();
 
   private sanitizer = inject(DomSanitizer);
   private toastService = inject(ToastService);
@@ -69,7 +70,17 @@ export class DataGridComponent<T = any> {
   openMenuIndex = signal<number | null>(null);
   menuStyles = signal<{ [key: string]: string }>({});
 
+  // Selection state
+  selectedItems = signal<Set<T>>(new Set());
+
   // Computed values
+  allSelected = computed(() => {
+    const data = this.paginatedData();
+    if (data.length === 0) return false;
+    const selected = this.selectedItems();
+    return data.every(item => selected.has(item));
+  });
+
   totalPages = computed(() => {
     const total = Math.ceil(this.data().length / this.itemsPerPage());
     return total === 0 ? 1 : total; // At least 1 page even if empty
@@ -137,6 +148,18 @@ export class DataGridComponent<T = any> {
       // For certificate preview action, only show if certificate is PENDING
       const status = this.getNestedValue(item, 'status');
       return status === 'PENDING';
+    } else if (action === 'retry') {
+      // Show Retry for FAILED certificates
+      const status = String(this.getNestedValue(item, 'status') || '').toUpperCase();
+      return status === 'FAILED';
+    } else if (action === 'issue') {
+      // Show Issue for PENDING (Preview) certificates
+      const status = String(this.getNestedValue(item, 'status') || '').toUpperCase();
+      return status === 'PENDING';
+    } else if (action === 'reissue') {
+      // Show Re-Issue for ISSUED certificates
+      const status = String(this.getNestedValue(item, 'status') || '').toUpperCase();
+      return status === 'ISSUED';
     }
 
     return true; // Show all other actions
@@ -144,11 +167,11 @@ export class DataGridComponent<T = any> {
 
   copyToClipboard(text: string, event: Event): void {
     event.stopPropagation(); // Prevent row click
-    
+
     if (!text || text === '-') {
       return;
     }
-    
+
     navigator.clipboard.writeText(text).then(() => {
       this.toastService.success('Certificate number copied to clipboard');
     }).catch(err => {
@@ -169,6 +192,17 @@ export class DataGridComponent<T = any> {
 
   onAddClick(): void {
     this.onAdd.emit();
+  }
+
+  onDeleteClick(): void {
+    if (this.selectedItems().size === 0) return;
+
+    this.onDelete.emit(Array.from(this.selectedItems()));
+    this.selectedItems.set(new Set()); // Reset selection after emit
+  }
+
+  clearSelection(): void {
+    this.selectedItems.set(new Set());
   }
 
   onPreviousDate(): void {
@@ -212,10 +246,48 @@ export class DataGridComponent<T = any> {
     this.onRowClick.emit(item);
   }
 
+  @HostListener('document:keydown.escape')
+  onEscapePress(): void {
+    if (this.selectedItems().size > 0) {
+      this.selectedItems.set(new Set());
+    }
+  }
+
   onActionClickHandler(action: string, item: T, event: Event): void {
     event.stopPropagation();
     this.onActionClick.emit({ action, item });
     this.openMenuIndex.set(null); // Close menu after action
+  }
+
+  toggleSelectAll(event: Event): void {
+    const isChecked = (event.target as HTMLInputElement).checked;
+    const currentData = this.paginatedData();
+    const newSelected = new Set(this.selectedItems());
+
+    if (isChecked) {
+      currentData.forEach(item => newSelected.add(item));
+    } else {
+      currentData.forEach(item => newSelected.delete(item));
+    }
+
+    this.selectedItems.set(newSelected);
+  }
+
+  toggleSelection(item: T, event: Event): void {
+    const isChecked = (event.target as HTMLInputElement).checked;
+    const newSelected = new Set(this.selectedItems());
+
+    if (isChecked) {
+      newSelected.add(item);
+    } else {
+      newSelected.delete(item);
+    }
+
+    this.selectedItems.set(newSelected);
+  }
+
+  isItemSelected(item: T): boolean {
+    return this.selectedItems().has(item);
   }
 
   toggleMenu(index: number, event: Event): void {
