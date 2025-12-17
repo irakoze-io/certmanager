@@ -137,6 +137,18 @@ export class DataGridComponent<T = any> {
       // For certificate preview action, only show if certificate is PENDING
       const status = this.getNestedValue(item, 'status');
       return status === 'PENDING';
+    } else if (action === 'retry') {
+      // Show Retry for FAILED certificates
+      const status = String(this.getNestedValue(item, 'status') || '').toUpperCase();
+      return status === 'FAILED';
+    } else if (action === 'issue') {
+      // Show Issue for PENDING (Preview) certificates
+      const status = String(this.getNestedValue(item, 'status') || '').toUpperCase();
+      return status === 'PENDING';
+    } else if (action === 'reissue') {
+      // Show Re-Issue for ISSUED certificates
+      const status = String(this.getNestedValue(item, 'status') || '').toUpperCase();
+      return status === 'ISSUED';
     }
 
     return true; // Show all other actions
@@ -144,11 +156,11 @@ export class DataGridComponent<T = any> {
 
   copyToClipboard(text: string, event: Event): void {
     event.stopPropagation(); // Prevent row click
-    
+
     if (!text || text === '-') {
       return;
     }
-    
+
     navigator.clipboard.writeText(text).then(() => {
       this.toastService.success('Certificate number copied to clipboard');
     }).catch(err => {

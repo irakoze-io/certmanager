@@ -57,6 +57,7 @@ export class DashboardComponent implements OnInit {
   showTemplateDetailsModal = signal<boolean>(false);
   showEnrichModal = signal<boolean>(false);
   showCertificateModal = signal<boolean>(false);
+  initialValues = signal<{ recipientData: any; certificateNumber?: string } | null>(null);
   showCertificateViewModal = signal<boolean>(false);
   showPreviewModal = signal<boolean>(false);
   showCertificatePreviewModal = signal<boolean>(false);
@@ -503,9 +504,19 @@ export class DashboardComponent implements OnInit {
           icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>'
         },
         {
-          label: 'Preview',
-          action: 'previewCertificate',
-          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>'
+          label: 'Retry',
+          action: 'retry',
+          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>'
+        },
+        {
+          label: 'Issue',
+          action: 'issue',
+          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>'
+        },
+        {
+          label: 'Re-Issue',
+          action: 'reissue',
+          icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>'
         }
       ]
     });
@@ -1574,6 +1585,27 @@ export class DashboardComponent implements OnInit {
             // Don't show modal on error - just show toast notification
           }
         });
+        break;
+      case 'retry':
+      case 'issue':
+      case 'reissue':
+        const actionCertData = item._original || item;
+
+        if (!actionCertData || !actionCertData.id) {
+          this.toastService.error('Invalid certificate data.');
+          return;
+        }
+
+        // Open certificate modal with pre-filled data
+        this.selectedVersionId.set(actionCertData.templateVersionId);
+
+        this.initialValues.set({
+          recipientData: actionCertData.recipientData
+          // Do NOT copy certificate number, as we want a new unique one
+        });
+
+        this.modalTitle.set(action === 'retry' ? 'Retry Certificate' : (action === 'issue' ? 'Issue Certificate' : 'Re-Issue Certificate'));
+        this.showCertificateModal.set(true);
         break;
       default:
         console.log('Unknown action:', action);

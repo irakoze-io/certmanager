@@ -26,6 +26,7 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
   // Optional inputs for preview mode
   versionId = input<string | undefined>(undefined); // If provided, pre-select this version
   isPreviewMode = input<boolean>(false); // If true, generate preview certificate
+  initialValues = input<{ recipientData: any; certificateNumber?: string } | null>(null); // For re-issuing/retrying
 
   onSuccess = output<void>();
   onCancelClick = output<void>();
@@ -104,6 +105,18 @@ export class CertificateCreateFormComponent implements OnInit, OnDestroy {
                     templateId: foundTemplate.id,
                     templateVersionId: foundVersion.id
                   });
+
+                  // If initial values provided, patch them
+                  const initialData = this.initialValues();
+                  if (initialData) {
+                    if (initialData.recipientData) {
+                      this.recipientDataForm.patchValue(initialData.recipientData);
+                    }
+                    /*if (initialData.certificateNumber) {
+                      this.form.patchValue({ certificateNumber: initialData.certificateNumber });
+                    }*/
+                  }
+
                   this.isLoadingVersions.set(false);
                 } else {
                   this.isLoadingVersions.set(false);

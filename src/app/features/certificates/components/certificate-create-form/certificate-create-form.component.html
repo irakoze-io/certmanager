@@ -11,7 +11,8 @@
   </div>
   }
 
-  @if (generatedCertificate() && (generatedCertificate()!.status === 'ISSUED' || (isPreviewMode() && generatedCertificate()!.status === 'PENDING'))) {
+  @if (generatedCertificate() && (generatedCertificate()!.status === 'ISSUED' || (isPreviewMode() &&
+  generatedCertificate()!.status === 'PENDING'))) {
   <!-- Success View -->
   <div class="flex flex-col items-center justify-center py-8 text-center animate-in fade-in duration-300">
     <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
@@ -20,13 +21,15 @@
       </svg>
     </div>
 
-    <h3 class="text-2xl font-bold text-gray-900 mb-2">@if (isPreviewMode()) { Certificate Preview Generated! } @else { Certificate Generated! }</h3>
+    <h3 class="text-2xl font-bold text-gray-900 mb-2">@if (isPreviewMode()) { Certificate Preview Generated! } @else {
+      Certificate Generated! }</h3>
     <p class="text-gray-600 mb-8 max-w-sm">
       @if (isPreviewMode()) {
-        The certificate preview has been generated successfully. Review it below before issuing.
+      The certificate preview has been generated successfully. Review it below before issuing.
       } @else {
-        The certificate has been successfully issued to
-        <span class="font-medium text-gray-900">{{ generatedCertificate()?.recipientData?.['name'] || 'the recipient' }}</span>.
+      The certificate has been successfully issued to
+      <span class="font-medium text-gray-900">{{ generatedCertificate()?.recipientData?.['name'] || 'the recipient'
+        }}</span>.
       }
     </p>
 
@@ -38,8 +41,7 @@
         </div>
         <div>
           <span class="block text-gray-500 mb-1">Status</span>
-          <span
-            [class]="generatedCertificate()!.status === 'PENDING' 
+          <span [class]="generatedCertificate()!.status === 'PENDING' 
               ? 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800'
               : 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'">
             {{ generatedCertificate()!.status }}
@@ -78,8 +80,8 @@
     <div class="form-section">
       <label class="form-label">Template <span class="text-red-500">*</span></label>
       <div class="relative">
-        <select formControlName="templateId" (change)="onTemplateSelected(+$any($event.target).value)" class="form-input"
-          [class.error]="form.get('templateId')?.invalid && form.get('templateId')?.touched"
+        <select formControlName="templateId" (change)="onTemplateSelected(+$any($event.target).value)"
+          class="form-input" [class.error]="form.get('templateId')?.invalid && form.get('templateId')?.touched"
           [class.loading]="isLoadingTemplates() || isLoadingVersions()"
           [disabled]="isLoadingTemplates() || isLoadingVersions()">
           <option value="">Select a template</option>
@@ -112,8 +114,7 @@
         <select formControlName="templateVersionId" (change)="onVersionSelected($any($event.target).value)"
           class="form-input"
           [class.error]="form.get('templateVersionId')?.invalid && form.get('templateVersionId')?.touched"
-          [class.loading]="isLoadingVersions()"
-          [disabled]="isLoadingVersions() || isLoadingTemplates()">
+          [class.loading]="isLoadingVersions()" [disabled]="isLoadingVersions() || isLoadingTemplates()">
           <option value="">Select a version</option>
           @for (version of templateVersions(); track version.id) {
           <option [value]="version.id">
@@ -236,7 +237,9 @@
         </svg>
         Cancel
       </button>
-      <button type="submit" [disabled]="isLoading() || form.invalid || isPolling() || isLoadingVersions() || isLoadingTemplates()" class="btn-submit">
+      <button type="submit"
+        [disabled]="isLoading() || form.invalid || isPolling() || isLoadingVersions() || isLoadingTemplates()"
+        class="btn-submit">
         @if (isLoading()) {
         <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -249,7 +252,7 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
         </svg>
-        <span>@if (isPreviewMode()) { Continue } @else { Generate Certificate }</span>
+        <span>@if (isPreviewMode()) { Generate Preview } @else { Issue Certificate }</span>
         }
       </button>
     </div>

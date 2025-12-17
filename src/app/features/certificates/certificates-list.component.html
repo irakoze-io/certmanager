@@ -51,5 +51,19 @@
     (onRowClick)="onRowClick($event)"
     (onActionClick)="onActionClick($event)"
   />
+
+  <!-- Create Certificate Modal -->
+  <app-modal
+    [isOpen]="showCertificateModal()"
+    [title]="modalTitle()"
+    (close)="onModalClose()"
+  >
+    <app-certificate-create-form
+      [versionId]="selectedVersionId()"
+      [initialValues]="initialValues()"
+      (certificateGenerated)="onCertificateCreated()"
+      (onCancelClick)="onModalClose()"
+    />
+  </app-modal>
 </div>
 
