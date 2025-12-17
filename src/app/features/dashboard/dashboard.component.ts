@@ -1664,6 +1664,26 @@ export class DashboardComponent implements OnInit {
     }).filter(item => item !== null);
   }
 
+  onDeleteItems(items: any[]): void {
+    const gridType = this.activeGridType();
+
+    if (gridType === 'templates') {
+      // For templates, we currently support single delete via confirmation
+      // If single item, use existing flow
+      if (items.length === 1) {
+        this.templateToDelete.set(items[0]);
+        this.showDeleteConfirmation.set(true);
+      } else {
+        this.toastService.info('Bulk deletion for templates is coming soon.');
+      }
+    } else if (gridType === 'certificates') {
+      // Implement bulk certificate deletion if API supports it
+      this.toastService.info('Bulk deletion for certificates is coming soon.');
+    } else if (gridType === 'versions') {
+      this.toastService.info('Bulk deletion for versions is coming soon.');
+    }
+  }
+
   /**
    * Get user's full name
    */

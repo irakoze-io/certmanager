@@ -80,7 +80,7 @@
       <app-data-grid [config]="gridConfig()!" [data]="filteredGridData()" [isLoading]="isLoadingGrid()"
         (onSearch)="onSearch($event)" (onFilter)="onFilter()" (onAdd)="onAdd()" (onPageChange)="onPageChange($event)"
         (onItemsPerPageChange)="onItemsPerPageChange($event)" (onRowClick)="onRowClick($event)"
-        (onActionClick)="onActionClick($event)" />
+        (onActionClick)="onActionClick($event)" (onDelete)="onDeleteItems($event)" />
     </div>
     }
 

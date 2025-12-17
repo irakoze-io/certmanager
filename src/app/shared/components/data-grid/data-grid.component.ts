@@ -50,6 +50,7 @@ export class DataGridComponent<T = any> {
   onItemsPerPageChange = output<number>();
   onRowClick = output<T>();
   onActionClick = output<{ action: string; item: T }>();
+  onDelete = output<T[]>();
 
   private sanitizer = inject(DomSanitizer);
   private toastService = inject(ToastService);
@@ -193,6 +194,17 @@ export class DataGridComponent<T = any> {
     this.onAdd.emit();
   }
 
+  onDeleteClick(): void {
+    if (this.selectedItems().size === 0) return;
+
+    this.onDelete.emit(Array.from(this.selectedItems()));
+    this.selectedItems.set(new Set()); // Reset selection after emit
+  }
+
+  clearSelection(): void {
+    this.selectedItems.set(new Set());
+  }
+
   onPreviousDate(): void {
     const newDate = new Date(this.currentDate());
     newDate.setDate(newDate.getDate() - 1);
@@ -232,6 +244,13 @@ export class DataGridComponent<T = any> {
 
   onRowClickHandler(item: T): void {
     this.onRowClick.emit(item);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapePress(): void {
+    if (this.selectedItems().size > 0) {
+      this.selectedItems.set(new Set());
+    }
   }
 
   onActionClickHandler(action: string, item: T, event: Event): void {
