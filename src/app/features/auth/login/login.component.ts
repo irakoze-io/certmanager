@@ -1,7 +1,8 @@
 import { Component, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { trigger, transition, style, animate } from '@angular/animations';
 import { AuthService } from '../../../core/services/auth.service';
 import { CustomerService } from '../../../core/services/customer.service';
 import { LoginRequest, UserRole } from '../../../core/models/auth.model';
@@ -23,7 +24,15 @@ import { UserFormComponent } from './components/user-form/user-form.component';
     UserFormComponent
   ],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.css'
+  styleUrl: './login.component.css',
+  animations: [
+    trigger('fadeAnimation', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(10px)' }),
+        animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+      ])
+    ])
+  ]
 })
 export class LoginComponent {
   activeTab = signal<'login' | 'customer'>('login');
@@ -38,6 +47,7 @@ export class LoginComponent {
   returnUrl = signal<string | null>(null);
   showUserForm = signal(false);
   createdCustomerId = signal<number | null>(null);
+  createdCustomerDomain = signal<string | null>(null);
 
   constructor(
     private fb: FormBuilder,
@@ -86,6 +96,7 @@ export class LoginComponent {
     this.loadingStatus.set(null);
     this.showUserForm.set(false);
     this.createdCustomerId.set(null); // Reset customer ID when switching tabs
+    this.createdCustomerDomain.set(null);
   }
 
   /**
@@ -95,6 +106,7 @@ export class LoginComponent {
     this.activeTab.set('customer'); // reusing customer tab container for now
     this.showUserForm.set(true);
     this.createdCustomerId.set(null); // Ensure we are in "direct user creation" mode
+    this.createdCustomerDomain.set(null);
     this.errorMessage.set(null);
     this.successMessage.set(null);
 
@@ -227,6 +239,7 @@ export class LoginComponent {
     this.customerService.createCustomer(customerRequest).subscribe({
       next: (response) => {
         this.createdCustomerId.set(response.id);
+        this.createdCustomerDomain.set(formValue.domain);
         this.successMessage.set('Customer created successfully! Now create your first user account.');
         this.isLoading.set(false);
         this.loadingStatus.set(null);
