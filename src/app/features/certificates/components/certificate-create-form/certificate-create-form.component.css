@@ -180,7 +180,7 @@ select.form-input:disabled {
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -188,10 +188,22 @@ select.form-input:disabled {
   white-space: nowrap;
   flex-shrink: 0;
   min-width: 180px;
+  box-shadow: none;
 }
 
 .btn-submit:hover:not(:disabled) {
   background-color: #1f2937;
+}
+
+.btn-submit:active:not(:disabled) {
+  background-color: #111827;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-submit:focus:not(:disabled) {
+  outline: none;
+  box-shadow: none;
 }
 
 .btn-submit:disabled {
