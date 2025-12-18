@@ -1493,8 +1493,12 @@ export class DashboardComponent implements OnInit {
           return;
         }
 
-        // Check status first - only ISSUED certificates can be viewed
-        if (viewCertData.status !== 'ISSUED') {
+        // Allow view if ISSUED or if PENDING with storage URL (preview)
+        // Check for both storagePath (from model) and storageUrl (potential backend field)
+        const hasStorage = !!(viewCertData.storagePath || viewCertData.storageUrl);
+        const canView = viewCertData.status === 'ISSUED' || (viewCertData.status === 'PENDING' && hasStorage);
+
+        if (!canView) {
           let errorMsg = 'Certificate cannot be viewed.';
           if (viewCertData.status === 'FAILED') {
             errorMsg = 'Certificate generation failed. Cannot view certificate.';
@@ -1516,13 +1520,23 @@ export class DashboardComponent implements OnInit {
               this.toastService.error('Certificate not found.');
               return;
             }
-            // Double-check status after fetching
-            if (certificate.status !== CertificateStatus.ISSUED) {
+
+            // Double-check status after fetching with the same logic
+            // Use 'any' cast to safely check for storageUrl which might not be in the interface yet
+            const certAny = certificate as any;
+            const certHasStorage = !!(certificate.storagePath || certAny.storageUrl);
+            const certCanView = certificate.status === CertificateStatus.ISSUED ||
+              (certificate.status === CertificateStatus.PENDING && certHasStorage);
+
+            if (!certCanView) {
               let errorMsg = 'Certificate cannot be viewed.';
               if (certificate.status === CertificateStatus.FAILED) {
                 errorMsg = 'Certificate generation failed. Cannot view certificate.';
               } else if (certificate.status === CertificateStatus.REVOKED) {
                 errorMsg = 'Certificate has been revoked. Cannot view certificate.';
+              } else if (certificate.status === CertificateStatus.PENDING || certificate.status === CertificateStatus.PROCESSING) {
+                // If it's pending but we're here, it means it doesn't have storage
+                errorMsg = 'Certificate is still being processed. Please wait for it to be issued.';
               } else {
                 errorMsg = `Certificate status is ${certificate.status}. Only issued certificates can be viewed.`;
               }
