@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Certmanager</title>
+  <title>Sec CERTIFICATE</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" href="/certmanager-logo.png">
@@ -15,10 +15,10 @@
         // Wait a bit for the page to load
         setTimeout(function() {
           const bodyText = document.body ? document.body.textContent || document.body.innerText : '';
-          const is404Page = bodyText.includes('Cannot GET') || 
-                           bodyText.includes('404') || 
+          const is404Page = bodyText.includes('Cannot GET') ||
+                           bodyText.includes('404') ||
                            bodyText.includes('Not Found');
-          
+
           if (is404Page && window.location.pathname !== '/login') {
             console.error('404 page detected, redirecting to login');
             // Clear any auth data
@@ -35,7 +35,7 @@
           }
         }, 500);
       }
-      
+
       // Run check when DOM is ready
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', checkFor404);
