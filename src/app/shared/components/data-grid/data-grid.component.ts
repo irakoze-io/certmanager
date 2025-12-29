@@ -113,6 +113,25 @@ export class DataGridComponent<T = any> {
     return this.sanitizer.bypassSecurityTrustHtml(icon);
   }
 
+  // Helper method to mask UUID - shows only last segment after last hyphen
+  maskUserId(userId: string | null | undefined): string {
+    if (!userId || userId === '-') {
+      return '-';
+    }
+
+    // Find the last hyphen
+    const lastHyphenIndex = userId.lastIndexOf('-');
+    if (lastHyphenIndex === -1) {
+      // No hyphens found, return as-is or mask entirely
+      return userId;
+    }
+
+    // Get the last segment (everything after the last hyphen)
+    const lastSegment = userId.substring(lastHyphenIndex + 1);
+
+    return `...${lastSegment}`;
+  }
+
   // Helper method to safely get nested property values
   formatDate = formatDate;
   formatTime = formatTime;
@@ -439,7 +458,7 @@ export class DataGridComponent<T = any> {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    // Close menu if clicking outside. 
+    // Close menu if clicking outside.
     // Note: The menu itself has (click)="$event.stopPropagation()" so this only catches outside clicks.
     if (this.openMenuIndex() !== null) {
       this.closeMenu();

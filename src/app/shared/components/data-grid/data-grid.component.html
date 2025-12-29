@@ -257,7 +257,7 @@
                   @if (getNestedValue(item, 'issuerByName') && getNestedValue(item, column.key) && getNestedValue(item,
                   column.key) !== '-') {
                   <span class="text-xs text-gray-500">
-                    {{ getNestedValue(item, column.key) }}
+                    {{ maskUserId(getNestedValue(item, column.key)) }}
                   </span>
                   }
                 </div>
