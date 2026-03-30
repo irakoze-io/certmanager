@@ -189,6 +189,8 @@ export class DashboardComponent implements OnInit {
     this.tenantId.set(tenantId);
     this.tenantSchema.set(tenantSchema);
 
+    this.onCardLinkClick('certificates');
+
     /*if (user.customerId) {
       this.customerService.getCustomerById(user.customerId).subscribe({
         next: (customer) => {
